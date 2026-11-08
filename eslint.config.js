@@ -35,7 +35,9 @@ export default [
     languageOptions: {
       globals: {
         setTimeout: "readonly",
-        clearTimeout: "readonly"
+        clearTimeout: "readonly",
+        AbortController: "readonly",
+        AbortSignal: "readonly"
       }
     }
   },

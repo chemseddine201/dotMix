@@ -8,7 +8,17 @@
 
 import { MixError } from "./errors.js";
 import { activeConfig } from "./config.js";
-import type { Equals } from "../types.js";
+import { OwnerState, type Equals, type Owner } from "../types.js";
+import {
+  getCurrentOwner,
+  setCurrentOwner,
+  disposeOwner,
+  resetOwnerCleanups,
+  routeError,
+  isComputing,
+  setComputing,
+  onCleanup
+} from "./owner.js";
 
 // --- 1. Computation and Lifecycle States (FROZEN §2.1) ---
 
@@ -21,11 +31,7 @@ export const ComputationState = {
 } as const;
 export type ComputationState = (typeof ComputationState)[keyof typeof ComputationState];
 
-export const OwnerState = {
-  ACTIVE: 0,
-  DISPOSED: 1
-} as const;
-export type OwnerState = (typeof OwnerState)[keyof typeof OwnerState];
+export { OwnerState };
 
 // --- 2. Reactive Node Interfaces ---
 
@@ -54,10 +60,11 @@ export interface ComputedNode<T = any> extends SourceNode {
   nextSources: SourceNode[] | null;
   nextSet: Set<SourceNode> | null;
   runs: number;
+  owner: Owner | null;
   (): T;
 }
 
-export interface EffectNode {
+export interface EffectNode extends Owner {
   readonly kind: "Effect";
   fn: () => void;
   state: ComputationState;
@@ -69,6 +76,13 @@ export interface EffectNode {
   disposed: boolean;
   dispose(): void;
   (): void;
+
+  parent: Owner | null;
+  children: Set<Owner> | null;
+  context: Map<symbol, unknown> | null;
+  scopeCleanups: (() => void)[] | null;
+  errorHandlers: ((err: unknown) => boolean)[] | null;
+  ownerState: OwnerState;
 }
 
 export type ObserverNode = ComputedNode | EffectNode;
@@ -121,6 +135,8 @@ export function signal<T>(value: T, equals: Equals<T> = Object.is): SignalNode<T
 // --- 5. Computed Factory ---
 
 export function computed<T>(fn: (prev: T | undefined) => T, equals: Equals<T> = Object.is): ComputedNode<T> {
+  const owner = getCurrentOwner();
+
   const node = function (): T {
     return read(node);
   } as ComputedNode<T>;
@@ -137,6 +153,14 @@ export function computed<T>(fn: (prev: T | undefined) => T, equals: Equals<T> = 
   node.nextSet = null;
   node.observers = new Set<ObserverNode>();
   node.runs = 0;
+  node.owner = owner;
+
+  // R-OW-07: Computed auto-disposes and disconnects from sources on owner disposal
+  if (owner) {
+    onCleanup(() => {
+      disposeNode(node);
+    });
+  }
 
   return node;
 }
@@ -144,8 +168,22 @@ export function computed<T>(fn: (prev: T | undefined) => T, equals: Equals<T> = 
 // --- 6. Effect Factory ---
 
 export function createEffect(fn: () => void): EffectNode {
+  // R-OW-08: Creating an effect inside computed is strictly forbidden
+  if (isComputing()) {
+    throw new MixError("MIX_RT_OWNER_IN_COMPUTED", "Creating an effect inside a computed expression is strictly forbidden.");
+  }
+
+  const owner = getCurrentOwner();
+  // R-OW-06: Emit warning in __DEV__ if called without owner
+  if (!owner) {
+    activeConfig.onWarning({
+      code: "MIX_RT_NO_OWNER",
+      message: "createEffect called without an active owner scope."
+    });
+  }
+
   const node = function (): void {
-    if (node.disposed) return;
+    if (node.disposed || node.ownerState === OwnerState.DISPOSED) return;
     runEffect(node);
   } as EffectNode;
 
@@ -158,7 +196,22 @@ export function createEffect(fn: () => void): EffectNode {
   node.runsInFlush = 0;
   node.runs = 0;
   node.disposed = false;
-  node.dispose = () => disposeNode(node);
+  node.dispose = () => disposeOwner(node);
+
+  // Owner tree linkages
+  node.parent = owner;
+  node.children = null;
+  node.context = null;
+  node.scopeCleanups = null;
+  node.errorHandlers = null;
+  node.ownerState = OwnerState.ACTIVE;
+
+  if (owner) {
+    if (!owner.children) {
+      owner.children = new Set<Owner>();
+    }
+    owner.children.add(node);
+  }
 
   queue.push(node);
 
@@ -312,6 +365,7 @@ function runComputed(c: ComputedNode): void {
   beginTracking(c);
   currentObserver = c;
   computedDepth++;
+  setComputing(true);
   c.runs++;
 
   let next: unknown;
@@ -325,6 +379,9 @@ function runComputed(c: ComputedNode): void {
     err = e;
   } finally {
     computedDepth--;
+    if (computedDepth === 0) {
+      setComputing(false);
+    }
     currentObserver = prev;
     endTracking(c);
   }
@@ -359,7 +416,7 @@ function runComputed(c: ComputedNode): void {
 // --- 11. Effect Execution: runEffect ---
 
 function runEffect(e: EffectNode): void {
-  if (e.disposed) return;
+  if (e.disposed || e.ownerState === OwnerState.DISPOSED) return;
 
   if (e.state === ComputationState.CHECK) {
     validateSources(e);
@@ -374,23 +431,32 @@ function runEffect(e: EffectNode): void {
     e.state = ComputationState.CLEAN;
     const loopErr = new MixError("MIX_RT_EFFECT_LOOP", `Exceeded maximum effect iterations per flush (${activeConfig.maxEffectRunsPerFlush}).`);
     flushErrors.push(loopErr);
-    activeConfig.onUncaughtError(loopErr);
+    routeError(e, loopErr);
     return;
   }
 
-  const prev = currentObserver;
+  // R-RX-14: Clean up nested children and cleanups before re-running
+  if (e.runs > 0) {
+    resetOwnerCleanups(e);
+  }
+
+  const prevObserver = currentObserver;
+  const prevOwner = getCurrentOwner();
+
   e.state = ComputationState.RUNNING;
   beginTracking(e);
   currentObserver = e;
+  setCurrentOwner(e);
   e.runs++;
 
   try {
     e.fn();
   } catch (err) {
     flushErrors.push(err);
-    activeConfig.onUncaughtError(err);
+    routeError(e, err);
   } finally {
-    currentObserver = prev;
+    setCurrentOwner(prevOwner);
+    currentObserver = prevObserver;
     endTracking(e);
 
     if (e.state === ComputationState.RUNNING) {
@@ -439,8 +505,13 @@ export function batch<T>(fn: () => T): T {
 // --- 13. Node Disposal (R-RX-13) ---
 
 export function disposeNode(node: ObserverNode): void {
+  if (node.kind === "Effect") {
+    disposeOwner(node as unknown as Owner);
+    return;
+  }
+
   if ("disposed" in node) {
-    node.disposed = true;
+    (node as any).disposed = true;
   }
   node.state = ComputationState.DISPOSED;
 

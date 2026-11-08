@@ -6,3 +6,5 @@
 export * from "./errors.js";
 export * from "./config.js";
 export * from "./reactivity.js";
+export * from "./owner.js";
+export * from "./cancellation.js";
