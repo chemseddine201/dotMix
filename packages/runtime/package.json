@@ -31,6 +31,10 @@
     "./dom": {
       "types": "./dist/dom/index.d.ts",
       "import": "./dist/dom/index.js"
+    },
+    "./hmr": {
+      "types": "./dist/hmr/index.d.ts",
+      "import": "./dist/hmr/index.js"
     }
   },
   "types": "./dist/index.d.ts",
