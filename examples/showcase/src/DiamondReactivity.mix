@@ -1,0 +1,128 @@
+<script>
+  let baseValue = signal(10);
+  let step = signal(1);
+
+  function increment() {
+    baseValue.set((v) => v + step());
+  }
+
+  function decrement() {
+    baseValue.set((v) => v - step());
+  }
+
+  function resetBase() {
+    baseValue.set(10);
+  }
+</script>
+
+<style>
+  .reactivity-card {
+    background: #181825;
+    border: 1px solid #313244;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #313244;
+  }
+  .card-title {
+    font-size: 1.25rem;
+    color: #cdd6f4;
+    font-weight: 700;
+  }
+  .badge-graph {
+    background: #313244;
+    color: #cba6f7;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    border: 1px solid #cba6f7;
+  }
+  .graph-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .graph-node {
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: #1e1e2e;
+    border: 1px solid #89b4fa;
+    color: #cdd6f4;
+    font-family: monospace;
+    font-size: 0.95rem;
+    text-align: center;
+    min-width: 180px;
+  }
+  .graph-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+  }
+  .graph-node-computed {
+    border-color: #f9e2af;
+  }
+  .graph-node-root {
+    border-color: #a6e3a1;
+  }
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .btn-ctrl {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #45475a;
+    background: #313244;
+    color: #cdd6f4;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .btn-ctrl:hover {
+    background: #45475a;
+    border-color: #89b4fa;
+  }
+</style>
+
+<div class="reactivity-card">
+  <div class="card-header">
+    <h3 class="card-title">Push-Pull Reactive Scheduler (Diamond Graph)</h3>
+    <span class="badge-graph">5-State Push-Pull</span>
+  </div>
+
+  <div class="graph-container">
+    <div class="graph-node graph-node-root">
+      <div>Source Signal A: <strong>{baseValue()}</strong></div>
+    </div>
+
+    <div class="graph-row">
+      <div class="graph-node graph-node-computed">
+        <div>B (A * 2): <strong>{baseValue() * 2}</strong></div>
+      </div>
+      <div class="graph-node graph-node-computed">
+        <div>C (A + 10): <strong>{baseValue() + 10}</strong></div>
+      </div>
+    </div>
+
+    <div class="graph-node graph-node-computed">
+      <div>D (B + C): <strong>{baseValue() * 2 + (baseValue() + 10)}</strong></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-ctrl" @click={decrement}>- Decrease A</button>
+    <button class="btn-ctrl" @click={increment}>+ Increase A</button>
+    <button class="btn-ctrl" @click={resetBase}>Reset to 10</button>
+  </div>
+</div>

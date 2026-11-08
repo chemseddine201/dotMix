@@ -1,36 +1,24 @@
-import { createRoot, createEffect, setSanitizerProvider } from "@mix/runtime";
-import { createRouter } from "@mix/router";
-
+import { createRoot, createEffect } from "@mix/runtime";
+import { setSanitizerProvider } from "@mix/runtime";
 import { Header } from "./Header.js";
 import { App } from "./App.js";
-import { Counter } from "./Counter.js";
-import { DynamicCard } from "./DynamicCard.js";
+import { DiamondReactivity } from "./DiamondReactivity.js";
 import { TodoList } from "./TodoList.js";
+import { AsyncCancellation } from "./AsyncCancellation.js";
+import { DynamicCard } from "./DynamicCard.js";
 import { SecurityDemo } from "./SecurityDemo.js";
+import { TypeSafeCard } from "./TypeSafeCard.js";
 
-// 1. Register Trusted Sanitizer Provider (D-109)
+// 1. Register Trusted Sanitizer Provider (D-109 / §6.4)
 setSanitizerProvider({
   sanitizeHtml(raw) {
-    // Strip scripts and inline event attributes for safety
     return String(raw)
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "");
   }
 });
 
-// 2. Initialize Client-Side Router
-export const router = createRouter({
-  initialPath: typeof window !== "undefined" && window.location.pathname.length > 1 ? window.location.pathname : "/all",
-  routes: [
-    { path: "/all" },
-    { path: "/counter" },
-    { path: "/dynamic" },
-    { path: "/todos" },
-    { path: "/security" }
-  ]
-});
-
-// 3. Mount Application Root
+// 2. Mount Application Root
 export function mountApplication(container = (typeof document !== "undefined" ? document.getElementById("app") : null)) {
   if (!container) return null;
   container.innerHTML = "";
@@ -47,21 +35,25 @@ export function mountApplication(container = (typeof document !== "undefined" ? 
     const grid = appInstance.element.querySelector("#showcase-grid");
 
     // Instantiate Showcase Components
-    const counterInstance = Counter();
-    const dynamicInstance = DynamicCard();
+    const reactivityInstance = DiamondReactivity();
     const todoInstance = TodoList();
+    const cancellationInstance = AsyncCancellation();
+    const dynamicInstance = DynamicCard();
     const securityInstance = SecurityDemo();
+    const typeSafeInstance = TypeSafeCard();
 
     const sections = [
-      { id: "counter", el: counterInstance.element },
-      { id: "dynamic", el: dynamicInstance.element },
+      { id: "reactivity", el: reactivityInstance.element },
       { id: "todos", el: todoInstance.element },
-      { id: "security", el: securityInstance.element }
+      { id: "cancellation", el: cancellationInstance.element },
+      { id: "dynamic", el: dynamicInstance.element },
+      { id: "security", el: securityInstance.element },
+      { id: "typesafe", el: typeSafeInstance.element }
     ];
 
     // Reactive View Filtering based on activeTab
     createEffect(() => {
-      const activeTab = appInstance.activeTab();
+      const activeTab = appInstance.activeTab ? appInstance.activeTab() : "all";
       if (!grid) return;
       grid.innerHTML = "";
 
@@ -76,10 +68,12 @@ export function mountApplication(container = (typeof document !== "undefined" ? 
       dispose,
       headerInstance,
       appInstance,
-      counterInstance,
-      dynamicInstance,
+      reactivityInstance,
       todoInstance,
-      securityInstance
+      cancellationInstance,
+      dynamicInstance,
+      securityInstance,
+      typeSafeInstance
     };
   });
 }
@@ -92,4 +86,3 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     mountApplication();
   }
 }
-

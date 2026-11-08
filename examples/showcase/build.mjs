@@ -2,12 +2,17 @@
 
 /**
  * Mix / Tix Showcase Application Build Script
+ * Fully upgraded for Mix v3.2.2 AOT Direct DOM compilation and .tix type projection.
  */
 
 import { readdirSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
-import { resolve, join, basename } from "node:path";
+import { resolve, join } from "node:path";
 import { parse } from "../../packages/compiler-frontend/dist/index.js";
-import { analyze } from "../../packages/compiler-semantic/dist/index.js";
+import {
+  analyze,
+  generateTypeProjection,
+  validateSpanTableCoverage
+} from "../../packages/compiler-semantic/dist/index.js";
 import { generate } from "../../packages/compiler-codegen/dist/index.js";
 
 const rootDir = resolve("examples/showcase");
@@ -17,14 +22,14 @@ const distDir = join(rootDir, "dist");
 mkdirSync(distDir, { recursive: true });
 
 console.log("================================================================================");
-console.log(" Building Mix / Tix Showcase Application");
+console.log(" Building Mix / Tix v3.2.2 Showcase Application");
 console.log("================================================================================");
 
 const startTime = performance.now();
 const files = readdirSync(srcDir);
 const mixFiles = files.filter((f) => f.endsWith(".mix") || f.endsWith(".tix"));
 
-let combinedCss = `/* Mix / Tix Framework v1.0.0-rc.1 Showcase CSS Bundle */\n\n`;
+let combinedCss = `/* Mix / Tix Framework v3.2.2 Showcase CSS Bundle */\n\n`;
 let compiledCount = 0;
 
 for (const file of mixFiles) {
@@ -39,6 +44,14 @@ for (const file of mixFiles) {
     for (const d of descriptor.diagnostics) {
       console.warn(`[${d.severity}] ${file}: ${d.message}`);
     }
+  }
+
+  // If .tix file: generate virtual TypeScript projection & verify span coverage (R-SP-05, R-RS-02)
+  if (file.endsWith(".tix")) {
+    const projection = generateTypeProjection(ast);
+    validateSpanTableCoverage(projection.spans, projection.code.length);
+    writeFileSync(join(distDir, `${componentName}.tix.ts`), projection.code, "utf8");
+    console.log(`✓ Projected: ${file} -> dist/${componentName}.tix.ts (Span Table 100% verified)`);
   }
 
   const result = generate(descriptor, {
@@ -62,22 +75,21 @@ for (const file of mixFiles) {
   }
 
   compiledCount++;
-  console.log(`✓ Compiled: ${file} -> dist/${componentName}.js`);
+  console.log(`✓ Compiled:  ${file} -> dist/${componentName}.js`);
 }
 
 // Copy main.js to dist
 const mainSrc = join(srcDir, "main.js");
 const mainDist = join(distDir, "main.js");
 copyFileSync(mainSrc, mainDist);
-console.log(`✓ Copied:   main.js -> dist/main.js`);
+console.log(`✓ Copied:    main.js -> dist/main.js`);
 
 // Write concatenated bundle.css
 const bundleCssPath = join(distDir, "bundle.css");
 writeFileSync(bundleCssPath, combinedCss, "utf8");
-console.log(`✓ Bundled:  dist/bundle.css`);
+console.log(`✓ Bundled:   dist/bundle.css`);
 
 const elapsed = (performance.now() - startTime).toFixed(2);
 console.log("--------------------------------------------------------------------------------");
 console.log(`Build complete! ${compiledCount} components compiled in ${elapsed}ms.`);
 console.log("================================================================================");
-

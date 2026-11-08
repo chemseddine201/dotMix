@@ -1,69 +1,118 @@
 <script>
-  let newTodoText = signal("Explore Mix / Tix compiler");
-  let todoCount = signal(3);
-  let completedCount = signal(1);
+  let tasks = signal([
+    { id: 1, text: "Explore Mix / Tix AOT compiler", done: true },
+    { id: 2, text: "Verify 5-state Push-Pull reactive scheduler", done: false },
+    { id: 3, text: "Test O(N log N) LIS keyed reconciliation", done: false },
+    { id: 4, text: "Validate WHATWG security and sanitizers", done: false }
+  ]);
+  let nextId = signal(5);
 
-  function markCompleted() {
-    completedCount.set((c) => c + 1);
+  function addTask() {
+    const id = nextId();
+    nextId.set((n) => n + 1);
+    tasks.set((list) => [
+      ...list,
+      { id, text: "New task #" + id, done: false }
+    ]);
   }
 
-  function resetAll() {
-    completedCount.set(0);
-    todoCount.set(0);
+  function removeFirst() {
+    tasks.set((list) => list.slice(1));
+  }
+
+  function reverseTasks() {
+    tasks.set((list) => [...list].reverse());
+  }
+
+  function shuffleTasks() {
+    tasks.set((list) => {
+      const copy = [...list];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
+    });
+  }
+
+  function toggleFirst() {
+    tasks.set((list) => {
+      if (list.length === 0) return list;
+      return [
+        { ...list[0], done: !list[0].done },
+        ...list.slice(1)
+      ];
+    });
   }
 </script>
 
 <style>
-  .todo-container {
+  .todo-card {
     background: #181825;
     border: 1px solid #313244;
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    max-width: 480px;
   }
-  .header {
+  .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #313244;
+    margin-bottom: 16px;
     padding-bottom: 12px;
+    border-bottom: 1px solid #313244;
   }
-  .title {
-    margin: 0;
+  .card-title {
     font-size: 1.25rem;
     color: #cdd6f4;
+    font-weight: 700;
   }
-  .badge {
+  .badge-algo {
     background: #313244;
     color: #a6e3a1;
     padding: 4px 10px;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-family: monospace;
+    border: 1px solid #a6e3a1;
   }
-  .stats-bar {
+  .action-toolbar {
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 10px 14px;
-    background: #11111b;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    color: #a6adc8;
-  }
-  .stat-val {
-    font-weight: 700;
-    color: #89b4fa;
-  }
-  .todo-list {
-    display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 16px;
   }
-  .todo-item {
+  .btn-action {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #45475a;
+    background: #313244;
+    color: #cdd6f4;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-action:hover {
+    background: #45475a;
+    border-color: #89b4fa;
+  }
+  .btn-primary {
+    background: #89b4fa;
+    color: #11111b;
+    border-color: #89b4fa;
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: #b4befe;
+  }
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .task-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -74,69 +123,32 @@
     color: #cdd6f4;
     font-size: 0.9rem;
   }
-  .todo-item-done {
+  .task-done {
     text-decoration: line-through;
     opacity: 0.6;
   }
-  .check-btn {
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #a6e3a1;
-    background: transparent;
-    color: #a6e3a1;
-    font-size: 0.75rem;
-    cursor: pointer;
-  }
-  .check-btn:hover {
-    background: #a6e3a1;
-    color: #11111b;
-  }
-  .reset-row {
-    display: flex;
-    justify-content: flex-end;
-  }
-  .btn-clear {
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid #45475a;
-    background: #313244;
-    color: #cdd6f4;
-    cursor: pointer;
-    font-size: 0.8rem;
-  }
-  .btn-clear:hover {
-    background: #45475a;
-  }
 </style>
 
-<div class="todo-container">
-  <div class="header">
-    <h3 class="title">Reconciliation and State (D-110)</h3>
-    <span class="badge">Fine-Grained DOM</span>
+<div class="todo-card">
+  <div class="card-header">
+    <h3 class="card-title">Keyed List Reconciliation (LIS O(N log N))</h3>
+    <span class="badge-algo">6-Step Diff</span>
   </div>
 
-  <div class="stats-bar">
-    <div>Total Tasks: <span class="stat-val">{todoCount()}</span></div>
-    <div>Completed: <span class="stat-val">{completedCount()}</span></div>
+  <div class="action-toolbar">
+    <button class="btn-action btn-primary" @click={addTask}>+ Add Task</button>
+    <button class="btn-action" @click={removeFirst}>Remove Top</button>
+    <button class="btn-action" @click={reverseTasks}>Reverse Order</button>
+    <button class="btn-action" @click={shuffleTasks}>Shuffle LIS</button>
+    <button class="btn-action" @click={toggleFirst}>Toggle Top</button>
   </div>
 
-  <div class="todo-list">
-    <div class="todo-item todo-item-done">
-      <span>Zero Virtual DOM architecture</span>
-      <span class="badge">Done</span>
-    </div>
-    <div class="todo-item">
-      <span>Deterministic direct DOM code generation</span>
-      <button class="check-btn" @click={markCompleted}>Complete</button>
-    </div>
-    <div class="todo-item">
-      <span>Verify live state preservation during HMR</span>
-      <button class="check-btn" @click={markCompleted}>Complete</button>
-    </div>
-  </div>
-
-  <div class="reset-row">
-    <button class="btn-clear" @click={resetAll}>Reset Counts</button>
+  <div class="task-list">
+    {#each tasks() as task (task.id)}
+      <div class="task-item">
+        <span>{task.text}</span>
+        <span class="badge-algo">{task.done ? "Completed" : "Active"}</span>
+      </div>
+    {/each}
   </div>
 </div>
-

@@ -31,7 +31,9 @@ import {
 } from "@mix/ast";
 
 import { MixError } from "@mix/runtime/core";
-import { parseTSExpression, assertDynamicCloseMatch } from "./parser/index.js";
+import { parseTSExpression, assertDynamicCloseMatch, TSParser } from "./parser/index.js";
+
+export { TSParser, parseTSExpression, assertDynamicCloseMatch };
 
 export * from "./parser/index.js";
 
@@ -195,9 +197,14 @@ export function parse(source: string, options: ParseOptions | string = "Componen
   const scriptMatch = /<script(?:\s+lang=["'](ts|js)["'])?(?:\s+[^>]*)?>([\s\S]*?)<\/script>/i.exec(cleanSource);
   if (scriptMatch) {
     const lang = (scriptMatch[1] as "ts" | "js") || undefined;
-    const content = scriptMatch[2]!.trim();
-    const span = createSourceSpan(scriptMatch.index, scriptMatch.index + scriptMatch[0].length, filename);
-    scriptNode = createScriptBlockNode(content, span, lang);
+    const rawContent = scriptMatch[2]!;
+    const trimmed = rawContent.trim();
+    const openTagLen = scriptMatch[0].indexOf(">") + 1;
+    const trimOffset = rawContent.indexOf(trimmed);
+    const contentStart = scriptMatch.index + openTagLen + (trimOffset >= 0 ? trimOffset : 0);
+    const contentEnd = contentStart + trimmed.length;
+    const span = createSourceSpan(contentStart, contentEnd, filename);
+    scriptNode = createScriptBlockNode(trimmed, span, lang);
     cleanSource = cleanSource.slice(0, scriptMatch.index) + " ".repeat(scriptMatch[0].length) + cleanSource.slice(scriptMatch.index + scriptMatch[0].length);
   }
 
@@ -205,9 +212,14 @@ export function parse(source: string, options: ParseOptions | string = "Componen
   const styleMatch = /<style(?:\s+(scoped))?(?:\s+[^>]*)?>([\s\S]*?)<\/style>/i.exec(cleanSource);
   if (styleMatch) {
     const scoped = Boolean(styleMatch[1]) || true;
-    const content = styleMatch[2]!.trim();
-    const span = createSourceSpan(styleMatch.index, styleMatch.index + styleMatch[0].length, filename);
-    styleNode = createStyleBlockNode(content, span, scoped);
+    const rawContent = styleMatch[2]!;
+    const trimmed = rawContent.trim();
+    const openTagLen = styleMatch[0].indexOf(">") + 1;
+    const trimOffset = rawContent.indexOf(trimmed);
+    const contentStart = styleMatch.index + openTagLen + (trimOffset >= 0 ? trimOffset : 0);
+    const contentEnd = contentStart + trimmed.length;
+    const span = createSourceSpan(contentStart, contentEnd, filename);
+    styleNode = createStyleBlockNode(trimmed, span, scoped);
     cleanSource = cleanSource.slice(0, styleMatch.index) + " ".repeat(styleMatch[0].length) + cleanSource.slice(styleMatch.index + styleMatch[0].length);
   }
 

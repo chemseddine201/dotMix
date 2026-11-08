@@ -1,0 +1,78 @@
+<script lang="ts">
+  let localState = signal(42);
+
+  function doubleCount() {
+    localState.set((c) => c * 2);
+  }
+</script>
+
+<style>
+  .ts-card {
+    background: #181825;
+    border: 1px solid #89b4fa;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #313244;
+  }
+  .card-title {
+    font-size: 1.25rem;
+    color: #89b4fa;
+    font-weight: 700;
+  }
+  .ts-badge {
+    background: #89b4fa;
+    color: #11111b;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    font-weight: 700;
+  }
+  .desc {
+    color: #a6adc8;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .val-row {
+    font-family: monospace;
+    color: #cdd6f4;
+    margin-bottom: 16px;
+    font-size: 1rem;
+  }
+  .btn-double {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: #89b4fa;
+    color: #11111b;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .btn-double:hover {
+    background: #b4befe;
+  }
+</style>
+
+<div class="ts-card">
+  <div class="card-header">
+    <h3 class="card-title">.tix TypeScript Component (§5)</h3>
+    <span class="ts-badge">Virtual TS Projection</span>
+  </div>
+  <p class="desc">
+    Compiled from Ahead-of-Time .tix file with 1:1 Span Table and 100% byte coverage verification.
+  </p>
+  <div class="val-row">
+    Reactive Multiplier: <strong>{localState()}</strong>
+  </div>
+  <button class="btn-double" @click={doubleCount}>Double Multiplier</button>
+</div>

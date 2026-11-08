@@ -11,6 +11,7 @@ import type {
   DynamicElementNode,
   ElementNode
 } from "@mix/ast";
+import { TSParser } from "@mix/compiler-frontend";
 
 export interface SemanticDiagnostic {
   readonly code: string;
@@ -179,66 +180,89 @@ export function analyze(ast: ComponentNode): ComponentDescriptor {
     symbols: new Map()
   };
 
-  // 1. Analyze script block: Extract signals and declared identifiers
+  // 1. Analyze script block: Extract signals, methods, and declared identifiers via ESTree AST (AGENTS.md Part I)
   if (ast.script) {
     const content = ast.script.content;
+    try {
+      const parsed = TSParser.parse(content, {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        locations: true
+      }) as any;
 
-    // Extract signals: let <name> = signal(<init>);
-    const signalRegex = /(?:let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*signal\(([^)]*)\)/g;
-    let match: RegExpExecArray | null;
-
-    while ((match = signalRegex.exec(content)) !== null) {
-      const name = match[1]!;
-      const initCode = match[2]?.trim() ?? "undefined";
-      signals.push({
-        name,
-        initialValueCode: initCode,
-        span: ast.script.span
-      });
-      rootScope.symbols.set(name, {
-        name,
-        kind: "signal",
-        scopeId: rootScope.id
-      });
-    }
-
-    // Extract props declarations in .tix or .mix: props: { ... } or export let <name>
-    const propRegex = /export\s+let\s+([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s*:\s*([^=;]+))?(?:\s*=\s*([^;]+))?/g;
-    while ((match = propRegex.exec(content)) !== null) {
-      const name = match[1]!;
-      const typeAnnotation = match[2]?.trim();
-      const defaultValueCode = match[3]?.trim();
-      props.push({ name, typeAnnotation, defaultValueCode });
-      rootScope.symbols.set(name, {
-        name,
-        kind: "prop",
-        scopeId: rootScope.id
-      });
-    }
-
-    // Extract function/method declarations for stable scope HMR (D-111)
-    const funcRegex = /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)\s*\{([^}]*)\}/g;
-    while ((match = funcRegex.exec(content)) !== null) {
-      const name = match[1]!;
-      methods.push({ name, code: match[0] });
-      rootScope.symbols.set(name, {
-        name,
-        kind: "variable",
-        scopeId: rootScope.id
-      });
-    }
-
-    const arrowFuncRegex = /(?:let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*\{[^}]*\}/g;
-    while ((match = arrowFuncRegex.exec(content)) !== null) {
-      const name = match[1]!;
-      if (!signals.some((s) => s.name === name)) {
-        methods.push({ name, code: match[0] });
-        rootScope.symbols.set(name, {
-          name,
-          kind: "variable",
-          scopeId: rootScope.id
-        });
+      for (const stmt of parsed.body) {
+        if (stmt.type === "VariableDeclaration") {
+          for (const decl of stmt.declarations) {
+            if (decl.id && decl.id.type === "Identifier") {
+              const name = decl.id.name;
+              // Check if signal: let x = signal(...)
+              if (
+                decl.init &&
+                decl.init.type === "CallExpression" &&
+                decl.init.callee &&
+                decl.init.callee.type === "Identifier" &&
+                decl.init.callee.name === "signal"
+              ) {
+                const initArg = decl.init.arguments[0];
+                const initCode = initArg ? content.slice(initArg.start, initArg.end) : "undefined";
+                signals.push({
+                  name,
+                  initialValueCode: initCode,
+                  span: ast.script.span
+                });
+                rootScope.symbols.set(name, {
+                  name,
+                  kind: "signal",
+                  scopeId: rootScope.id
+                });
+              } else if (
+                decl.init &&
+                (decl.init.type === "ArrowFunctionExpression" || decl.init.type === "FunctionExpression")
+              ) {
+                methods.push({
+                  name,
+                  code: content.slice(stmt.start, stmt.end)
+                });
+                rootScope.symbols.set(name, {
+                  name,
+                  kind: "variable",
+                  scopeId: rootScope.id
+                });
+              }
+            }
+          }
+        } else if (stmt.type === "FunctionDeclaration") {
+          if (stmt.id && stmt.id.name) {
+            const name = stmt.id.name;
+            methods.push({
+              name,
+              code: content.slice(stmt.start, stmt.end)
+            });
+            rootScope.symbols.set(name, {
+              name,
+              kind: "variable",
+              scopeId: rootScope.id
+            });
+          }
+        } else if (stmt.type === "ExportNamedDeclaration") {
+          if (stmt.declaration && stmt.declaration.type === "VariableDeclaration") {
+            for (const decl of stmt.declaration.declarations) {
+              if (decl.id && decl.id.type === "Identifier") {
+                const name = decl.id.name;
+                const defaultValueCode = decl.init ? content.slice(decl.init.start, decl.init.end) : undefined;
+                props.push({ name, defaultValueCode });
+                rootScope.symbols.set(name, {
+                  name,
+                  kind: "prop",
+                  scopeId: rootScope.id
+                });
+              }
+            }
+          }
+        }
       }
+    } catch {
+      // Fallback gracefully if parsing encounters unexpected syntax
     }
   }
 

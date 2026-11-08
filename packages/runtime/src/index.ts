@@ -1059,3 +1059,54 @@ export function applyHmrUpdate(
     }
   }
 }
+
+// v3.2.2 Subsystem Exports
+export {
+  renderKeyedList,
+  isSameKey,
+  getSequence,
+  insertTrustedHtml
+} from "./dom/index.js";
+
+export {
+  flushSync
+} from "./core/reactivity.js";
+
+export {
+  isAllowedUrl,
+  assertAllowedUrl,
+  validateSrcset,
+  createTrustedHtml,
+  isTrustedHtml
+} from "./security/index.js";
+
+export {
+  toAbortSignal,
+  fromAbortSignal
+} from "./platform/index.js";
+
+export {
+  registerHmrInstance,
+  createTrampoline,
+  type HmrComponentRecord
+} from "./hmr/index.js";
+
+export {
+  createCancellationTokenSource,
+  neverCancelledToken,
+  type CancellationToken as ICancellationToken,
+  type CancellationTokenSource
+} from "./core/cancellation.js";
+
+export {
+  configureRuntime,
+  resetRuntimeConfig,
+  type RuntimeConfig
+} from "./core/config.js";
+
+export {
+  MixError,
+  MIX_ERROR_CODES,
+  type MixErrorCode
+} from "./core/errors.js";
+

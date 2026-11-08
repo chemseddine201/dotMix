@@ -47,7 +47,7 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
   }
 
   // 2. Imports from @mix/runtime
-  lines.push('import { createElement, createTextNode, createEffect, signal, onCleanup, createRoot, setTrustedHtml, setSafeSrcset, setSafeStyleProperty } from "@mix/runtime";');
+  lines.push('import { createElement, createTextNode, createEffect, signal, onCleanup, createRoot, setTrustedHtml, setSafeSrcset, setSafeStyleProperty, renderKeyedList } from "@mix/runtime";');
   lines.push("");
 
   // 3. Exported Component Factory (D-106, D-111)
@@ -207,7 +207,99 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
 
       lines.push("  createEffect(() => {");
       lines.push(`    const __items = ${eachNode.items.code};`);
-      lines.push("    // Keyed reconciliation loop (D-110)");
+      const keyFn = eachNode.keyExpression
+        ? `(${eachNode.itemBinding}, ${eachNode.indexBinding || "_idx"}) => (${eachNode.keyExpression.code})`
+        : `(${eachNode.itemBinding}) => ${eachNode.itemBinding}.id ?? ${eachNode.itemBinding}`;
+
+      lines.push(`    renderKeyedList(${parentName || "null"}, ${anchorName}, __items, ${keyFn}, (__itemSig, __idxSig) => {`);
+      lines.push(`      const ${eachNode.itemBinding} = typeof __itemSig === "function" ? __itemSig() : __itemSig.value;`);
+      if (eachNode.indexBinding) {
+        lines.push(`      const ${eachNode.indexBinding} = typeof __idxSig === "function" ? __idxSig() : __idxSig.value;`);
+      }
+
+      function emitItemChild(childNode: TemplateChildNode, currentParent: string) {
+        if (childNode.type === "Element") {
+          const childEl = childNode as ElementNode;
+          const childName = `el${elemIndex++}`;
+          lines.push(`      const ${childName} = createElement("${childEl.tag}");`);
+          if (scopeId) {
+            lines.push(`      ${childName}.setAttribute("${scopeId}", "");`);
+          }
+          for (const attr of childEl.attributes) {
+            if (attr.type === "StaticAttribute") {
+              lines.push(`      ${childName}.setAttribute("${attr.name}", ${JSON.stringify(attr.value)});`);
+            } else if (attr.type === "DynamicAttribute") {
+              lines.push("      createEffect(() => {");
+              lines.push(`        const __val = ${attr.expression.code};`);
+              lines.push(`        if (typeof __val === "boolean") {`);
+              lines.push(`          if (__val) ${childName}.setAttribute("${attr.name}", "");`);
+              lines.push(`          else ${childName}.removeAttribute("${attr.name}");`);
+              lines.push("        } else {");
+              lines.push(`          ${childName}.setAttribute("${attr.name}", String(__val));`);
+              lines.push("        }");
+              lines.push("      });");
+            } else if (attr.type === "EventBinding") {
+              lines.push(`      ${childName}.addEventListener("${attr.eventName}", ($event) => {`);
+              lines.push(`        const __fn = __scope["${attr.handler.code}"] ?? (${attr.handler.code});`);
+              lines.push(`        __fn.call(__scope, $event);`);
+              lines.push("      });");
+            }
+          }
+          lines.push(`      ${currentParent}.appendChild(${childName});`);
+          for (const nested of childEl.children) {
+            emitItemChild(nested, childName);
+          }
+        } else if (childNode.type === "Text") {
+          const tName = `t${textIndex++}`;
+          lines.push(`      const ${tName} = createTextNode(${JSON.stringify((childNode as TextNode).value)});`);
+          lines.push(`      ${currentParent}.appendChild(${tName});`);
+        } else if (childNode.type === "Interpolation") {
+          const tName = `t${textIndex++}`;
+          lines.push(`      const ${tName} = createTextNode("");`);
+          lines.push(`      ${currentParent}.appendChild(${tName});`);
+          lines.push("      createEffect(() => {");
+          lines.push(`        ${tName}.data = String(${(childNode as InterpolationNode).expression.code});`);
+          lines.push("      });");
+        }
+      }
+
+      let itemRootName = "";
+      for (const child of eachNode.body) {
+        if (child.type === "Element") {
+          const el = child as ElementNode;
+          const elName = `el${elemIndex++}`;
+          if (!itemRootName) itemRootName = elName;
+          lines.push(`      const ${elName} = createElement("${el.tag}");`);
+          if (scopeId) {
+            lines.push(`      ${elName}.setAttribute("${scopeId}", "");`);
+          }
+          for (const attr of el.attributes) {
+            if (attr.type === "StaticAttribute") {
+              lines.push(`      ${elName}.setAttribute("${attr.name}", ${JSON.stringify(attr.value)});`);
+            } else if (attr.type === "DynamicAttribute") {
+              lines.push("      createEffect(() => {");
+              lines.push(`        const __val = ${attr.expression.code};`);
+              lines.push(`        if (typeof __val === "boolean") {`);
+              lines.push(`          if (__val) ${elName}.setAttribute("${attr.name}", "");`);
+              lines.push(`          else ${elName}.removeAttribute("${attr.name}");`);
+              lines.push("        } else {");
+              lines.push(`          ${elName}.setAttribute("${attr.name}", String(__val));`);
+              lines.push("        }");
+              lines.push("      });");
+            } else if (attr.type === "EventBinding") {
+              lines.push(`      ${elName}.addEventListener("${attr.eventName}", ($event) => {`);
+              lines.push(`        const __fn = __scope["${attr.handler.code}"] ?? (${attr.handler.code});`);
+              lines.push(`        __fn.call(__scope, $event);`);
+              lines.push("      });");
+            }
+          }
+          for (const nested of el.children) {
+            emitItemChild(nested, elName);
+          }
+        }
+      }
+      lines.push(`      return ${itemRootName || "createTextNode('')"};`);
+      lines.push("    });");
       lines.push("  });");
     }
   }
