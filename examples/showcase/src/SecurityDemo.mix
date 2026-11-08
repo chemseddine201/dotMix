@@ -100,3 +100,4 @@
     <button class="color-btn" @click={setAmber}>Slate Background</button>
   </div>
 </div>
+
