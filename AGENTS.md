@@ -74,3 +74,4 @@ mix-lang/
 * **Phase 1C — Semantics & CSS Engine:** Build Symbol Table, Semantic Analyzer, and CSS Scoper. (Gate 1C)
 * **Phase 1D — Codegen:** Build Direct DOM JavaScript Emitter. (Gate 1D)
 * **Phase 2 & 3 — Integration, Security & Toolchain:** Build E2E test suites, OWASP security validations, and `@mix/cli` (`mix dev`, `mix build`, HMR engine). (Gate 2/3)
+

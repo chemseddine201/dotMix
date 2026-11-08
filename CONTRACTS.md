@@ -93,3 +93,4 @@ This document formalizes the immutable public API boundaries and inter-package c
 ## 7. `@mix/cli` Contract [Owner: Toolchain Agent]
 - CLI commands: `mix dev`, `mix build`, `mix check`.
 - HMR engine using compiler-generated scopes and stable-identity trampolines.
+

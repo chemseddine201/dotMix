@@ -113,3 +113,4 @@ export interface RendererAdapter<TNode = unknown, TElement = TNode> {
   removeChild(parent: TElement, child: TNode): void;
   addEventListener(element: TElement, event: string, handler: (e: unknown) => void): () => void;
 }
+
