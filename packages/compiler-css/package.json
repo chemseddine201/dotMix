@@ -1,6 +1,20 @@
 {
   "name": "@mix/compiler-css",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
-  "description": "CSS parsing, scoping, and style validation."
+  "description": "CSS parsing, scoping, and style validation.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@mix/ast": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
 }

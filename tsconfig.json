@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/ast" },
+    { "path": "./packages/runtime" },
+    { "path": "./packages/compiler-frontend" },
+    { "path": "./packages/compiler-semantic" },
+    { "path": "./packages/compiler-css" },
+    { "path": "./packages/compiler-codegen" }
+  ]
+}

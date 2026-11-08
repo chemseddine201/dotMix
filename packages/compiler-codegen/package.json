@@ -1,6 +1,22 @@
 {
   "name": "@mix/compiler-codegen",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
-  "description": "Deterministic AOT code generation targeting direct DOM operations."
+  "description": "Deterministic AOT code generation targeting direct DOM operations.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@mix/ast": "0.1.0",
+    "@mix/compiler-css": "0.1.0",
+    "@mix/compiler-semantic": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
 }

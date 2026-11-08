@@ -1,8 +1,9 @@
 {
   "name": "mix-tix",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
-  "description": "Compiler-native UI language — Phase 1 preparation",
+  "description": "Compiler-native UI language — Phase 1 implementation",
   "workspaces": [
     "packages/*"
   ],
@@ -10,7 +11,8 @@
     "node": "^24.0.0 || ^26.0.0"
   },
   "scripts": {
-    "test": "node scripts/verify-phase0.mjs"
+    "test": "node scripts/verify-phase0.mjs && node --test tests/conformance/vertical-slice.test.mjs tests/runtime/scheduler.test.mjs",
+    "build": "tsc -b"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

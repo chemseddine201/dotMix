@@ -1,6 +1,20 @@
 {
   "name": "@mix/compiler-frontend",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
-  "description": "Lexing, markup parsing, and expression parser integration."
+  "description": "Lexing, markup parsing, and expression parser integration.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@mix/ast": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
 }

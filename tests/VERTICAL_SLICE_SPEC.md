@@ -150,3 +150,4 @@ The vertical slice tests this exact, canonical component:
   });
   ```
 - **Assertion:** Running state is reset; scheduler queue is not corrupted; subsequent signal updates for unrelated effects continue to execute normally.
+

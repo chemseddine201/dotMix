@@ -89,3 +89,4 @@ Phase 1 is complete and verified only when:
 2. The minimal end-to-end vertical slice (`P1-SLICE-01` through `P1-SLICE-07`) passes automatically under `npm test`.
 3. Zero premature Phase 2/3 features (such as CSS scoping, complex control flow, dynamic elements, components with props) are implemented outside the minimal vertical slice.
 4. The human architecture authority reviews the vertical-slice results and authorizes advancement to Phase 2.
+

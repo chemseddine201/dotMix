@@ -1,6 +1,17 @@
 {
   "name": "@mix/runtime",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
-  "description": "Platform-neutral reactive core plus renderer adapter contracts."
+  "description": "Platform-neutral reactive core plus renderer adapter contracts.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  }
 }
