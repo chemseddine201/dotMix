@@ -27,6 +27,10 @@
     },
     "./typecheck": {
       "types": "./src/typecheck/index.d.ts"
+    },
+    "./dom": {
+      "types": "./dist/dom/index.d.ts",
+      "import": "./dist/dom/index.js"
     }
   },
   "types": "./dist/index.d.ts",
