@@ -1,0 +1,165 @@
+<script>
+  let count = signal(0);
+  let step = signal(1);
+
+  function increment() {
+    count.set((c) => c + step());
+  }
+
+  function decrement() {
+    count.set((c) => c - step());
+  }
+
+  function reset() {
+    count.set(0);
+  }
+
+  function setStep1() {
+    step.set(1);
+  }
+
+  function setStep5() {
+    step.set(5);
+  }
+
+  function setStep10() {
+    step.set(10);
+  }
+</script>
+
+<style>
+  .counter-card {
+    background: #181825;
+    border: 1px solid #313244;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    max-width: 480px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #313244;
+    padding-bottom: 12px;
+  }
+  .title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #cdd6f4;
+    font-weight: 600;
+  }
+  .badge {
+    background: #313244;
+    color: #89b4fa;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+  .display-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .count-value {
+    font-size: 3rem;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #a6e3a1;
+    min-width: 120px;
+    text-align: center;
+  }
+  .btn-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid #45475a;
+    background: #313244;
+    color: #cdd6f4;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .btn-circle:hover {
+    background: #45475a;
+    border-color: #89b4fa;
+    color: #89b4fa;
+    transform: scale(1.05);
+  }
+  .controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #313244;
+  }
+  .step-selector {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .step-label {
+    font-size: 0.85rem;
+    color: #a6adc8;
+    margin-right: 4px;
+  }
+  .step-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #45475a;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .step-btn:hover {
+    background: #313244;
+  }
+  .reset-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #f38ba8;
+    background: transparent;
+    color: #f38ba8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .reset-btn:hover {
+    background: #f38ba8;
+    color: #11111b;
+  }
+</style>
+
+<div class="counter-card">
+  <div class="header">
+    <h3 class="title">Reactive Counter</h3>
+    <span class="badge">Pull-Push Reactivity</span>
+  </div>
+
+  <div class="display-area">
+    <button class="btn-circle btn-dec" @click={decrement}>-</button>
+    <span class="count-value">{count()}</span>
+    <button class="btn-circle btn-inc" @click={increment}>+</button>
+  </div>
+
+  <div class="controls-row">
+    <div class="step-selector">
+      <span class="step-label">Step:</span>
+      <button class="step-btn" @click={setStep1}>1</button>
+      <button class="step-btn" @click={setStep5}>5</button>
+      <button class="step-btn" @click={setStep10}>10</button>
+    </div>
+    <button class="reset-btn" @click={reset}>Reset</button>
+  </div>
+</div>

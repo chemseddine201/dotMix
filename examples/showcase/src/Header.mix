@@ -1,0 +1,59 @@
+<script>
+  let status = signal("v1.0.0-rc.1");
+</script>
+
+<style>
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background: #11111b;
+    border-bottom: 1px solid #313244;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #89b4fa;
+    background: #1e1e2e;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-family: monospace;
+  }
+  .brand-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #cdd6f4;
+    font-weight: 700;
+  }
+  .brand-sub {
+    font-size: 0.8rem;
+    color: #6c7086;
+  }
+  .badge-tag {
+    background: #a6e3a1;
+    color: #11111b;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+</style>
+
+<div class="app-header">
+  <div class="brand">
+    <div class="logo-icon">M/T</div>
+    <div>
+      <h1 class="brand-title">Mix / Tix Framework</h1>
+      <span class="brand-sub">Compiler-Native Direct DOM UI Framework</span>
+    </div>
+  </div>
+  <span class="badge-tag">{status()}</span>
+</div>

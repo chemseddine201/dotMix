@@ -47,3 +47,4 @@ export function createRouter(options: RouterOptions): RouterInstance {
     matches
   });
 }
+

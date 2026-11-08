@@ -17,7 +17,11 @@
     "test": "node scripts/verify-phase0.mjs && node --test tests/conformance/vertical-slice.test.mjs tests/runtime/scheduler.test.mjs tests/conformance/phase2-compiler.test.mjs tests/runtime/phase3-runtime.test.mjs tests/security/security.test.mjs tests/hmr/hmr.test.mjs tests/diagnostics/diagnostics.test.mjs tests/cli/cli.test.mjs tests/runtime/router.test.mjs",
     "bench": "node benchmarks/run-benchmarks.mjs",
     "pack": "npm pack --workspace=@mix/ast --workspace=@mix/runtime --workspace=@mix/compiler-frontend --workspace=@mix/compiler-semantic --workspace=@mix/compiler-css --workspace=@mix/compiler-codegen --workspace=@mix/router --dry-run",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "example:build": "node examples/showcase/build.mjs",
+    "example:serve": "node examples/showcase/server.mjs",
+    "example:verify": "node examples/showcase/verify.mjs",
+    "example": "node examples/showcase/server.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

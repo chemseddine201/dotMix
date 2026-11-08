@@ -27,7 +27,7 @@ Usage:
   }
 
   if (command === "version" || command === "--version" || command === "-v") {
-    console.log("mix-framework v0.5.0");
+    console.log("mix-framework v1.0.0-rc.1");
     return 0;
   }
 

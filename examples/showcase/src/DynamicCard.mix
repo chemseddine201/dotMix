@@ -1,0 +1,108 @@
+<script>
+  let tag = signal("article");
+
+  function setArticle() {
+    tag.set("article");
+  }
+
+  function setSection() {
+    tag.set("section");
+  }
+
+  function setAside() {
+    tag.set("aside");
+  }
+</script>
+
+<style>
+  .dyn-container {
+    background: #181825;
+    border: 1px solid #313244;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    max-width: 480px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #313244;
+    padding-bottom: 12px;
+  }
+  .title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #cdd6f4;
+  }
+  .badge {
+    background: #313244;
+    color: #cba6f7;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+  .preview-box {
+    margin: 20px 0;
+    padding: 16px;
+    border: 2px dashed #45475a;
+    border-radius: 8px;
+    background: #11111b;
+  }
+  .tag-info {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #fab387;
+    margin-bottom: 8px;
+  }
+  .card-content {
+    color: #bac2de;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .tag-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .tag-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #45475a;
+    background: #313244;
+    color: #cdd6f4;
+    cursor: pointer;
+    font-family: monospace;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .tag-btn:hover {
+    background: #cba6f7;
+    color: #11111b;
+  }
+</style>
+
+<div class="dyn-container">
+  <div class="header">
+    <h3 class="title">Dynamic Element (D-105)</h3>
+    <span class="badge">&lt;{~tag}&gt; Polymorphic</span>
+  </div>
+
+  <div class="preview-box">
+    <div class="tag-info">Active DOM Tag: &lt;{tag()}&gt;</div>
+    <{~tag()}>
+      <div class="card-content">
+        Polymorphic semantic element instantiated with resolved identity and scoped attributes.
+      </div>
+    </{~tag()}>
+  </div>
+
+  <div class="tag-buttons">
+    <button class="tag-btn" @click={setArticle}>&lt;article&gt;</button>
+    <button class="tag-btn" @click={setSection}>&lt;section&gt;</button>
+    <button class="tag-btn" @click={setAside}>&lt;aside&gt;</button>
+  </div>
+</div>

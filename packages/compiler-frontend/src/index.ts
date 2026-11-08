@@ -482,18 +482,41 @@ function parseTemplate(source: string, start: number, end: number, file: string)
         continue;
       }
 
-      // Normal element with children: find matching </tag>
-      const closeTagPattern = new RegExp(`</${tagName}\\s*>`, "i");
-      const sub = source.slice(openTagClose + 1, end);
-      const match = closeTagPattern.exec(sub);
-      if (!match) {
+      // Normal element with children: find matching </tag> tracking nesting depth
+      const searchStart = openTagClose + 1;
+      const openClosePattern = new RegExp(`(<${tagName}\\b[^>]*>)|(</${tagName}\\s*>)`, "gi");
+      openClosePattern.lastIndex = searchStart;
+      let depth = 1;
+      let innerEnd = -1;
+      let closeTagLen = 0;
+
+      while (openClosePattern.lastIndex <= end) {
+        const match = openClosePattern.exec(source);
+        if (!match || match.index >= end) break;
+
+        const matchedStr = match[0];
+        if (match[1]) {
+          // Nested opening tag: increment depth unless self-closing or void
+          if (!matchedStr.endsWith("/>") && !VOID_ELEMENTS.has(tagName.toLowerCase())) {
+            depth++;
+          }
+        } else if (match[2]) {
+          // Closing tag: decrement depth
+          depth--;
+          if (depth === 0) {
+            innerEnd = match.index;
+            closeTagLen = matchedStr.length;
+            break;
+          }
+        }
+      }
+
+      if (innerEnd === -1 || depth !== 0) {
         throw new Error(`Unclosed element <${tagName}> at offset ${elemStart}`);
       }
 
-      const innerStart = openTagClose + 1;
-      const innerEnd = openTagClose + 1 + match.index;
-      const elemEnd = innerEnd + match[0].length;
-      const children = parseTemplate(source, innerStart, innerEnd, file);
+      const elemEnd = innerEnd + closeTagLen;
+      const children = parseTemplate(source, searchStart, innerEnd, file);
 
       nodes.push(
         createElementNode(

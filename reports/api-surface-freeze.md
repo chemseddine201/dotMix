@@ -85,3 +85,4 @@
 - **Runtime Zero Dependencies:** `@mix/runtime` declares **zero** external runtime dependencies.
 - **Platform Neutrality:** Browser DOM types (`HTMLElement`, `Event`, `Document`) do not leak into the platform-neutral core scheduler and reactivity engine.
 - **No Virtual DOM:** Compilation targets direct DOM operations only.
+

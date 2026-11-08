@@ -112,3 +112,4 @@ The Mix & Tix Framework has achieved all architectural objectives, design requir
 - The monorepo builds cleanly with pure TypeScript project references (`tsc -b`).
 - The packages are self-contained, typed, and publishable.
 - The framework is ready for **Version 1.0.0-rc.1** tag and release candidate distribution.
+

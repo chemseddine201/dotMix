@@ -40,3 +40,4 @@ test("Phase 6: @mix/router Reactive Client-Side Router", async (t) => {
     assert.equal(router.matches("/home"), false);
   });
 });
+
