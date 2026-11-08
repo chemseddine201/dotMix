@@ -470,7 +470,7 @@ export function createResource<T>(fetcher: (token: CancellationToken) => Promise
   };
 }
 
-// --- 6. Trusted HTML Sanitizer Contract (D-109) ---
+// --- 6. Trusted HTML Boundary & Sanitizer Provider (D-109) ---
 
 export interface SanitizerContext {
   element?: string;
@@ -482,8 +482,9 @@ export interface SanitizerProvider {
 }
 
 let activeSanitizerProvider: SanitizerProvider | null = null;
+let trustedTypesPolicy: { createHTML: (raw: string) => unknown } | null = null;
 
-export function setSanitizerProvider(provider: SanitizerProvider): void {
+export function setSanitizerProvider(provider: SanitizerProvider | null): void {
   activeSanitizerProvider = provider;
 }
 
@@ -491,11 +492,373 @@ export function getSanitizerProvider(): SanitizerProvider | null {
   return activeSanitizerProvider;
 }
 
+export function resetTrustedTypesPolicy(): void {
+  trustedTypesPolicy = null;
+}
+
+export function getOrCreateTrustedTypesPolicy(): { createHTML: (raw: string) => unknown } | null {
+  if (trustedTypesPolicy) return trustedTypesPolicy;
+  const globalObj = typeof globalThis !== "undefined"
+    ? (globalThis as unknown as { window?: { trustedTypes?: { createPolicy: (name: string, rules: { createHTML: (s: string) => string }) => { createHTML: (raw: string) => unknown } } }; trustedTypes?: { createPolicy: (name: string, rules: { createHTML: (s: string) => string }) => { createHTML: (raw: string) => unknown } } })
+    : undefined;
+
+  const tt = globalObj?.window?.trustedTypes ?? globalObj?.trustedTypes;
+  if (tt && typeof tt.createPolicy === "function") {
+    try {
+      trustedTypesPolicy = tt.createPolicy("mix-framework#html", {
+        createHTML: (raw: string) => {
+          if (activeSanitizerProvider) {
+            return activeSanitizerProvider.sanitizeHtml(raw);
+          }
+          return raw;
+        }
+      });
+    } catch {
+      // Policy already created or disabled
+    }
+  }
+  return trustedTypesPolicy;
+}
+
 export function renderTrustedHtml(rawHtml: string, context?: SanitizerContext): string {
   if (!activeSanitizerProvider) {
     throw new MixSecurityError("Refusing to evaluate raw HTML without a registered SanitizerProvider.");
   }
   return activeSanitizerProvider.sanitizeHtml(rawHtml, context);
+}
+
+export function setTrustedHtml(el: Element, rawHtml: string, context?: SanitizerContext): void {
+  if (typeof rawHtml === "object" && rawHtml !== null && (rawHtml as { constructor?: { name?: string } }).constructor?.name === "TrustedHTML") {
+    (el as unknown as { innerHTML: unknown }).innerHTML = rawHtml;
+    return;
+  }
+
+  const sanitized = renderTrustedHtml(rawHtml, context);
+  const policy = getOrCreateTrustedTypesPolicy();
+  if (policy) {
+    (el as unknown as { innerHTML: unknown }).innerHTML = policy.createHTML(sanitized);
+  } else {
+    el.innerHTML = sanitized;
+  }
+}
+
+// --- 7. Security, Protocol, and Style Validation (D-107, D-108) ---
+
+/**
+ * Validates URLs against safe protocol schemes (D-107, D-108).
+ * Permits http, https, relative paths, and safe image data URIs.
+ * Disallows javascript:, vbscript:, arbitrary data payloads, and control characters.
+ */
+export function isSafeUrl(rawUrl: string): boolean {
+  if (typeof rawUrl !== "string") return false;
+  const trimmed = rawUrl.trim();
+  if (trimmed.length === 0) return false;
+
+  // Normalize by removing control characters, tabs, and newlines that attempt scheme smuggling
+  const sanitized = trimmed.replace(/[\u0000-\u001F\u007F-\u009F\s]/g, "");
+
+  const colonIndex = sanitized.indexOf(":");
+  if (colonIndex === -1) {
+    // Relative URL (e.g., "/img.jpg", "./img.jpg", "img.jpg", "?q=1")
+    return true;
+  }
+
+  const scheme = sanitized.slice(0, colonIndex).toLowerCase();
+  if (scheme === "http" || scheme === "https") {
+    return true;
+  }
+
+  if (scheme === "data") {
+    // Only safe image formats permitted
+    return /^data:image\/(?:png|jpeg|jpg|gif|webp|svg\+xml|avif)(?:;[a-zA-Z0-9=+_-]+)*,/i.test(trimmed);
+  }
+
+  return false;
+}
+
+export interface SrcsetCandidate {
+  readonly url: string;
+  readonly width?: number | undefined;
+  readonly density?: number | undefined;
+}
+
+function isAsciiWhitespace(ch: string): boolean {
+  return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f";
+}
+
+/**
+ * WHATWG HTML §4.8.4.3.7 / §4.8.4.3.10 conforming srcset parser (D-107).
+ * Extracts candidates, handles data URLs and query params with commas,
+ * parses width and density descriptors, recovers from malformed candidates,
+ * and validates URL safety.
+ */
+export function parseSrcset(input: string): SrcsetCandidate[] {
+  if (typeof input !== "string") return [];
+  const length = input.length;
+  let position = 0;
+  const candidates: SrcsetCandidate[] = [];
+
+  while (position < length) {
+    // 1. Skip leading ASCII whitespace and commas
+    while (position < length && (isAsciiWhitespace(input[position]!) || input[position] === ",")) {
+      position++;
+    }
+    if (position >= length) break;
+
+    // 2. Collect candidate URL
+    let url = "";
+    if (input.slice(position, position + 5).toLowerCase() === "data:") {
+      const dataStart = position;
+      position += 5;
+      while (position < length) {
+        if (input[position] === ",") {
+          const nextPos = position + 1;
+          if (nextPos >= length || isAsciiWhitespace(input[nextPos]!)) {
+            break;
+          }
+        } else if (isAsciiWhitespace(input[position]!)) {
+          const rest = input.slice(position).trimStart();
+          if (/^(?:[1-9]\d*w|\d+(?:\.\d+)?x)(?:\s*,|\s*$)/i.test(rest) || rest.startsWith(",")) {
+            break;
+          }
+        }
+        position++;
+      }
+      url = input.slice(dataStart, position).trim();
+    } else {
+      const urlStart = position;
+      while (position < length && !isAsciiWhitespace(input[position]!)) {
+        if (input[position] === ",") {
+          const next = position + 1;
+          if (next >= length || isAsciiWhitespace(input[next]!)) {
+            position++; // consume comma
+            url = input.slice(urlStart, position - 1);
+            if (url.length > 0 && isSafeUrl(url)) {
+              candidates.push({ url, density: 1 });
+            }
+            url = "";
+            break;
+          }
+        }
+        position++;
+      }
+      if (url.length === 0 && position > urlStart) {
+        url = input.slice(urlStart, position);
+        if (url.endsWith(",")) {
+          url = url.slice(0, -1);
+          if (url.length > 0 && isSafeUrl(url)) {
+            candidates.push({ url, density: 1 });
+          }
+          continue;
+        }
+      }
+    }
+
+    if (url.length === 0) continue;
+
+    // 3. Collect descriptors
+    const descriptors: string[] = [];
+    while (position < length) {
+      while (position < length && isAsciiWhitespace(input[position]!)) {
+        position++;
+      }
+      if (position >= length) break;
+      if (input[position] === ",") {
+        position++;
+        break;
+      }
+
+      let descriptor = "";
+      let inParens = false;
+      while (position < length) {
+        const c = input[position]!;
+        if (inParens) {
+          if (c === ")") inParens = false;
+          descriptor += c;
+          position++;
+        } else {
+          if (isAsciiWhitespace(c)) {
+            break;
+          } else if (c === ",") {
+            position++;
+            if (descriptor.length > 0) descriptors.push(descriptor);
+            descriptor = "";
+            break;
+          } else if (c === "(") {
+            inParens = true;
+            descriptor += c;
+            position++;
+          } else {
+            descriptor += c;
+            position++;
+          }
+        }
+      }
+      if (descriptor.length > 0) {
+        descriptors.push(descriptor);
+      }
+      if (position > 0 && input[position - 1] === ",") {
+        break;
+      }
+    }
+
+    // 4. Validate descriptors (error recovery: discard malformed candidates)
+    let width: number | undefined = undefined;
+    let density: number | undefined = undefined;
+    let isValid = true;
+
+    for (const desc of descriptors) {
+      if (/^[1-9]\d*w$/.test(desc)) {
+        if (width !== undefined || density !== undefined) {
+          isValid = false;
+          break;
+        }
+        width = parseInt(desc.slice(0, -1), 10);
+      } else if (/^(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)x$/i.test(desc)) {
+        const d = parseFloat(desc.slice(0, -1));
+        if (isNaN(d) || d <= 0 || width !== undefined || density !== undefined) {
+          isValid = false;
+          break;
+        }
+        density = d;
+      } else {
+        isValid = false;
+        break;
+      }
+    }
+
+    if (!isValid) {
+      continue;
+    }
+
+    if (width === undefined && density === undefined) {
+      density = 1;
+    }
+
+    if (isSafeUrl(url)) {
+      candidates.push({
+        url,
+        ...(width !== undefined ? { width } : {}),
+        ...(density !== undefined ? { density } : {})
+      });
+    }
+  }
+
+  return candidates;
+}
+
+export function serializeSrcset(candidates: readonly SrcsetCandidate[]): string {
+  return candidates
+    .map((c) => {
+      if (c.width !== undefined) {
+        return `${c.url} ${c.width}w`;
+      }
+      if (c.density !== undefined && c.density !== 1) {
+        return `${c.url} ${c.density}x`;
+      }
+      if (c.density === 1) {
+        return `${c.url} 1x`;
+      }
+      return c.url;
+    })
+    .join(", ");
+}
+
+export function setSafeSrcset(el: Element, rawSrcset: string): void {
+  const candidates = parseSrcset(rawSrcset);
+  if (candidates.length === 0) {
+    el.removeAttribute("srcset");
+    return;
+  }
+  el.setAttribute("srcset", serializeSrcset(candidates));
+}
+
+/**
+ * Decodes CSS escape sequences (\3b -> ;, \7d -> }, \22 -> ", etc.) per CSS Syntax Level 3 §4.3.8.
+ */
+export function decodeCssEscapes(value: string): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/\\(?:([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?|([^\r\n\f0-9a-fA-F]))/g, (_, hex, char) => {
+    if (hex !== undefined) {
+      const codePoint = parseInt(hex, 16);
+      if (codePoint === 0 || (codePoint >= 0xd800 && codePoint <= 0xdfff) || codePoint > 0x10ffff) {
+        return "\uFFFD";
+      }
+      return String.fromCodePoint(codePoint);
+    }
+    return char ?? "";
+  });
+}
+
+/**
+ * Validates dynamic CSS property names against valid CSS identifier grammar (D-108).
+ * Rejects property injection, colons, semicolons, braces, quotes, and control chars.
+ */
+export function validateCssPropertyName(name: string): boolean {
+  if (typeof name !== "string") return false;
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return false;
+  if (/^--[a-zA-Z0-9-_]+$/.test(trimmed)) return true;
+  return /^[a-zA-Z][a-zA-Z0-9-]*$/.test(trimmed);
+}
+
+/**
+ * Validates dynamic CSS property values (D-108).
+ * Decodes escape sequences to check for delimiter injection (; or {}),
+ * legacy script execution (expression/moz-binding), and dangerous url() schemes.
+ */
+export function validateCssPropertyValue(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const decoded = decodeCssEscapes(value);
+
+  // 1. Check for braces
+  if (/[{}]/.test(decoded)) return false;
+
+  // 2. Check for dangerous script execution functions
+  if (/expression\s*\(/i.test(decoded) || /-moz-binding\s*:/i.test(decoded)) {
+    return false;
+  }
+
+  // 3. Validate all url(...) declarations
+  const urlRegex = /url\(\s*(?:'([^']*)'|"([^"]*)"|([^'")]+))\s*\)/gi;
+  let match: RegExpExecArray | null;
+  while ((match = urlRegex.exec(decoded)) !== null) {
+    const rawUrl = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+    if (!isSafeUrl(rawUrl)) {
+      return false;
+    }
+  }
+
+  // 4. Check for unquoted semicolons outside of quotes and url(...)
+  const strippedUrls = decoded.replace(/url\(\s*(?:'[^']*'|"[^"]*"|[^'")]+)\s*\)/gi, "url(__safe__)");
+
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  for (let i = 0; i < strippedUrls.length; i++) {
+    const ch = strippedUrls[i];
+    if (ch === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+    } else if (ch === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+    } else if (ch === ";" && !inSingleQuote && !inDoubleQuote) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Safely sets a style property on an element, throwing MixSecurityError on violations (D-108).
+ */
+export function setSafeStyleProperty(el: HTMLElement, property: string, value: string): void {
+  if (!validateCssPropertyName(property)) {
+    throw new MixSecurityError(`Invalid or unsafe CSS property name: "${property}"`);
+  }
+  if (!validateCssPropertyValue(value)) {
+    throw new MixSecurityError(`Unsafe CSS property value detected for property "${property}": "${value}"`);
+  }
+  el.style.setProperty(property, value);
 }
 
 // --- 7. Keyed List Reconciliation Algorithm (D-110) ---
@@ -610,7 +973,7 @@ export function removeAttribute(el: Element, name: string): void {
 }
 
 export function setStyleProperty(el: HTMLElement, name: string, value: string): void {
-  el.style.setProperty(name, value);
+  setSafeStyleProperty(el, name, value);
 }
 
 export function appendChild(parent: Element, child: Node): void {

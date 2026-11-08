@@ -43,7 +43,7 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
   }
 
   // 2. Imports from @mix/runtime
-  lines.push('import { createElement, createTextNode, createEffect, signal, onCleanup, createRoot } from "@mix/runtime";');
+  lines.push('import { createElement, createTextNode, createEffect, signal, onCleanup, createRoot, setTrustedHtml, setSafeSrcset, setSafeStyleProperty } from "@mix/runtime";');
   lines.push("");
 
   // 3. Exported Component Factory (D-106, D-111)
@@ -76,20 +76,32 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
         lines.push(`  ${elName}.setAttribute("${scopeId}", "");`);
       }
 
-      // Attributes & Events
+      // Attributes & Events & Directives (D-108, D-109)
       for (const attr of el.attributes) {
         if (attr.type === "StaticAttribute") {
           lines.push(`  ${elName}.setAttribute("${attr.name}", ${JSON.stringify(attr.value)});`);
         } else if (attr.type === "DynamicAttribute") {
-          lines.push("  createEffect(() => {");
-          lines.push(`    const __val = ${attr.expression.code};`);
-          lines.push(`    if (typeof __val === "boolean") {`);
-          lines.push(`      if (__val) ${elName}.setAttribute("${attr.name}", "");`);
-          lines.push(`      else ${elName}.removeAttribute("${attr.name}");`);
-          lines.push("    } else {");
-          lines.push(`      ${elName}.setAttribute("${attr.name}", String(__val));`);
-          lines.push("    }");
-          lines.push("  });");
+          if (attr.name === "srcset") {
+            lines.push("  createEffect(() => {");
+            lines.push(`    setSafeSrcset(${elName}, String(${attr.expression.code}));`);
+            lines.push("  });");
+          } else {
+            lines.push("  createEffect(() => {");
+            lines.push(`    const __val = ${attr.expression.code};`);
+            lines.push(`    if (typeof __val === "boolean") {`);
+            lines.push(`      if (__val) ${elName}.setAttribute("${attr.name}", "");`);
+            lines.push(`      else ${elName}.removeAttribute("${attr.name}");`);
+            lines.push("    } else {");
+            lines.push(`      ${elName}.setAttribute("${attr.name}", String(__val));`);
+            lines.push("    }");
+            lines.push("  });");
+          }
+        } else if (attr.type === "Directive") {
+          if (attr.name === "mix-html") {
+            lines.push("  createEffect(() => {");
+            lines.push(`    setTrustedHtml(${elName}, ${attr.expression.code});`);
+            lines.push("  });");
+          }
         } else if (attr.type === "EventBinding") {
           lines.push(`  ${elName}.addEventListener("${attr.eventName}", ($event) => {`);
           lines.push(`    (${attr.handler.code})($event);`);
