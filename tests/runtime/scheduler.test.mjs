@@ -122,3 +122,4 @@ test("D-103: createRoot with detachedParent", () => {
   disposeChild();
   assert.equal(rootCleanedUp, true, "Detached root disposes on explicit dispose call");
 });
+
