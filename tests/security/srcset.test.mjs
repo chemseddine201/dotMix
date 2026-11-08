@@ -87,3 +87,4 @@ test("Phase 3 — WHATWG srcset Parsing & Validation (§6.2 / T-SRCSET-01..06)",
     assert.equal(serializeSrcset(candidates), "img-400w.jpg 400w, img-800w.jpg 800w");
   });
 });
+

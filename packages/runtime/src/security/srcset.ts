@@ -205,3 +205,4 @@ export function serializeSrcset(candidates: readonly SrcsetCandidate[]): string 
     })
     .join(", ");
 }
+

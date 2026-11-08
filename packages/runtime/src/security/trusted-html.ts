@@ -83,3 +83,4 @@ export function isTrustedHtml(value: unknown): value is TrustedHtmlValue {
 
   return false;
 }
+

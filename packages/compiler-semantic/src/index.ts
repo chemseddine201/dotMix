@@ -371,3 +371,8 @@ export function analyze(ast: ComponentNode): ComponentDescriptor {
     ast
   });
 }
+
+export * from "./spans.js";
+export * from "./resolver.js";
+export * from "./projection.js";
+

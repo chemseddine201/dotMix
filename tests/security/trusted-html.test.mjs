@@ -77,3 +77,4 @@ test("Phase 3 — Trusted HTML & WeakSet Registry (§6.4 / T-HTML-01..04)", asyn
     assert.equal(isTrustedHtml(123), false);
   });
 });
+

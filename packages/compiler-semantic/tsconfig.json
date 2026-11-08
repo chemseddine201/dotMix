@@ -7,7 +7,8 @@
   },
   "references": [
     { "path": "../ast" },
-    { "path": "../compiler-frontend" }
+    { "path": "../compiler-frontend" },
+    { "path": "../runtime" }
   ],
   "include": ["src/**/*"]
 }

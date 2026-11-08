@@ -24,6 +24,9 @@
     "./security": {
       "types": "./dist/security/index.d.ts",
       "import": "./dist/security/index.js"
+    },
+    "./typecheck": {
+      "types": "./src/typecheck/index.d.ts"
     }
   },
   "types": "./dist/index.d.ts",

@@ -17,7 +17,8 @@
   ],
   "dependencies": {
     "@mix/ast": "0.1.0",
-    "@mix/compiler-frontend": "0.1.0"
+    "@mix/compiler-frontend": "0.1.0",
+    "@mix/runtime": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"
