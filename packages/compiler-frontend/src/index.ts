@@ -14,7 +14,8 @@ import {
   createComponentNode,
   createElementNode,
   createComponentCallNode,
-  createDynamicElementNode
+  createDynamicElementNode,
+  createSlotOutletNode
 } from "@mix/ast";
 import type {
   ComponentNode,
@@ -24,6 +25,7 @@ import type {
   AttributeNode,
   IfBlockNode,
   EachBlockNode,
+  SlotOutletNode,
   ESTreeNode
 } from "@mix/ast";
 import { MixDiagnosticError, DiagnosticCodes } from "@mix/diagnostics";
@@ -963,6 +965,7 @@ class TemplateParser {
     }
     const tagName = this.source.slice(nameStart, this.pos);
     const isComponent = isPascalCaseComponent(tagName);
+    const isSlot = tagName === "slot";
 
     const attributes = this.parseAttributes();
     this.skipWhitespace();
@@ -970,6 +973,16 @@ class TemplateParser {
     if (this.source.startsWith("/>", this.pos)) {
       this.pos += 2;
       const span = this.lineMap.span(start, this.pos);
+      if (isSlot) {
+        const nameAttr = attributes.find(a => a.type === "StaticAttribute" && a.name === "name");
+        const slotName = nameAttr && nameAttr.type === "StaticAttribute" ? nameAttr.value : null;
+        return createSlotOutletNode({
+          span,
+          name: slotName,
+          fallback: [],
+          selfClosing: true
+        });
+      }
       return isComponent
         ? createComponentCallNode({
             span,
@@ -1059,6 +1072,16 @@ class TemplateParser {
     this.pos++; // skip '>'
 
     const span = this.lineMap.span(start, this.pos);
+    if (isSlot) {
+      const nameAttr = attributes.find(a => a.type === "StaticAttribute" && a.name === "name");
+      const slotName = nameAttr && nameAttr.type === "StaticAttribute" ? nameAttr.value : null;
+      return createSlotOutletNode({
+        span,
+        name: slotName,
+        fallback: children,
+        selfClosing: false
+      });
+    }
     return isComponent
       ? createComponentCallNode({
           span,

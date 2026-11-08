@@ -169,7 +169,10 @@ const ALLOWED_GLOBALS = new Set([
   "createTrustedHtml",
   "setSanitizerProvider",
   "createCancellationSource",
-  "createResource"
+  "createResource",
+  "createContext",
+  "useContext",
+  "provideContext"
 ]);
 
 class InternalLineMap {
@@ -643,6 +646,10 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
         case "Text":
         case "Comment":
           break;
+        case "SlotOutlet": {
+          analyzeTemplateNodes(node.fallback, currentScope);
+          break;
+        }
       }
     }
   }
@@ -956,6 +963,10 @@ export function projectTypeScript(
         case "Text":
         case "Comment":
           break;
+        case "SlotOutlet": {
+          emitTemplateChecks(node.fallback, inSvg);
+          break;
+        }
       }
     }
   }
@@ -1106,6 +1117,10 @@ declare function computed<T>(fn: () => T): () => T;
 declare function createEffect(fn: () => void | (() => void)): void;
 declare function createRef<T = Element>(initial?: T | null): { current: T | null };
 declare function defineProps<P>(defaults?: Partial<P>): P;
+interface Context<T> { readonly id: symbol; readonly defaultValue: T; }
+declare function createContext<T>(defaultValue?: T): Context<T>;
+declare function useContext<T>(ctx: Context<T>): T;
+declare function provideContext<T>(ctx: Context<T>, value: T): void;
 `;
 
 /**

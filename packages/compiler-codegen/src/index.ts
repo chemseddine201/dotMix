@@ -13,6 +13,7 @@ import type {
   DynamicElementNode,
   IfBlockNode,
   EachBlockNode,
+  SlotOutletNode,
   AttributeNode,
   ESTreeNode
 } from "@mix/ast";
@@ -79,6 +80,8 @@ const AUTO_IMPORTABLE_RUNTIME_PRIMITIVES = [
   "createCancellationSource",
   "createResource",
   "createContext",
+  "useContext",
+  "provideContext",
   "setContext",
   "getContext",
   "createTrustedHtml",
@@ -300,7 +303,33 @@ class CodegenContext {
       case "EachBlock": {
         return this.emitEachBlock(node, parentVar, loopGetters, inSvg);
       }
+
+      case "SlotOutlet": {
+        return this.emitSlotOutlet(node, parentVar, loopGetters, inSvg);
+      }
     }
+  }
+
+  private emitSlotOutlet(
+    node: SlotOutletNode,
+    parentVar: string,
+    loopGetters: ReadonlyMap<string, string>,
+    inSvg: boolean
+  ): string[] {
+    const fallbackFragVar = this.nextId("fallbackFrag");
+    let fallbackCode = "null";
+    if (node.fallback.length > 0) {
+      const fallbackLines = [
+        `const ${fallbackFragVar} = document.createDocumentFragment();`,
+        ...this.emitTemplateNodes(node.fallback, fallbackFragVar, loopGetters, inSvg),
+        `return [...${fallbackFragVar}.childNodes];`
+      ];
+      fallbackCode = `() => {\n${indentLines(fallbackLines.join("\n"), 2)}\n}`;
+    }
+    const nameArg = node.name ? JSON.stringify(node.name) : "null";
+    return [
+      `__renderSlot(${parentVar}, ${nameArg}, ${fallbackCode});`
+    ];
   }
 
   private emitElement(
@@ -388,6 +417,55 @@ class CodegenContext {
           attr.name[0]!.toUpperCase() +
           attr.name.slice(1);
         propEntries.push(`${JSON.stringify(propName)}: (${jsExpr})`);
+      }
+    }
+
+    if (node.children.length > 0) {
+      const defaultChildren: TemplateNode[] = [];
+      const namedSlots = new Map<string, TemplateNode[]>();
+
+      for (const child of node.children) {
+        let slotName: string | null = null;
+        if (child.type === "Element" || child.type === "ComponentCall" || child.type === "DynamicElement") {
+          const slotAttr = child.attributes.find((a) => a.type === "StaticAttribute" && a.name === "slot");
+          if (slotAttr && slotAttr.type === "StaticAttribute") {
+            slotName = slotAttr.value;
+          }
+        }
+        if (slotName) {
+          if (!namedSlots.has(slotName)) namedSlots.set(slotName, []);
+          namedSlots.get(slotName)!.push(child);
+        } else {
+          defaultChildren.push(child);
+        }
+      }
+
+      const slotEntries: string[] = [];
+
+      if (defaultChildren.length > 0) {
+        const defaultFrag = this.nextId("slot_default");
+        const defaultLines = [
+          `const ${defaultFrag} = document.createDocumentFragment();`,
+          ...this.emitTemplateNodes(defaultChildren, defaultFrag, loopGetters),
+          `return [...${defaultFrag}.childNodes];`
+        ];
+        const defaultRenderCode = `() => {\n${indentLines(defaultLines.join("\n"), 2)}\n}`;
+        propEntries.push(`children: ${defaultRenderCode}`);
+        slotEntries.push(`default: ${defaultRenderCode}`);
+      }
+
+      for (const [name, slotNodes] of namedSlots.entries()) {
+        const slotFrag = this.nextId(`slot_${name}`);
+        const slotLines = [
+          `const ${slotFrag} = document.createDocumentFragment();`,
+          ...this.emitTemplateNodes(slotNodes, slotFrag, loopGetters),
+          `return [...${slotFrag}.childNodes];`
+        ];
+        slotEntries.push(`${JSON.stringify(name)}: () => {\n${indentLines(slotLines.join("\n"), 2)}\n}`);
+      }
+
+      if (slotEntries.length > 0) {
+        propEntries.push(`slots: { ${slotEntries.join(", ")} }`);
       }
     }
 
@@ -595,6 +673,7 @@ export function generate(
     "createDynamicElement as __createDynamicElement",
     "createKeyedEach as __createKeyedEach",
     "mountComponent as __mountComponent",
+    "renderSlot as __renderSlot",
     "createHmrScope as __createHmrScope"
   );
 

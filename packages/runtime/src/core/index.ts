@@ -440,6 +440,9 @@ export function getContext<T>(context: Context<T>): T {
   return context.defaultValue;
 }
 
+export const useContext = getContext;
+export const provideContext = setContext;
+
 function enqueueEffect(effect: EffectNode): void {
   if (
     effect.ownerState === OwnerState.DISPOSED ||
@@ -1067,4 +1070,8 @@ export function defineProps<P = Record<string, unknown>>(defaults?: Partial<P>):
     );
   }
   return target as P;
+}
+
+export function getActiveComponentProps(): Record<string, unknown> | null {
+  return activeComponentProps;
 }

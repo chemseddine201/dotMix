@@ -15,6 +15,7 @@ import {
   onCleanup,
   untrack,
   withComponentProps,
+  getActiveComponentProps,
   type Signal,
   type Owner
 } from "../core/index.js";
@@ -75,11 +76,91 @@ export function createComment(data: string = ""): Comment {
   return document.createComment(data);
 }
 
+const insertedNodesMap = new WeakMap<Text, Node[]>();
+
+function isDomNode(val: unknown): val is Node {
+  return typeof (val as { nodeType?: unknown })?.nodeType === "number";
+}
+
 export function setText(node: Text, value: unknown): void {
-  const next = value === null || value === undefined || value === false ? "" : String(value);
+  const resolved = typeof value === "function" ? (value as () => unknown)() : value;
+
+  if (isDomNode(resolved) || (Array.isArray(resolved) && resolved.length > 0 && isDomNode(resolved[0]))) {
+    const prevNodes = insertedNodesMap.get(node) ?? [];
+    for (const prev of prevNodes) {
+      removeNode(prev);
+    }
+    const newNodes = normalizeToNodeArray(resolved);
+    insertedNodesMap.set(node, newNodes);
+    node.data = "";
+    const parent = node.parentNode;
+    if (parent) {
+      for (const n of newNodes) {
+        parent.insertBefore(n, node);
+      }
+    }
+    return;
+  }
+
+  const prevNodes = insertedNodesMap.get(node);
+  if (prevNodes && prevNodes.length > 0) {
+    for (const prev of prevNodes) {
+      removeNode(prev);
+    }
+    insertedNodesMap.delete(node);
+  }
+
+  const next = resolved === null || resolved === undefined || resolved === false ? "" : String(resolved);
   if (node.data !== next) {
     node.data = next;
   }
+}
+
+export function renderSlot(
+  parent: Node,
+  name: string | null = null,
+  fallback?: (() => Node | readonly Node[]) | null
+): Node {
+  const slotName = name ?? "default";
+  const marker = createComment(`slot:${slotName}`);
+  insertNode(parent, marker);
+
+  const props = getActiveComponentProps() as {
+    slots?: Record<string, () => unknown>;
+    children?: unknown;
+  } | null;
+
+  let slotFn: (() => unknown) | null = null;
+  if (props?.slots && typeof props.slots[slotName] === "function") {
+    slotFn = props.slots[slotName]!;
+  } else if (slotName === "default" && props?.children !== undefined) {
+    if (typeof props.children === "function") {
+      slotFn = props.children as () => unknown;
+    } else {
+      slotFn = () => props.children;
+    }
+  }
+
+  const renderContent = slotFn ?? fallback ?? null;
+  if (renderContent) {
+    const parentOwner = getCurrentOwner();
+    createRoot((dispose) => {
+      onCleanup(dispose);
+      const res = renderContent() as Node | readonly Node[] | null | undefined;
+      const nodes = normalizeToNodeArray(res);
+      const targetParent = marker.parentNode ?? parent;
+      for (const n of nodes) {
+        targetParent.insertBefore(n, marker);
+      }
+      onCleanup(() => {
+        for (const n of nodes) {
+          removeNode(n);
+        }
+      });
+    }, parentOwner);
+  }
+
+  return marker;
 }
 
 export function setClassName(el: Element, value: unknown): void {

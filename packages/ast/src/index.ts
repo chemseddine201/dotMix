@@ -144,6 +144,13 @@ export interface IfBlockNode extends ASTNodeBase {
   readonly alternate: readonly TemplateNode[] | IfBlockNode | null;
 }
 
+export interface SlotOutletNode extends ASTNodeBase {
+  readonly type: "SlotOutlet";
+  readonly name: string | null;
+  readonly fallback: readonly TemplateNode[];
+  readonly selfClosing: boolean;
+}
+
 export type TemplateNode =
   | ElementNode
   | ComponentCallNode
@@ -152,7 +159,8 @@ export type TemplateNode =
   | InterpolationNode
   | CommentNode
   | EachBlockNode
-  | IfBlockNode;
+  | IfBlockNode
+  | SlotOutletNode;
 
 export interface ComponentNode extends ASTNodeBase {
   readonly type: "Component";
@@ -290,6 +298,22 @@ export function createDynamicElementNode(params: {
   });
 }
 
+export function createSlotOutletNode(params: {
+  span: SourceSpan;
+  name?: string | null;
+  fallback?: readonly TemplateNode[];
+  selfClosing?: boolean;
+}): SlotOutletNode {
+  validateSpan(params.span);
+  return deepFreeze({
+    type: "SlotOutlet",
+    span: params.span,
+    name: params.name ?? null,
+    fallback: params.fallback ? [...params.fallback] : [],
+    selfClosing: params.selfClosing ?? false
+  });
+}
+
 export type ASTVisitor = {
   enter?: (node: ASTNode, parent: ASTNode | null) => void;
   leave?: (node: ASTNode, parent: ASTNode | null) => void;
@@ -320,6 +344,8 @@ export function walk(root: ASTNode, visitor: ASTVisitor): void {
           visit(node.alternate as IfBlockNode, node);
         }
       }
+    } else if (node.type === "SlotOutlet") {
+      for (const child of node.fallback) visit(child, node);
     }
     visitor.leave?.(node, parent);
   }
