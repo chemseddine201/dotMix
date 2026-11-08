@@ -1,37 +1,26 @@
 {
-  "name": "mix-tix",
-  "version": "1.0.0-rc.1",
-  "type": "module",
+  "name": "mix-framework",
+  "version": "0.1.0",
   "private": true,
-  "description": "Mix & Tix — Compiler-Native UI Language & Direct DOM Framework",
-  "bin": {
-    "mix": "./bin/mix.mjs"
-  },
+  "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "engines": {
-    "node": "^24.0.0 || ^26.0.0"
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
   },
   "scripts": {
-    "test": "node --test tests/phase0-v322.test.mjs tests/runtime/rx-reference.test.mjs tests/runtime/rx-conformance.test.mjs tests/runtime/owner.test.mjs tests/runtime/cancellation.test.mjs tests/security/url.test.mjs tests/security/srcset.test.mjs tests/security/style.test.mjs tests/security/trusted-html.test.mjs tests/compiler/parser-syntax.test.mjs tests/compiler/typecheck-projection.test.mjs tests/runtime/dom-keyed.test.mjs tests/hmr/hmr-v322.test.mjs && node scripts/verify-phase0.mjs && node --test tests/conformance/vertical-slice.test.mjs tests/runtime/scheduler.test.mjs tests/conformance/phase2-compiler.test.mjs tests/runtime/phase3-runtime.test.mjs tests/security/security.test.mjs tests/hmr/hmr.test.mjs tests/diagnostics/diagnostics.test.mjs tests/cli/cli.test.mjs tests/runtime/router.test.mjs",
-    "bench": "node benchmarks/run-benchmarks.mjs",
-    "pack": "npm pack --workspace=@mix/ast --workspace=@mix/runtime --workspace=@mix/compiler-frontend --workspace=@mix/compiler-semantic --workspace=@mix/compiler-css --workspace=@mix/compiler-codegen --workspace=@mix/router --dry-run",
     "build": "tsc -b",
     "lint": "eslint .",
-    "example:build": "node examples/showcase/build.mjs",
-    "example:serve": "node examples/showcase/server.mjs",
-    "example:verify": "node examples/showcase/verify.mjs",
-    "example": "node examples/showcase/server.mjs"
+    "test": "node --test tests/**/*.test.mjs"
   },
   "devDependencies": {
-    "@types/node": "24.19.2",
-    "eslint": "9.19.0",
+    "@eslint/js": "9.39.5",
+    "@types/node": "26.0.0",
+    "eslint": "9.39.5",
     "happy-dom": "15.11.7",
-    "typescript": "7.0.2"
-  },
-  "dependencies": {
-    "@csstools/css-tokenizer": "4.0.2",
-    "@sveltejs/acorn-typescript": "1.0.13"
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
   }
 }

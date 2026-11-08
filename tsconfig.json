@@ -1,13 +1,13 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "files": [],
   "references": [
-    { "path": "./packages/ast" },
-    { "path": "./packages/runtime" },
-    { "path": "./packages/compiler-frontend" },
-    { "path": "./packages/compiler-semantic" },
-    { "path": "./packages/compiler-css" },
-    { "path": "./packages/compiler-codegen" },
-    { "path": "./packages/router" }
+    { "path": "packages/diagnostics" },
+    { "path": "packages/ast" },
+    { "path": "packages/compiler-frontend" },
+    { "path": "packages/compiler-semantic" },
+    { "path": "packages/compiler-css" },
+    { "path": "packages/compiler-codegen" },
+    { "path": "packages/runtime" }
   ]
 }
-

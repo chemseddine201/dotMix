@@ -1,7 +1,9 @@
 # CSS Scoping & Style Validation — Mix & Tix
 
-**Status:** Canonical CSS Specification (Reconciled Phase 1)  
-**Package:** `@mix/compiler-css`
+**Authority:** Human Architecture Authority  
+**Status:** Canonical CSS Specification (Reconciled Phase Gate 1)  
+**Package:** `@mix/compiler-css`  
+**Provenance Reference:** `spec/SOURCE_PROVENANCE.md`
 
 ---
 
@@ -28,16 +30,17 @@ The compiler transforms selectors by appending a unique component attribute sele
 
 ## 2. Compile-Time CSS Validation (D-108)
 
-During compilation, `@mix/compiler-css` tokenizes static stylesheet content and enforces:
+During compilation, `@mix/compiler-css` tokenizes static stylesheet content using `css-tree@3.1.0` and enforces:
 
 1. **Forbidden At-Rules Rejection:**
    - `@import` is strictly rejected with diagnostic error `MIX_ERR_CSS_FORBIDDEN_IMPORT`.
    - `@charset` is rejected with `MIX_ERR_CSS_FORBIDDEN_CHARSET`.
-2. **Pseudo-Class Scoping:**
-   - `:global(...)` escapes scoping for nested selectors.
-   - `:host` targets the component's root element.
+2. **Pseudo-Class Scoping Rules (F-05):**
+   - `:global(...)` escapes component scoping for nested selectors.
+   - `:deep(...)` targets descendant elements rendered by child components without breaking encapsulation boundaries.
+   - The pseudo-class `:host` is **not** supported (Mix does not use Shadow DOM by default).
 3. **Static Syntax Verification:**
-   - Unbalanced braces, malformed selectors, or invalid static property declarations emit compile-time errors with exact source spans.
+   - Unbalanced braces, malformed selectors, or invalid static property declarations emit compile-time errors with character-exact source spans.
 
 ---
 
@@ -48,7 +51,7 @@ Dynamic style bindings (`style={styles()}` or dynamic CSS variables `--custom-pr
 ### 3.1 Property Name Validation
 Dynamic property names must conform to valid CSS identifier grammar:
 - Must match `/^[a-z][a-z0-9-]*$/i`.
-- Any property name containing colons `:`, semicolons `;`, braces `{}`, or control characters is rejected with `MixSecurityError`.
+- Any property name containing colons `:`, semicolons `;`, braces `{}`, or control characters is rejected with `MixError` (`MIX_SEC_CSS_PROPERTY`).
 
 ### 3.2 Value Validation & Escape Sequence Decoding
 - Dynamic values are scanned for CSS escape sequences (e.g. `\3b` decoding to `;`, `\7d` decoding to `}`).
@@ -57,8 +60,8 @@ Dynamic property names must conform to valid CSS identifier grammar:
 ### 3.3 Safe URL Protocols
 If a dynamic style value includes `url(...)`:
 - The enclosed URL is parsed and validated.
-- Allowed protocols: `http:`, `https:`, relative paths (`/`, `./`, `../`), and safe image data URIs (`data:image/png;...`, `data:image/jpeg;...`, `data:image/svg+xml;...`).
-- Protocols such as `javascript:`, `vbscript:`, or arbitrary executable schemes are rejected.
+- Allowed protocols: `http:`, `https:`, relative paths (`/`, `./`, `../`), and safe raster image data URIs (`data:image/png;...`, `data:image/jpeg;...`, `data:image/webp;...`).
+- Dangerous schemes (`javascript:`, `vbscript:`, or arbitrary executable schemes) and unverified scriptable formats (`data:image/svg+xml`) are rejected.
 
 ### 3.4 Safe Application Contract
 Dynamic styles are **never** applied via raw HTML string concatenation (e.g. `<div style="...">`). The runtime applies validated properties individually using `element.style.setProperty(propertyName, value)`.

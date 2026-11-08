@@ -1,7 +1,9 @@
 # Language Specification — Mix & Tix
 
-**Status:** Canonical Language Specification (Reconciled Phase 1)  
-**Applies to:** Compiler Frontend (`@mix/compiler-frontend`) and AST (`@mix/ast`)
+**Authority:** Human Architecture Authority  
+**Status:** Canonical Language Specification (Reconciled Phase Gate 1)  
+**Applies to:** Compiler Frontend (`@mix/compiler-frontend`) and AST (`@mix/ast`)  
+**Provenance Reference:** `spec/SOURCE_PROVENANCE.md`
 
 ---
 
@@ -14,8 +16,8 @@ Mix and Tix share an identical underlying Abstract Syntax Tree (AST), semantic r
   - Allows optional semicolons, implicit component exports, and inferred types.
 - **`.tix` (Strict TypeScript-Oriented Syntax):**
   - Requires explicit TypeScript type annotations for component props, events, and slots.
-  - Strict script block placement and mandatory single component declaration contracts (`export default component ...`).
-  - Strict type checking against component interfaces.
+  - Strict script block placement with `<script lang="ts">`.
+  - Type-checked against component interfaces using TypeScript Compiler API projection (`spec/DIAGNOSTICS.md`).
 
 ---
 
@@ -55,7 +57,7 @@ The scanner must track nesting depth `depth = 1` starting immediately after the 
 5. **Template Literals:** `` `...` `` including nested interpolations `` `...${nestedExpr}...` `` (which recursively increment delimiter depth)
 6. **Regular Expression Literals:** `/.../[gimsuy]*` (distinguished from division operators by scanning the preceding token context)
 
-When `depth === 0`, the expression boundary terminates cleanly, and the enclosed source span is delegated to the standard TypeScript parser.
+When `depth === 0`, the expression boundary terminates cleanly, and the enclosed source span is delegated to the expression parser (`acorn` + `@sveltejs/acorn-typescript`).
 
 ---
 
@@ -84,11 +86,11 @@ A component file consists of three optional, order-independent top-level section
 
 ---
 
-## 5. Attributes and Event Handlers
+## 5. Attributes, Directives, and Event Handlers
 
 - **Static Attributes:** `name="value"`
 - **Reactive Attribute Bindings:** `name={signal()}`
 - **Boolean Attributes:** `disabled={isDisabled()}` (omitted if falsy, present if truthy)
 - **Event Listeners:** `@event={handler}` or `on:event={handler}`
 - **References:** `ref={myRef}`
-- **Direct HTML Binding:** `mix-html={trustedContent()}` (subject to `SanitizerProvider` runtime validation; see `spec/SECURITY.md`)
+- **Direct HTML Binding:** `mix-html={trustedContent()}` (subject strictly to application `SanitizerProvider` / Trusted Types runtime validation per `spec/SECURITY.md` and `HAA-03`)

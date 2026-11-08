@@ -61,7 +61,7 @@ This proposal establishes the clean, modular package topology for the Mix / Tix 
 - **Responsibility:**
   Template markup parsing, balanced delimiter state machine for embedded expressions (`attr={expr}`, `{expr}`, `<{~expr}>`), `<script>` and `<style>` section extraction, Acorn / TypeScript expression scanner integration, and AST construction with exact source spans.
 - **Expression AST Ownership:**
-  `@mix/ast` defines template AST nodes containing ESTree-compatible expression nodes (`expression: ESTree.Node`). `@mix/compiler-frontend` invokes `acorn@8.14.0` with `@sveltejs/acorn-typescript@1.4.1` to parse embedded JS/TS expressions into ESTree ASTs with character-exact source spans, avoiding any custom regex-based expression scanning.
+  `@mix/ast` defines template AST nodes containing ESTree-compatible expression nodes (`expression: ESTree.Node`). `@mix/compiler-frontend` invokes `acorn@8.14.0` with `@sveltejs/acorn-typescript@1.0.13` to parse embedded JS/TS expressions into ESTree ASTs with character-exact source spans, avoiding any custom regex-based expression scanning.
 - **Public Entry Points:**
   - `.` (`dist/index.js`, `dist/index.d.ts`):
     - `parse(source: string, filename?: string): ComponentNode`
@@ -69,7 +69,7 @@ This proposal establishes the clean, modular package topology for the Mix / Tix 
   - `@mix/diagnostics`
   - `@mix/ast`
   - `acorn@8.14.0` (expression parsing)
-  - `@sveltejs/acorn-typescript@1.4.1` (TypeScript expression syntax support)
+  - `@sveltejs/acorn-typescript@1.0.13` (TypeScript expression syntax support)
 - **Forbidden Dependencies:**
   `@mix/runtime` (**STRICTLY FORBIDDEN**), `@mix/compiler-codegen`, `@mix/compiler-css`, `@mix/compiler-semantic`.
 - **Tests:**
@@ -142,8 +142,8 @@ This proposal establishes the clean, modular package topology for the Mix / Tix 
   - `./security`: Security boundaries (`createTrustedHtml`, `setSanitizerProvider`, `setSafeSrcset`, `setSafeStyleProperty`).
   - `./typecheck`: Type helper contracts for `.tix` projection (`VerifyProps`, `VerifyRef`, `RefTarget`).
 - **Allowed Dependencies:**
-  - Workspace development: `@mix/diagnostics` (for standard `MixError` and diagnostic codes).
-  - Published distribution: **Zero external npm dependencies** (`dependencies: {}`). The build step inlines required diagnostic types/codes into the runtime distribution artifacts, guaranteeing that `@mix/runtime` is completely self-contained.
+  - Workspace development / Type checking: `@mix/diagnostics` (allowed only in `devDependencies` / TypeScript `references` for `import type` erasure; zero runtime dependency).
+  - Runtime & Published package: **Zero external dependencies** (`dependencies: {}`). Enforced by TypeScript `"verbatimModuleSyntax": true`, erasing all `import type` references at compile time with zero bundler required. `@mix/runtime` defines its own self-contained runtime `MixError` and code constants matching `@mix/diagnostics`.
 - **Forbidden Dependencies:**
   `@mix/ast`, `@mix/compiler-*`, `@csstools/css-tokenizer`, any external npm runtime package.
 - **Tests:**
@@ -195,5 +195,5 @@ This proposal establishes the clean, modular package topology for the Mix / Tix 
 ### Dependency Validation Invariants:
 1. **Zero Circularity:** The graph is strictly directed and acyclic (DAG).
 2. **Zero Inverted Layers:** Compiler packages (`frontend`, `semantic`, `css`, `codegen`) depend on `@mix/diagnostics` and `@mix/ast`, and never depend on `@mix/runtime`.
-3. **Zero External Runtime Dependencies:** `@mix/runtime` publishes with zero external npm dependencies (`dependencies: {}`). It imports `@mix/diagnostics` internally via monorepo workspace references during development, and inlines needed diagnostics into its distribution artifacts at build time.
+3. **Zero External Runtime Dependencies:** `@mix/runtime` declares `"dependencies": {}` and uses `import type` ONLY when referencing `@mix/diagnostics` types, completely erased at compile time via TypeScript `"verbatimModuleSyntax": true` with zero bundler required. Runtime error classes and codes are self-contained within `@mix/runtime`.
 4. **Independent Verifiability:** `@mix/runtime` and compiler packages can be compiled and tested independently in parallel.

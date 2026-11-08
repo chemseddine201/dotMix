@@ -104,7 +104,7 @@ In Git commit `b95110e`, previous agents blindly pinned `typescript@7.0.2` witho
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "@types/node": "26.0.0",
-    "eslint": "9.19.0",
+    "eslint": "9.39.5",
     "happy-dom": "15.11.7",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1"
@@ -122,7 +122,7 @@ In Git commit `b95110e`, previous agents blindly pinned `typescript@7.0.2` witho
 |---|---|---|
 | `@mix/diagnostics` | None (Zero external dependencies) | `@mix/*`, external npm |
 | `@mix/ast` | `@mix/diagnostics` | `@mix/compiler-*`, `@mix/runtime` |
-| `@mix/compiler-frontend` | `@mix/diagnostics`, `@mix/ast`, `acorn@8.14.0`, `@sveltejs/acorn-typescript@1.4.1` | `@mix/runtime` (**FORBIDDEN**) |
+| `@mix/compiler-frontend` | `@mix/diagnostics`, `@mix/ast`, `acorn@8.14.0`, `@sveltejs/acorn-typescript@1.0.13` | `@mix/runtime` (**FORBIDDEN**) |
 | `@mix/compiler-semantic` | `@mix/diagnostics`, `@mix/ast`, `typescript@6.0.3` (internal adapter) | `@mix/runtime` (**FORBIDDEN**) |
 | `@mix/compiler-css` | `@mix/diagnostics`, `@mix/ast`, `css-tree@3.1.0` | `@mix/runtime` |
 | `@mix/compiler-codegen` | `@mix/diagnostics`, `@mix/ast`, `@mix/compiler-semantic`, `@mix/compiler-css` | `@mix/runtime` |

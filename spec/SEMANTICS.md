@@ -1,7 +1,9 @@
 # Language Semantics — Mix & Tix
 
-**Status:** Canonical Semantics Specification (Reconciled Phase 1)  
-**Applies to:** Compiler Semantics (`@mix/compiler-semantic`) and Runtime (`@mix/runtime`)
+**Authority:** Human Architecture Authority  
+**Status:** Canonical Semantics Specification (Reconciled Phase Gate 1)  
+**Applies to:** Compiler Semantics (`@mix/compiler-semantic`) and Runtime (`@mix/runtime`)  
+**Provenance Reference:** `spec/SOURCE_PROVENANCE.md`
 
 ---
 
@@ -22,14 +24,14 @@ When an effect writes to a reactive dependency (either its own dependency or ano
 
 1. **State Independence:** The flag `pendingRerun: boolean` is tracked independently from `computation.state` (`CLEAN | CHECK | DIRTY | RUNNING | DISPOSED`).
 2. **Non-Nested Execution:** If an effect is currently `RUNNING`, it **never** executes re-entrantly. The current execution frame must finish completely before any rerun begins.
-3. **Deduplication & Coalescing:** Multiple dependency writes during a single effect run set `pendingRerun = true` only once. Duplicate notifications are coalesced into a single deferred rerun scheduled in the microtask/scheduler queue.
+3. **Deduplication & Coalescing:** Multiple dependency writes during a single effect run set `pendingRerun = true` only once. Duplicate notifications are coalesced into a single deferred rerun scheduled in the scheduler queue.
 4. **Cycle Detection:** To prevent infinite runaway loops, the scheduler tracks the iteration count of consecutive reruns within a flush cycle.
    - If the iterations exceed `SchedulerOptions.maxEffectIterations` (engine default: 1000), the scheduler aborts the loop and throws a deterministic `ReactiveCycleError`.
-   - Magic numbers (such as 100) are explicitly forbidden as language-level semantic rules; the threshold is engine-configurable.
+   - The iteration threshold is engine-configurable.
 5. **Deterministic Error Handling:** If an effect throws during execution or rerun:
    - Its `state` is reset to `CLEAN`.
    - Cleanups registered prior to the throw execute deterministically.
-   - The error is forwarded to the nearest active error boundary (`catchError` / `ErrorBoundary`).
+   - The error is forwarded to the nearest active error boundary or unhandled error hook.
    - The global scheduler queue remains uncorrupted, and unrelated scheduled effects continue processing.
 
 ---
@@ -56,22 +58,23 @@ Computation: CLEAN <─────> CHECK <─────> DIRTY
 ```
 - States: `CLEAN`, `CHECK`, `DIRTY`, `RUNNING`, `DISPOSED`.
 - Both `Effect` and `Computed` nodes have an explicit `DISPOSED` state.
-- **Disposal Guarantee:** When an owner is disposed, all descendant computations immediately transition to `DISPOSED`. They unbind all sources (dependencies) and observers (dependents), are purged from pending scheduler queues, and will never re-execute.
+- **Disposal Guarantee:** When an owner is disposed, all descendant computations immediately transition to `DISPOSED`. They unbind all sources (dependencies) and observers (dependents), are purged from pending scheduler queues, and will never re-evaluate.
 
 ---
 
-## 4. Keyed List Reconciliation (D-110)
+## 4. Keyed Reconciliation & Atomic Duplicate Rejection Policy (D-110 / HAA-02 Option A)
 
 Keyed list blocks (`<each items as item (item.id)>`) reconcile dynamic collections using strict unique keys.
 
-### 4.1 Duplicate Key Handling
-- Key uniqueness is a mandatory contract. Fallback surrogate keys are **forbidden**.
-- **First Occurrence Wins:** The first item encountered with a given key is retained and reconciled into the DOM.
-- **Duplicate Treatment:** Subsequent items with identical keys are treated as an error condition:
-  1. A diagnostic error is emitted (`MIX_ERR_DUPLICATE_KEY`).
-  2. The duplicate entries are omitted from the reconciled DOM.
-  3. The child `Owner` trees instantiated for duplicate entries are immediately and cleanly disposed.
+### 4.1 Prohibition of Surrogate Keys (Architecture Guardrail §H)
+Key uniqueness is a mandatory contract. Synthetic, index-based, or random surrogate fallback keys (such as `(k, n)`) to conceal duplicates are **strictly prohibited** in all environments (development and production).
 
-### 4.2 Key Evaluation and Batching
-- **Timing:** Key functions `(item, index) => key` are evaluated exactly once per item before diffing begins.
-- **Atomic Batching:** All signal mutations and DOM node insertions/moves within a reconciliation cycle are batched atomically. Effects cannot observe intermediate, partially committed states.
+### 4.2 Ratified Atomic Duplicate-Update Rejection Policy (HAA-02 Option A — Strict)
+When a collection update contains duplicate keys, the reconciler enforces atomic rejection:
+
+1. **Pre-reconciliation Validation:** Before any DOM diffing, element moving, or child owner creation occurs, the incoming collection of keys is validated in its entirety.
+2. **Deterministic Detection:** Duplicate keys are detected deterministically during the initial key-collection pass.
+3. **Atomic Rejection:** The invalid collection update is rejected atomically. No partial application of items is permitted.
+4. **State & DOM Preservation:** The previously rendered DOM collection and its associated child `Owner` trees remain mounted, intact, and completely unchanged.
+5. **Zero Allocation:** Zero DOM nodes and zero child `Owner` instances are allocated for items in the rejected update.
+6. **Strict Error Delivery:** The runtime emits and synchronously **throws** a deterministic `MixError` (`MIX_ERR_DUPLICATE_KEY`) in **both development and production**, while guaranteeing that reactive scheduler and queue invariants remain uncorrupted (`D-101`).

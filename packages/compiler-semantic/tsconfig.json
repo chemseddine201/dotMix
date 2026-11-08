@@ -1,14 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "src",
+    "outDir": "dist"
   },
   "references": [
-    { "path": "../ast" },
-    { "path": "../compiler-frontend" },
-    { "path": "../runtime" }
+    { "path": "../diagnostics" },
+    { "path": "../ast" }
   ],
   "include": ["src/**/*"]
 }

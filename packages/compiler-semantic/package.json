@@ -2,25 +2,17 @@
   "name": "@mix/compiler-semantic",
   "version": "0.1.0",
   "type": "module",
-  "private": true,
-  "description": "Name resolution, type projection, and semantic validation.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "dependencies": {
+    "@mix/diagnostics": "0.1.0",
     "@mix/ast": "0.1.0",
-    "@mix/compiler-frontend": "0.1.0",
-    "@mix/runtime": "0.1.0"
-  },
-  "scripts": {
-    "build": "tsc -b"
+    "typescript": "6.0.3"
   }
 }
