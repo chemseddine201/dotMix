@@ -43,11 +43,15 @@ Repository scaffold, spec inventory, decision register, and agent audit. No comp
 - Source maps and rich diagnostic formatting.
 - Performance benchmarks and reproducible metrics.
 
-**Phase 5 Gate:** Reproducible build/test workflows, verified benchmarks, and complete diagnostic coverage.
+**Phase 5 Gate:** Complete (All 7 performance benchmark baselines met, 100% test pass).
 
-## Phase 6 — Stabilization
-- Ecosystem compatibility and browser conformance matrix.
-- Documentation, API surface freeze, release candidate packaging.
+## Phase 6 — Stabilization & Release Readiness
+- Ecosystem compatibility, tarball packaging (`npm pack`), and clean workspace export maps.
+- Public API surface freeze audit across all monorepo packages.
+- Canonical documentation freeze and quickstart guides in `README.md`.
+- Complete verification across all 62 automated tests and benchmarks.
+
+**Phase 6 Gate: COMPLETE — Version 1.0.0-rc.1 Release Candidate.**
 
 ## Phase discipline
 - One phase at a time.

@@ -124,3 +124,4 @@ Per `ROADMAP.md`, Phase 6 will focus on Stabilization & Release Readiness:
 1. **Ecosystem & Cross-Engine Validation:** Verify Node.js LTS matrix (Node 24 LTS and Node 26 LTS).
 2. **Release Candidate Packaging:** Configure distribution builds, package exports map verification, and tarball smoke tests (`npm pack`).
 3. **Canonical Documentation Freeze:** Finalize API reference documentation and README quickstart.
+

@@ -6,7 +6,8 @@
     { "path": "./packages/compiler-frontend" },
     { "path": "./packages/compiler-semantic" },
     { "path": "./packages/compiler-css" },
-    { "path": "./packages/compiler-codegen" }
+    { "path": "./packages/compiler-codegen" },
+    { "path": "./packages/router" }
   ]
 }
 

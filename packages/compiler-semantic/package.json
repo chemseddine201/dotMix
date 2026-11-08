@@ -11,6 +11,10 @@
     }
   },
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "@mix/ast": "0.1.0",
     "@mix/compiler-frontend": "0.1.0"
