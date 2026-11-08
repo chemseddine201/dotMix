@@ -65,3 +65,4 @@ If a dynamic style value includes `url(...)`:
 
 ### 3.4 Safe Application Contract
 Dynamic styles are **never** applied via raw HTML string concatenation (e.g. `<div style="...">`). The runtime applies validated properties individually using `element.style.setProperty(propertyName, value)`.
+

@@ -36,3 +36,4 @@ jobs:
 
       - name: Run test suites
         run: npm test
+

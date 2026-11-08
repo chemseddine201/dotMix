@@ -59,3 +59,4 @@ Direct HTML injection (`mix-html`) requires processing by an approved sanitizer:
 4. **Prohibition of Caller Sanitizers:** The function `createTrustedHtml` does **not** accept an arbitrary caller-supplied sanitizer callback.
 5. **Sink Enforcement:** Direct DOM sinks accept only verified objects from the `WeakSet`. Attempting to inject raw strings throws `MixError` (`MIX_SEC_FOREIGN_TRUSTED_HTML`).
 6. **Context Restrictions:** Trusted HTML insertion into scriptable or active elements (`<script>`, `<iframe>`, `<object>`, `<embed>`) is unconditionally rejected (`MIX_SEC_HTML_CONTEXT`).
+

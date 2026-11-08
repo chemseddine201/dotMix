@@ -26,3 +26,4 @@ The browser SPA MVP targets modern evergreen browsers supporting:
 - Native `CustomElementRegistry` and `ShadowRoot`.
 - W3C Trusted Types (where available, with application `SanitizerProvider` fallback).
 - Direct DOM Level 3 APIs (`Node.textContent`, `Element.setAttribute`, `Element.style.setProperty`).
+

@@ -27,3 +27,4 @@
   - Base reactive signal memory overhead: < 128 bytes per signal node.
   - Active computation node: < 256 bytes per effect/memo.
   - Teardown: Disposed nodes must release references immediately to allow garbage collection.
+

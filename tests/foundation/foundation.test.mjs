@@ -14,18 +14,15 @@ test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async ()
     .map(dirent => dirent.name);
 
   const adjacencyList = new Map();
-  const packageNames = new Map();
 
   for (const folder of packageFolders) {
     const pkgJsonPath = path.join(packagesDir, folder, "package.json");
     if (!fs.existsSync(pkgJsonPath)) continue;
     const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
-    packageNames.set(pkgJson.name, folder);
     const deps = Object.keys(pkgJson.dependencies || {});
     adjacencyList.set(pkgJson.name, deps);
   }
 
-  // Cycle detection via DFS
   const visited = new Set();
   const inStack = new Set();
 
@@ -36,7 +33,7 @@ test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async ()
 
     const neighbors = adjacencyList.get(node) || [];
     for (const neighbor of neighbors) {
-      if (!adjacencyList.has(neighbor)) continue; // external dep or not in workspace
+      if (!adjacencyList.has(neighbor)) continue;
       if (!visited.has(neighbor)) {
         if (hasCycle(neighbor, pathStack)) return true;
       } else if (inStack.has(neighbor)) {
@@ -62,18 +59,15 @@ test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async ()
 test("Foundation 2: Layer boundaries, zero runtime in compiler, and deferred router", async () => {
   const packagesDir = path.join(rootDir, "packages");
 
-  // Router must remain absent
   assert.strictEqual(
     fs.existsSync(path.join(packagesDir, "router")),
     false,
     "packages/router must remain absent per Charter non-goals and HAA-04"
   );
 
-  // Diagnostics must have zero dependencies
   const diagPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "diagnostics", "package.json"), "utf-8"));
   assert.deepStrictEqual(diagPkg.dependencies, {}, "@mix/diagnostics must declare zero dependencies");
 
-  // Compiler/AST packages must never depend on @mix/runtime
   const compilerPackages = ["ast", "compiler-frontend", "compiler-semantic", "compiler-css", "compiler-codegen"];
   for (const pkg of compilerPackages) {
     const pkgPath = path.join(packagesDir, pkg, "package.json");
@@ -89,7 +83,7 @@ test("Foundation 2: Layer boundaries, zero runtime in compiler, and deferred rou
   }
 });
 
-test("Foundation 3: @mix/runtime zero-dependency boundary and import type erasure", async () => {
+test("Foundation 3: @mix/runtime zero-dependency boundary and import type erasure in dist", async () => {
   const runtimePkg = JSON.parse(fs.readFileSync(path.join(rootDir, "packages/runtime/package.json"), "utf-8"));
   assert.deepStrictEqual(
     runtimePkg.dependencies,
@@ -97,47 +91,52 @@ test("Foundation 3: @mix/runtime zero-dependency boundary and import type erasur
     "@mix/runtime package.json must declare 'dependencies': {}"
   );
 
-  // Check built files in packages/runtime/dist/ if built
   const runtimeDist = path.join(rootDir, "packages/runtime/dist");
-  if (fs.existsSync(runtimeDist)) {
-    function checkDir(dir) {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          checkDir(fullPath);
-        } else if (entry.isFile() && entry.name.endsWith(".js")) {
-          const content = fs.readFileSync(fullPath, "utf-8");
-          // Check that no runtime import or require of @mix/diagnostics is present
-          assert.strictEqual(
-            /from\s+["']@mix\/diagnostics["']/.test(content),
-            false,
-            `Compiled JS file ${entry.name} must not contain runtime imports from @mix/diagnostics`
-          );
-          assert.strictEqual(
-            /require\s*\(\s*["']@mix\/diagnostics["']\s*\)/.test(content),
-            false,
-            `Compiled JS file ${entry.name} must not contain require("@mix/diagnostics")`
-          );
-        }
+  assert.strictEqual(
+    fs.existsSync(runtimeDist),
+    true,
+    "packages/runtime/dist must exist (run 'npm run build' before testing)"
+  );
+
+  function checkDir(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        checkDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith(".js") || entry.name.endsWith(".d.ts"))) {
+        const content = fs.readFileSync(fullPath, "utf-8");
+        assert.strictEqual(
+          /from\s+["']@mix\/diagnostics["']/.test(content),
+          false,
+          `Compiled runtime artifact ${entry.name} must not contain imports from @mix/diagnostics`
+        );
+        assert.strictEqual(
+          /require\s*\(\s*["']@mix\/diagnostics["']\s*\)/.test(content),
+          false,
+          `Compiled runtime artifact ${entry.name} must not contain require("@mix/diagnostics")`
+        );
       }
     }
-    checkDir(runtimeDist);
   }
+  checkDir(runtimeDist);
+
+  const astDts = path.join(rootDir, "packages/ast/dist/index.d.ts");
+  assert.strictEqual(fs.existsSync(astDts), true, "packages/ast/dist/index.d.ts must exist");
+  const astDtsContent = fs.readFileSync(astDts, "utf-8");
+  assert.strictEqual(
+    /from\s+["'](?!@mix\/diagnostics["'])[^."']/.test(astDtsContent),
+    false,
+    "@mix/ast index.d.ts must not leak external third-party package imports"
+  );
 });
 
 test("Foundation 4: Runtime and Diagnostics MixError and code parity", async () => {
-  // Dynamically import compiled or source index of diagnostics and runtime errors
-  const diagModule = await import("../../packages/diagnostics/src/index.ts").catch(async () => {
-    return await import("../../packages/diagnostics/dist/index.js");
-  });
-  const runtimeModule = await import("../../packages/runtime/src/errors.ts").catch(async () => {
-    return await import("../../packages/runtime/dist/errors.js");
-  });
+  const diagModule = await import("../../packages/diagnostics/dist/index.js");
+  const runtimeModule = await import("../../packages/runtime/dist/errors.js");
 
   assert.ok(diagModule.DiagnosticCodes, "@mix/diagnostics must export DiagnosticCodes");
   assert.ok(runtimeModule.DiagnosticCodes, "@mix/runtime must export DiagnosticCodes");
 
-  // Every code in @mix/diagnostics must be present in @mix/runtime
   for (const [key, val] of Object.entries(diagModule.DiagnosticCodes)) {
     assert.strictEqual(
       runtimeModule.DiagnosticCodes[key],
@@ -146,7 +145,6 @@ test("Foundation 4: Runtime and Diagnostics MixError and code parity", async () 
     );
   }
 
-  // Error instantiation verification
   const err1 = new diagModule.MixError(diagModule.DiagnosticCodes.MIX_ERR_DUPLICATE_KEY, "test");
   const err2 = new runtimeModule.MixError(runtimeModule.DiagnosticCodes.MIX_ERR_DUPLICATE_KEY, "test");
 

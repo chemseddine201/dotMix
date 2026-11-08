@@ -126,3 +126,4 @@ export interface RendererAdapter<TNode = unknown, TElement = TNode> {
 ## 6. Zero-Dependency Boundary (HAA-04)
 
 `@mix/runtime` declares `"dependencies": {}`. Diagnostic error types are referenced via `import type` only from `@mix/diagnostics`, completely erased by `tsc -b` at compile time via `"verbatimModuleSyntax": true`. `@mix/runtime` defines its own self-contained runtime `MixError` and diagnostic code constants, requiring **zero bundler** and zero external npm packages.
+

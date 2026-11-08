@@ -17,10 +17,12 @@ export const DiagnosticCodes = {
   MIX_ERR_DUPLICATE_KEY: "MIX_ERR_DUPLICATE_KEY",
   MIX_ERR_UNRESOLVED_IDENTIFIER: "MIX_ERR_UNRESOLVED_IDENTIFIER",
   MIX_ERR_INVALID_PROP_TYPE: "MIX_ERR_INVALID_PROP_TYPE",
+  MIX_INTERNAL_TYPECHECK: "MIX_INTERNAL_TYPECHECK",
   MIX_ERR_REACTIVE_CYCLE: "MIX_ERR_REACTIVE_CYCLE",
   MIX_SEC_FOREIGN_TRUSTED_HTML: "MIX_SEC_FOREIGN_TRUSTED_HTML",
   MIX_SEC_HTML_CONTEXT: "MIX_SEC_HTML_CONTEXT",
   MIX_SEC_CSS_PROPERTY: "MIX_SEC_CSS_PROPERTY",
+  MIX_SEC_UNSAFE_URL: "MIX_SEC_UNSAFE_URL",
   MIX_WARN_HMR_STALE_CLOSURE: "MIX_WARN_HMR_STALE_CLOSURE"
 } as const satisfies Record<string, IDiagnosticCode>;
 
@@ -28,10 +30,14 @@ export type DiagnosticCode = (typeof DiagnosticCodes)[keyof typeof DiagnosticCod
 
 export class MixError extends Error {
   readonly code: string;
+  readonly details?: Record<string, unknown>;
 
-  constructor(code: string, message: string) {
+  constructor(code: string, message: string, details?: Record<string, unknown>) {
     super(`[${code}] ${message}`);
     this.name = "MixError";
     this.code = code;
+    if (details !== undefined) {
+      this.details = details;
+    }
   }
 }

@@ -24,10 +24,12 @@ export const DiagnosticCodes = {
   MIX_ERR_DUPLICATE_KEY: "MIX_ERR_DUPLICATE_KEY",
   MIX_ERR_UNRESOLVED_IDENTIFIER: "MIX_ERR_UNRESOLVED_IDENTIFIER",
   MIX_ERR_INVALID_PROP_TYPE: "MIX_ERR_INVALID_PROP_TYPE",
+  MIX_INTERNAL_TYPECHECK: "MIX_INTERNAL_TYPECHECK",
   MIX_ERR_REACTIVE_CYCLE: "MIX_ERR_REACTIVE_CYCLE",
   MIX_SEC_FOREIGN_TRUSTED_HTML: "MIX_SEC_FOREIGN_TRUSTED_HTML",
   MIX_SEC_HTML_CONTEXT: "MIX_SEC_HTML_CONTEXT",
   MIX_SEC_CSS_PROPERTY: "MIX_SEC_CSS_PROPERTY",
+  MIX_SEC_UNSAFE_URL: "MIX_SEC_UNSAFE_URL",
   MIX_WARN_HMR_STALE_CLOSURE: "MIX_WARN_HMR_STALE_CLOSURE"
 } as const;
 
@@ -43,11 +45,15 @@ export interface Diagnostic {
 
 export class MixError extends Error {
   readonly code: string;
+  readonly details?: Record<string, unknown>;
 
-  constructor(code: string, message: string) {
+  constructor(code: string, message: string, details?: Record<string, unknown>) {
     super(`[${code}] ${message}`);
     this.name = "MixError";
     this.code = code;
+    if (details !== undefined) {
+      this.details = details;
+    }
   }
 }
 
@@ -64,8 +70,12 @@ export class MixDiagnosticError extends MixError {
 export function formatDiagnosticCodeFrame(source: string, span: SourceSpan): string {
   const line = span.start.line;
   const col = span.start.column;
-  const lines = source.split("\n");
+  const lines = source.split(/\r?\n/);
   const lineText = lines[line - 1] ?? "";
-  const caret = " ".repeat(Math.max(0, col - 1)) + "^";
+  const width =
+    span.end.line === span.start.line
+      ? Math.max(1, span.end.column - span.start.column)
+      : 1;
+  const caret = " ".repeat(Math.max(0, col - 1)) + "^".repeat(width);
   return `  ${line} | ${lineText}\n    | ${caret}`;
 }

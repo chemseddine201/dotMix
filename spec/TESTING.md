@@ -48,3 +48,4 @@ tests/
 | **D-109 / HAA-03** | `mix-html` binding without registered authority | Throws `MixError` (`MIX_SEC_FOREIGN_TRUSTED_HTML`); rejects caller-supplied sanitizers. |
 | **D-110 / HAA-02** | Keyed list with duplicate key | Complete pre-validation; atomic rejection; previous DOM intact; throws `MixError` in DEV and PROD. |
 | **D-111** | HMR method replacement | Updated method reads and writes live component state through stable scope trampoline. |
+

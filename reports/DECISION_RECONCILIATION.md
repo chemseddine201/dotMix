@@ -19,11 +19,11 @@ This report performs an item-by-item comparison of architectural decisions **D-1
   - **PARTIAL / CONFLICTING (4 decisions):** D-101 (Scheduler state flag), D-105 (Dynamic Element attributes dropped in codegen), D-106 (TS projection source map faking), D-108 (CSS validation pulled tokenizer into runtime).
   - **REQUIRING HUMAN ARCHITECTURE RATIFICATION (2 decisions):** D-109 (Trusted HTML public boundary), D-110 (Atomic duplicate-update rejection policy).
 - **Pre-initialization Codebase Audit in `HEAD` (`b95110e`):**
-  - **Split-Brain Dual Runtime (D-101, D-102):** `packages/runtime/src/index.ts` (1,219 lines) contained an entire legacy reactive engine running in parallel with `src/core/*`. Codegen imported `index.ts` while keyed lists imported `src/core/*`. `flushSync` wiped the queue on uncaught error.
+  - **Split-Brain Dual Runtime (D-101, D-102):** `packages/runtime/src/index.ts` (1,219 lines) contained an entire legacy reactive engine running in parallel with `src/core/*`. Codegen imported `index.ts` while keyed lists imported `src/core/*`. `flushQueue` in `src/index.ts` and `flushSync` in `src/core/reactivity.ts` wiped the queue on uncaught error.
   - **Reactive Destruction (D-102, D-110):** `ComputedNode` disposal subscribed observers to disposed nodes; `updateEntry` mutated `itemSignal.value = item` directly without calling `set()`, breaking reactivity; LIS had an `arr[0] === 0` corruption bug.
-  - **Security Bypasses (D-107, D-108, D-109):** `src/index.ts` permitted `data:image/svg+xml` in `srcset`; codegen emitted raw attributes on `href`/`src`/`style` without calling runtime validators; `src/index.ts` checked `constructor.name === "TrustedHTML"`, permitting trivial prototype forgery.
+  - **Security Bypasses (D-107, D-108, D-109):** `src/index.ts` permitted `data:image/svg+xml` in `srcset`; codegen emitted raw `el.setAttribute("href", ...)` / `el.setAttribute("style", ...)` calls without calling runtime validators; `src/index.ts` checked `constructor.name === "TrustedHTML"`, permitting trivial prototype forgery.
   - **Surrogate Keys in Production (D-110):** `src/dom/reconcile.ts` synthesized surrogate keys `(k, n)`, violating D-110 and Guardrail §H.
-  - **Memory Leaks (D-111):** `src/hmr/index.ts` created dummy components and leaked memory on reload.
+  - **Memory Leaks (D-111):** `src/index.ts` created dummy component instances during reload and `src/hmr/index.ts` re-ran `next.render()` without disposing old nodes, leaking memory on reload.
 
 ---
 
