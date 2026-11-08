@@ -35,11 +35,46 @@ export default function MetricCard(
 
 <style>
   .metric-card {
-    padding: 12px 16px;
-    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+    border-radius: 12px;
     background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+  .metric-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    font-weight: 600;
   }
   .metric-card :deep(.metric-value) {
+    font-size: 28px;
+    line-height: 1.1;
+    color: #0f172a;
     font-weight: 700;
+  }
+  .trend-badge {
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+  .trend-up {
+    background-color: #dcfce7;
+    color: #15803d;
+  }
+  .trend-down {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+  .trend-flat {
+    background-color: #e2e8f0;
+    color: #334155;
   }
 </style>

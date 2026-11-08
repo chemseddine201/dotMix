@@ -13,7 +13,7 @@ export default function StatefulWorkspace() {
   const draftPriority = signal(2);
   const nextIdSeq = signal(104);
   const headingTag = "h2";
-  const accentColor = signal("#0b5fff");
+  const accentColor = signal("#2563eb");
 
   // 2. Derived computed signals (glitch-free topological evaluation)
   const totalCount = computed(() => tasks().length);
@@ -66,9 +66,16 @@ export default function StatefulWorkspace() {
     filter.set("done");
   }
 
+  function handleDraftInput(e) {
+    draftTitle.set(e.target.value);
+  }
+
+  function cyclePriority() {
+    draftPriority.set(draftPriority() >= 3 ? 1 : draftPriority() + 1);
+  }
+
   function addTask() {
-    const title = draftTitle().trim();
-    if (!title) return;
+    const title = draftTitle().trim() || `Sprint Task #${nextIdSeq()}`;
     const id = `t-${nextIdSeq()}`;
     const priority = draftPriority();
 
@@ -79,6 +86,12 @@ export default function StatefulWorkspace() {
       draftTitle.set("");
       filter.set("all");
     });
+  }
+
+  function toggleTaskById(id) {
+    tasks.set(
+      tasks().map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
   }
 
   function toggleFirstPending() {
@@ -104,14 +117,18 @@ export default function StatefulWorkspace() {
   return (
     <main class="workspace-app" style:border-color={accentColor()}>
       <header class="workspace-header">
-        <$headingTag class="workspace-heading">Mix/Tix Stateful Release Workspace</$headingTag>
-        <div class="workspace-banner" mix-html={statusBannerHtml()}></div>
-        <img
-          class="workspace-avatar"
-          src="/assets/release-badge.png"
-          srcset={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA 1x, https://cdn.example.com/badge?fmt=webp,avif 2x"}
-          alt="Release Badge"
-        />
+        <div class="header-top">
+          <div>
+            <$headingTag class="workspace-heading">Mix/Tix Stateful Release Workspace</$headingTag>
+            <div class="workspace-banner" mix-html={statusBannerHtml()}></div>
+          </div>
+          <img
+            class="workspace-avatar"
+            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+            srcset={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA 1x, https://cdn.example.com/badge?fmt=webp,avif 2x"}
+            alt="Release Badge"
+          />
+        </div>
       </header>
 
       <section class="metrics-grid">
@@ -121,11 +138,18 @@ export default function StatefulWorkspace() {
       </section>
 
       <section class="composer-bar">
-        <span class="draft-preview">Draft: {draftTitle()} (P{draftPriority()})</span>
-        <button class="btn-add-task" onClick={addTask}>Add Task</button>
+        <input
+          class="draft-input"
+          type="text"
+          value={draftTitle()}
+          placeholder="Enter new sprint task title..."
+          onInput={handleDraftInput}
+        />
+        <button class="btn-priority" onClick={cyclePriority}>Priority: P{draftPriority()}</button>
+        <button class="btn-add-task" onClick={addTask}>+ Add Task</button>
         <button class="btn-complete-all" onClick={toggleFirstPending}>Complete All</button>
+        <button class="btn-rotate-tasks" onClick={rotateVisibleOrder}>Rotate Order (LIS)</button>
         <button class="btn-clear-done" onClick={clearCompleted}>Clear Completed</button>
-        <button class="btn-rotate-tasks" onClick={rotateVisibleOrder}>Rotate Order</button>
       </section>
 
       <nav class="filter-tabs" data-active-filter={filter()}>
@@ -144,9 +168,15 @@ export default function StatefulWorkspace() {
 
       <ul class="workspace-task-list">
         {each (task, idx) in visibleTasks()}
-          <li class="workspace-task-item" data-id={task.id} data-done={task.done}>
+          <li
+            class="workspace-task-item"
+            data-id={task.id}
+            data-done={task.done}
+            onClick={() => toggleTaskById(task.id)}
+          >
             <span class="task-index">#{idx + 1}</span>
             <strong class="task-title">{task.title}</strong>
+            <span class="task-state-pill">{task.done ? "✓ Done" : "○ Pending"}</span>
             <span class="task-priority">P{task.priority}</span>
           </li>
         {endeach}
@@ -157,13 +187,160 @@ export default function StatefulWorkspace() {
 
 <style>
   .workspace-app {
-    max-width: 840px;
+    max-width: 880px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 28px;
     border-width: 2px;
     border-style: solid;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #0f172a;
   }
   :global(body) .workspace-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .workspace-heading {
+    margin: 0 0 6px 0;
+    font-size: 24px;
+    color: #0f172a;
+  }
+  .workspace-banner {
+    font-size: 14px;
+    color: #475569;
+  }
+  .workspace-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .composer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 16px;
+    padding: 12px;
+    background-color: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+  }
+  .draft-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  button {
+    cursor: pointer;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background-color 0.15s ease;
+  }
+  button:hover {
+    background-color: #f1f5f9;
+  }
+  .btn-add-task {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+  }
+  .btn-add-task:hover {
+    background-color: #1d4ed8;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .workspace-status {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .status-active {
+    background-color: #eff6ff;
+    color: #1e40af;
+  }
+  .status-complete {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  .status-empty {
+    background-color: #f1f5f9;
+    color: #475569;
+  }
+  .workspace-task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .workspace-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .workspace-task-item:hover {
+    border-color: #94a3b8;
+    background-color: #f8fafc;
+  }
+  .task-index {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    min-width: 28px;
+  }
+  .task-title {
+    flex: 1;
+    font-size: 15px;
+    color: #0f172a;
+  }
+  .task-state-pill {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: #f1f5f9;
+    color: #334155;
+  }
+  .task-priority {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background-color: #e0e7ff;
+    color: #3730a3;
   }
 </style>
