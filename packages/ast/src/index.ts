@@ -70,6 +70,13 @@ export interface RefBindingNode extends ASTNodeBase {
   readonly rawTarget: string;
 }
 
+export interface BindBindingNode extends ASTNodeBase {
+  readonly type: "BindBinding";
+  readonly name: string;
+  readonly target: ESTreeNode;
+  readonly rawTarget: string;
+}
+
 export interface DirectiveAttributeNode extends ASTNodeBase {
   readonly type: "DirectiveAttribute";
   readonly name: "mix-html";
@@ -82,6 +89,7 @@ export type AttributeNode =
   | DynamicAttributeNode
   | EventBindingNode
   | RefBindingNode
+  | BindBindingNode
   | DirectiveAttributeNode;
 
 export interface ElementNode extends ASTNodeBase {
@@ -151,6 +159,17 @@ export interface SlotOutletNode extends ASTNodeBase {
   readonly selfClosing: boolean;
 }
 
+export interface AwaitBlockNode extends ASTNodeBase {
+  readonly type: "AwaitBlock";
+  readonly expression: ESTreeNode;
+  readonly rawExpression: string;
+  readonly pending: readonly TemplateNode[];
+  readonly thenIdentifier: string | null;
+  readonly thenBranch: readonly TemplateNode[];
+  readonly catchIdentifier: string | null;
+  readonly catchBranch: readonly TemplateNode[];
+}
+
 export type TemplateNode =
   | ElementNode
   | ComponentCallNode
@@ -160,7 +179,8 @@ export type TemplateNode =
   | CommentNode
   | EachBlockNode
   | IfBlockNode
-  | SlotOutletNode;
+  | SlotOutletNode
+  | AwaitBlockNode;
 
 export interface ComponentNode extends ASTNodeBase {
   readonly type: "Component";
@@ -314,6 +334,30 @@ export function createSlotOutletNode(params: {
   });
 }
 
+export function createAwaitBlockNode(params: {
+  span: SourceSpan;
+  expression: ESTreeNode;
+  rawExpression: string;
+  pending?: readonly TemplateNode[];
+  thenIdentifier?: string | null;
+  thenBranch?: readonly TemplateNode[];
+  catchIdentifier?: string | null;
+  catchBranch?: readonly TemplateNode[];
+}): AwaitBlockNode {
+  validateSpan(params.span);
+  return deepFreeze({
+    type: "AwaitBlock",
+    span: params.span,
+    expression: params.expression,
+    rawExpression: params.rawExpression,
+    pending: params.pending ? [...params.pending] : [],
+    thenIdentifier: params.thenIdentifier ?? null,
+    thenBranch: params.thenBranch ? [...params.thenBranch] : [],
+    catchIdentifier: params.catchIdentifier ?? null,
+    catchBranch: params.catchBranch ? [...params.catchBranch] : []
+  });
+}
+
 export type ASTVisitor = {
   enter?: (node: ASTNode, parent: ASTNode | null) => void;
   leave?: (node: ASTNode, parent: ASTNode | null) => void;
@@ -346,6 +390,10 @@ export function walk(root: ASTNode, visitor: ASTVisitor): void {
       }
     } else if (node.type === "SlotOutlet") {
       for (const child of node.fallback) visit(child, node);
+    } else if (node.type === "AwaitBlock") {
+      for (const child of node.pending) visit(child, node);
+      for (const child of node.thenBranch) visit(child, node);
+      for (const child of node.catchBranch) visit(child, node);
     }
     visitor.leave?.(node, parent);
   }

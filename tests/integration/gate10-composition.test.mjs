@@ -2,13 +2,11 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { Window } from "happy-dom";
 import {
-  signal,
   createContext,
   provideContext,
   useContext,
   createRoot,
-  mount,
-  onCleanup
+  mount
 } from "../../packages/runtime/dist/index.js";
 import { parse } from "../../packages/compiler-frontend/dist/index.js";
 import { analyze } from "../../packages/compiler-semantic/dist/index.js";

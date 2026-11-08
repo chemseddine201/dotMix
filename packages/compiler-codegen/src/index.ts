@@ -14,6 +14,7 @@ import type {
   IfBlockNode,
   EachBlockNode,
   SlotOutletNode,
+  AwaitBlockNode,
   AttributeNode,
   ESTreeNode
 } from "@mix/ast";
@@ -228,6 +229,23 @@ class CodegenContext {
           lines.push(`__bindRef(${elVar}, (${jsExpr}));`);
           break;
         }
+        case "BindBinding": {
+          const jsTarget = this.emitExpr(
+            attr.rawTarget,
+            attr.target,
+            loopGetters
+          );
+          if (attr.name === "checked") {
+            lines.push(
+              `__bindChecked(${elVar}, () => (typeof (${jsTarget}) === "function" ? (${jsTarget})() : (${jsTarget})), (__v) => { if (typeof (${jsTarget})?.set === "function") { (${jsTarget}).set(__v); } else { (${jsTarget}) = __v; } });`
+            );
+          } else {
+            lines.push(
+              `__bindValue(${elVar}, () => (typeof (${jsTarget}) === "function" ? (${jsTarget})() : (${jsTarget})), (__v) => { if (typeof (${jsTarget})?.set === "function") { (${jsTarget}).set(__v); } else { (${jsTarget}) = __v; } });`
+            );
+          }
+          break;
+        }
       }
     }
 
@@ -307,7 +325,69 @@ class CodegenContext {
       case "SlotOutlet": {
         return this.emitSlotOutlet(node, parentVar, loopGetters, inSvg);
       }
+
+      case "AwaitBlock": {
+        return this.emitAwaitBlock(node, parentVar, loopGetters, inSvg);
+      }
     }
+  }
+
+  private emitAwaitBlock(
+    node: AwaitBlockNode,
+    parentVar: string,
+    loopGetters: ReadonlyMap<string, string>,
+    inSvg: boolean
+  ): string[] {
+    const exprJs = this.emitExpr(
+      node.rawExpression,
+      node.expression,
+      loopGetters
+    );
+
+    const pendingFrag = this.nextId("pendingFrag");
+    const pendingLines = [
+      `const ${pendingFrag} = document.createDocumentFragment();`,
+      ...this.emitTemplateNodes(node.pending, pendingFrag, loopGetters, inSvg),
+      `return [...${pendingFrag}.childNodes];`
+    ];
+
+    const thenValGetter = this.nextId("get_thenVal");
+    const thenLoopGetters = new Map(loopGetters);
+    if (node.thenIdentifier) {
+      thenLoopGetters.set(node.thenIdentifier, thenValGetter);
+    }
+    const thenFrag = this.nextId("thenFrag");
+    const thenLines = [
+      `const ${thenFrag} = document.createDocumentFragment();`,
+      ...this.emitTemplateNodes(node.thenBranch, thenFrag, thenLoopGetters, inSvg),
+      `return [...${thenFrag}.childNodes];`
+    ];
+
+    let catchCode = "null";
+    if (node.catchBranch.length > 0) {
+      const catchErrGetter = this.nextId("get_catchErr");
+      const catchLoopGetters = new Map(loopGetters);
+      if (node.catchIdentifier) {
+        catchLoopGetters.set(node.catchIdentifier, catchErrGetter);
+      }
+      const catchFrag = this.nextId("catchFrag");
+      const catchLines = [
+        `const ${catchFrag} = document.createDocumentFragment();`,
+        ...this.emitTemplateNodes(node.catchBranch, catchFrag, catchLoopGetters, inSvg),
+        `return [...${catchFrag}.childNodes];`
+      ];
+      catchCode = `(${catchErrGetter}) => {\n  void ${catchErrGetter};\n${indentLines(catchLines.join("\n"), 2)}\n}`;
+    }
+
+    return [
+      `__createAwaitBlock(`,
+      `  ${parentVar},`,
+      `  () => (${exprJs}),`,
+      `  () => {\n${indentLines(pendingLines.join("\n"), 4)}\n  },`,
+      `  (${thenValGetter}) => {\n    void ${thenValGetter};\n${indentLines(thenLines.join("\n"), 4)}\n  },`,
+      `  ${catchCode}`,
+      `);`
+    ];
   }
 
   private emitSlotOutlet(
@@ -674,6 +754,9 @@ export function generate(
     "createKeyedEach as __createKeyedEach",
     "mountComponent as __mountComponent",
     "renderSlot as __renderSlot",
+    "bindValue as __bindValue",
+    "bindChecked as __bindChecked",
+    "createAwaitBlock as __createAwaitBlock",
     "createHmrScope as __createHmrScope"
   );
 

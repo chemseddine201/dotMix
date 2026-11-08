@@ -597,7 +597,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
               verifyExpressionIdentifiers(attr.expression, currentScope, diagnostics, attr.span);
             } else if (attr.type === "EventBinding") {
               verifyExpressionIdentifiers(attr.handler, currentScope, diagnostics, attr.span);
-            } else if (attr.type === "RefBinding") {
+            } else if (attr.type === "RefBinding" || attr.type === "BindBinding") {
               verifyExpressionIdentifiers(attr.target, currentScope, diagnostics, attr.span);
             }
           }
@@ -648,6 +648,41 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
           break;
         case "SlotOutlet": {
           analyzeTemplateNodes(node.fallback, currentScope);
+          break;
+        }
+        case "AwaitBlock": {
+          verifyExpressionIdentifiers(node.expression, currentScope, diagnostics, node.span);
+          analyzeTemplateNodes(node.pending, currentScope);
+          if (node.thenIdentifier) {
+            const thenBindings = new Map<string, SymbolBinding>();
+            thenBindings.set(node.thenIdentifier, {
+              name: node.thenIdentifier,
+              kind: "loop",
+              span: node.span
+            });
+            const thenScope: Scope = {
+              parent: currentScope,
+              bindings: thenBindings
+            };
+            analyzeTemplateNodes(node.thenBranch, thenScope);
+          } else {
+            analyzeTemplateNodes(node.thenBranch, currentScope);
+          }
+          if (node.catchIdentifier) {
+            const catchBindings = new Map<string, SymbolBinding>();
+            catchBindings.set(node.catchIdentifier, {
+              name: node.catchIdentifier,
+              kind: "loop",
+              span: node.span
+            });
+            const catchScope: Scope = {
+              parent: currentScope,
+              bindings: catchBindings
+            };
+            analyzeTemplateNodes(node.catchBranch, catchScope);
+          } else {
+            analyzeTemplateNodes(node.catchBranch, currentScope);
+          }
           break;
         }
       }
@@ -893,6 +928,11 @@ export function projectTypeScript(
         appendInternal("  void (");
         appendVerbatim(attr.rawHandler, exprStart);
         appendInternal(");\n");
+      } else if (attr.type === "BindBinding") {
+        const exprStart = attr.target.start ?? attr.span.start.offset;
+        appendInternal("  void (");
+        appendVerbatim(attr.rawTarget, exprStart);
+        appendInternal(");\n");
       }
     }
   }
@@ -965,6 +1005,28 @@ export function projectTypeScript(
           break;
         case "SlotOutlet": {
           emitTemplateChecks(node.fallback, inSvg);
+          break;
+        }
+        case "AwaitBlock": {
+          const exprStart = node.expression.start ?? node.span.start.offset;
+          appendInternal("  void (");
+          appendVerbatim(node.rawExpression, exprStart);
+          appendInternal(");\n");
+          emitTemplateChecks(node.pending, inSvg);
+          if (node.thenIdentifier) {
+            appendInternal(`  {\n    const ${node.thenIdentifier} = {} as any;\n`);
+            emitTemplateChecks(node.thenBranch, inSvg);
+            appendInternal("  }\n");
+          } else {
+            emitTemplateChecks(node.thenBranch, inSvg);
+          }
+          if (node.catchIdentifier) {
+            appendInternal(`  {\n    const ${node.catchIdentifier} = {} as any;\n`);
+            emitTemplateChecks(node.catchBranch, inSvg);
+            appendInternal("  }\n");
+          } else {
+            emitTemplateChecks(node.catchBranch, inSvg);
+          }
           break;
         }
       }

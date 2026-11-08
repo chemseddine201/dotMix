@@ -5,6 +5,7 @@ export default [
   {
     ignores: [
       "**/dist/**",
+      "**/dist-web/**",
       "**/node_modules/**",
       "coverage/**",
       ".history/**"

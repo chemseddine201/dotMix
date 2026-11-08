@@ -15,7 +15,8 @@ import {
   createElementNode,
   createComponentCallNode,
   createDynamicElementNode,
-  createSlotOutletNode
+  createSlotOutletNode,
+  createAwaitBlockNode
 } from "@mix/ast";
 import type {
   ComponentNode,
@@ -25,7 +26,7 @@ import type {
   AttributeNode,
   IfBlockNode,
   EachBlockNode,
-  SlotOutletNode,
+  AwaitBlockNode,
   ESTreeNode
 } from "@mix/ast";
 import { MixDiagnosticError, DiagnosticCodes } from "@mix/diagnostics";
@@ -625,6 +626,44 @@ class TemplateParser {
     return m ? m[0].length : 0;
   }
 
+  private isAwaitOpenAt(pos: number): number {
+    if (this.source.startsWith("{await", pos)) {
+      const next = this.source.charCodeAt(pos + 6);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 6;
+    }
+    if (this.source.startsWith("{#await", pos)) {
+      const next = this.source.charCodeAt(pos + 7);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 7;
+    }
+    return 0;
+  }
+
+  private isThenAt(pos: number): { len: number; ident: string | null } | null {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return null;
+    const slice = this.source.slice(pos, pos + 40);
+    const m = /^\{\s*(?:[:#]?then)\b(?:\s+([A-Za-z_$][A-Za-z0-9_$]*))?\s*\}/.exec(slice);
+    if (m) {
+      return { len: m[0].length, ident: m[1] ?? null };
+    }
+    return null;
+  }
+
+  private isCatchAt(pos: number): { len: number; ident: string | null } | null {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return null;
+    const slice = this.source.slice(pos, pos + 40);
+    const m = /^\{\s*(?:[:#]?catch)\b(?:\s+([A-Za-z_$][A-Za-z0-9_$]*))?\s*\}/.exec(slice);
+    if (m) {
+      return { len: m[0].length, ident: m[1] ?? null };
+    }
+    return null;
+  }
+
+  private isEndAwaitAt(pos: number): number {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return 0;
+    const m = /^\{\s*(?:endawait|#endawait|\/await)\s*\}/.exec(this.source.slice(pos, pos + 20));
+    return m ? m[0].length : 0;
+  }
+
   private parseChildren(shouldStop: () => boolean): TemplateNode[] {
     const children: TemplateNode[] = [];
 
@@ -685,10 +724,18 @@ class TemplateParser {
         continue;
       }
 
+      if (this.isAwaitOpenAt(this.pos) > 0) {
+        children.push(this.parseAwaitBlock());
+        continue;
+      }
+
       if (
         this.isElseOrElseIfAt(this.pos) ||
         this.isEndIfAt(this.pos) > 0 ||
-        this.isEndEachAt(this.pos) > 0
+        this.isEndEachAt(this.pos) > 0 ||
+        this.isThenAt(this.pos) !== null ||
+        this.isCatchAt(this.pos) !== null ||
+        this.isEndAwaitAt(this.pos) > 0
       ) {
         // Let enclosing control-flow parser handle branch/closing tags
         break;
@@ -927,6 +974,17 @@ class TemplateParser {
               name: "mix-html",
               expression: parsed.expression,
               rawExpression: parsed.rawExpression,
+              span: attrSpan
+            })
+          );
+        } else if (rawName.startsWith("bind:")) {
+          const bindName = rawName.slice(5);
+          attributes.push(
+            deepFreeze({
+              type: "BindBinding",
+              name: bindName,
+              target: parsed.expression,
+              rawTarget: parsed.rawExpression,
               span: attrSpan
             })
           );
@@ -1751,6 +1809,64 @@ class TemplateParser {
       rawKeyExpression,
       children,
       span: this.lineMap.span(start, this.pos)
+    });
+  }
+
+  private parseAwaitBlock(): AwaitBlockNode {
+    const start = this.pos; // at '{await' or '{#await'
+    const openLen = this.isAwaitOpenAt(start);
+    this.pos += openLen > 0 ? openLen : 6;
+    const exprResult = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
+    this.pos = exprResult.afterDelimiterOffset;
+
+    const pending = this.parseChildren(
+      () =>
+        this.isThenAt(this.pos) !== null ||
+        this.isCatchAt(this.pos) !== null ||
+        this.isEndAwaitAt(this.pos) > 0
+    );
+
+    let thenIdentifier: string | null = null;
+    let thenBranch: TemplateNode[] = [];
+    const thenMatch = this.isThenAt(this.pos);
+    if (thenMatch) {
+      thenIdentifier = thenMatch.ident;
+      this.pos += thenMatch.len;
+      thenBranch = this.parseChildren(
+        () => this.isCatchAt(this.pos) !== null || this.isEndAwaitAt(this.pos) > 0
+      );
+    }
+
+    let catchIdentifier: string | null = null;
+    let catchBranch: TemplateNode[] = [];
+    const catchMatch = this.isCatchAt(this.pos);
+    if (catchMatch) {
+      catchIdentifier = catchMatch.ident;
+      this.pos += catchMatch.len;
+      catchBranch = this.parseChildren(() => this.isEndAwaitAt(this.pos) > 0);
+    }
+
+    const endLen = this.isEndAwaitAt(this.pos);
+    if (endLen === 0) {
+      failSyntax(
+        DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+        "Unclosed '{await}' block: missing '{endawait}' (or '{/await}').",
+        this.lineMap,
+        start,
+        this.pos
+      );
+    }
+    this.pos += endLen;
+
+    return createAwaitBlockNode({
+      span: this.lineMap.span(start, this.pos),
+      expression: exprResult.expression,
+      rawExpression: exprResult.rawExpression,
+      pending,
+      thenIdentifier,
+      thenBranch,
+      catchIdentifier,
+      catchBranch
     });
   }
 }

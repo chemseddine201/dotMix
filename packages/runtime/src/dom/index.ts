@@ -16,6 +16,7 @@ import {
   untrack,
   withComponentProps,
   getActiveComponentProps,
+  OwnerState,
   type Signal,
   type Owner
 } from "../core/index.js";
@@ -159,6 +160,133 @@ export function renderSlot(
       });
     }, parentOwner);
   }
+
+  return marker;
+}
+
+export function bindValue(
+  el: HTMLElement,
+  getter: () => unknown,
+  setter: (val: unknown) => void
+): void {
+  const isInput = el.tagName === "INPUT";
+  const inputType = isInput ? (el as HTMLInputElement).type : "";
+  const isNumeric = inputType === "number" || inputType === "range";
+
+  createEffect(() => {
+    const val = getter();
+    const str = val === null || val === undefined ? "" : String(val);
+    if ((el as HTMLInputElement).value !== str) {
+      (el as HTMLInputElement).value = str;
+    }
+  });
+
+  const onInput = () => {
+    const raw = (el as HTMLInputElement).value;
+    if (isNumeric) {
+      const num = raw === "" ? 0 : Number(raw);
+      setter(Number.isNaN(num) ? raw : num);
+    } else {
+      setter(raw);
+    }
+  };
+
+  el.addEventListener("input", onInput);
+  el.addEventListener("change", onInput);
+}
+
+export function bindChecked(
+  el: HTMLElement,
+  getter: () => boolean,
+  setter: (val: boolean) => void
+): void {
+  createEffect(() => {
+    const checked = Boolean(getter());
+    if ((el as HTMLInputElement).checked !== checked) {
+      (el as HTMLInputElement).checked = checked;
+    }
+  });
+
+  const onChange = () => {
+    setter((el as HTMLInputElement).checked);
+  };
+
+  el.addEventListener("change", onChange);
+}
+
+export function createAwaitBlock(
+  parent: Node,
+  promiseSource: () => unknown,
+  pendingRender: () => Node | readonly Node[],
+  thenRender: (valGetter: () => unknown) => Node | readonly Node[],
+  catchRender?: ((errGetter: () => unknown) => Node | readonly Node[]) | null
+): Node {
+  const marker = createComment("await");
+  insertNode(parent, marker);
+
+  let activeDispose: (() => void) | null = null;
+  let activeNodes: Node[] = [];
+  let currentGen = 0;
+  const parentOwner = getCurrentOwner();
+
+  function teardown(): void {
+    if (activeDispose) {
+      try {
+        activeDispose();
+      } finally {
+        activeDispose = null;
+      }
+    }
+    for (const n of activeNodes) {
+      removeNode(n);
+    }
+    activeNodes = [];
+  }
+
+  onCleanup(teardown);
+
+  function mountBranch(renderFn: () => Node | readonly Node[]): void {
+    teardown();
+    createRoot((dispose) => {
+      activeDispose = dispose;
+      const res = renderFn() as Node | readonly Node[] | null | undefined;
+      const nodes = normalizeToNodeArray(res);
+      activeNodes = nodes;
+      const targetParent = marker.parentNode ?? parent;
+      for (const n of nodes) {
+        targetParent.insertBefore(n, marker);
+      }
+    }, parentOwner);
+  }
+
+  createEffect(() => {
+    const raw = promiseSource();
+    const myGen = ++currentGen;
+
+    // Show pending branch initially
+    mountBranch(pendingRender);
+
+    // If it's a promise (or has .then)
+    if (raw && typeof (raw as Promise<unknown>).then === "function") {
+      (raw as Promise<unknown>).then(
+        (data) => {
+          if (myGen === currentGen && (!parentOwner || parentOwner.ownerState === OwnerState.ACTIVE)) {
+            mountBranch(() => thenRender(() => data));
+          }
+        },
+        (err) => {
+          if (myGen === currentGen && (!parentOwner || parentOwner.ownerState === OwnerState.ACTIVE)) {
+            if (catchRender) {
+              mountBranch(() => catchRender(() => err));
+            }
+          }
+        }
+      );
+    } else {
+      // Synchronous resolved value
+      mountBranch(() => thenRender(() => raw));
+    }
+  });
 
   return marker;
 }
