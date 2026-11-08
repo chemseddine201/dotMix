@@ -1,0 +1,45 @@
+interface MetricCardProps {
+  label: string;
+  value: number;
+  unit?: string;
+  trend?: string;
+  tag?: string;
+}
+
+export default function MetricCard(
+  props: MetricCardProps = {
+    label: "Metric",
+    value: 0,
+    unit: "",
+    trend: "neutral",
+    tag: "article"
+  }
+) {
+  const cardRef = createRef<Element | null>(null);
+  const tagName = props.tag ?? "article";
+
+  return (
+    <$tagName class="metric-card" ref={cardRef} data-trend={props.trend}>
+      <span class="metric-label">{props.label}</span>
+      <strong class="metric-value">{props.value}{props.unit}</strong>
+      {if props.trend === "up"}
+        <em class="trend-badge trend-up">▲ Healthy</em>
+      {elseif props.trend === "down"}
+        <em class="trend-badge trend-down">▼ Needs Attention</em>
+      {else}
+        <em class="trend-badge trend-flat">● Stable</em>
+      {endif}
+    </$tagName>
+  );
+}
+
+<style>
+  .metric-card {
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: #f8fafc;
+  }
+  .metric-card :deep(.metric-value) {
+    font-weight: 700;
+  }
+</style>
