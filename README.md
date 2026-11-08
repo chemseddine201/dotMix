@@ -1,205 +1,51 @@
-# Mix & Tix — Compiler-Native UI Language & Framework
+# Mix / Tix — Initialization Package
 
-**Version:** `1.0.0-rc.1`  
-**Architecture:** Compiler-Native Ahead-of-Time (AOT) Direct-DOM UI Framework  
-**Syntax:** `.mix` (flexible reactive syntax) and `.tix` (strict TypeScript syntax)  
-**Status:** All Implementation Phases (0 through 6) Complete and Verified
+**Purpose:** establish a strict, auditable project foundation and give a coding agent a controlled first assignment.
 
----
+**Current gate:** Initialization package prepared. Repository audit and planning only. **No compiler/runtime implementation is authorized yet.**
 
-## 1. What is Mix & Tix?
+## Non-negotiable project identity
 
-Mix / Tix is a complete, compiler-native UI language and framework that compiles declarative components directly to fine-grained DOM operations:
-- **No Virtual DOM:** Compilation generates direct DOM instructions (`createElement`, `createTextNode`, `setAttribute`), eliminating runtime virtual tree diffing overhead.
-- **Zero Avoidable Runtime Dependencies:** `@mix/runtime` is completely self-contained with zero third-party dependencies.
-- **Unified Pipeline:** `.mix` and `.tix` components share a single immutable AST model and compiler pipeline.
-- **Fine-Grained Pull-Push Reactivity:** Signals push dirty marks lazily to memos while scheduling effects in a deferred rerun queue with cycle detection (**D-101**).
-- **Hardened Security Boundary:** Normative WHATWG `srcset` parsing (**D-107**), dynamic CSS escape sequence decoding and URL validation (**D-108**), and W3C Trusted Types policy integration (**D-109**).
-- **Stable Scope HMR:** Live-state preserving Hot Module Replacement that swaps methods onto component scopes without resetting signal state or unmounting elements (**D-111**).
+Mix/Tix is an independent compiler-native UI language. It is not a React wrapper, JSX skin, Virtual DOM framework, runtime template interpreter, or HTML-string rendering framework.
 
----
+The intended architecture is:
 
-## 2. Monorepo Architecture
+`Source → Lexer/Parser → AST → Semantic Analysis → Type Verification (.tix) → CSS Compilation → Direct DOM Code Generation → Runtime`
 
-The framework is organized as an npm workspaces monorepo with composite TypeScript project references:
+The runtime provides fine-grained Push-Pull reactivity, ownership, lifecycle, resources, and platform adapters. The compiler emits readable, deterministic JavaScript that performs direct DOM operations.
 
-```text
-mix-framework/
-├── packages/
-│   ├── ast/                 # Immutable AST node contracts and visitor traversal
-│   ├── compiler-frontend/   # Lexer, markup parser, DynamicElement & delimiter scanner
-│   ├── compiler-semantic/   # Lexical scopes, type projection, code frames & source maps
-│   ├── compiler-css/        # Scoped CSS transforms, at-rule rejection (@import)
-│   ├── compiler-codegen/    # Deterministic AOT code generator emitting direct DOM code
-│   ├── runtime/             # Platform-neutral reactive core, DOM adapter, and security
-│   └── router/              # Client-side reactive SPA routing
-├── bin/
-│   └── mix.mjs              # Standalone CLI driver & Vite/Rollup transform plugin
-├── benchmarks/
-│   └── run-benchmarks.mjs   # Reproducible performance benchmark suite
-└── tests/                   # Conformance, security, runtime, HMR, and CLI test suites
-```
+## Start here
 
----
+Mandatory reading sequence per `AGENTS.md §3`:
+1. Read `AGENTS.md` (Master Agent Constitution under the Elephant–Goldfish Rule).
+2. Read `README.md`.
+3. Read `governance/PROJECT_CHARTER.md`.
+4. Read `governance/ARCHITECTURE_GUARDRAILS.md`.
+5. Read `governance/DECISION_REGISTER.md`.
+6. Read `governance/PHASE_GATES.md`.
+7. Read task assignment file (e.g., `agent/INITIALIZATION_AGENT_TASK.md` or `AGENT_HANDOFF.md`).
+8. Read canonical specification documents under `spec/` (upon supply/ratification).
+9. Require the agent to produce the required phase deliverables and stop for human approval.
 
-## 3. Quickstart & CLI
+## Canonical specification warning
 
-### Installation & Prerequisites
+This package does **not** pretend to contain the full canonical v3.2.1 language specification. The exact approved source documents must be located in the existing repository or supplied by the project owner and imported without semantic rewriting.
 
-- **Node.js:** Node.js 24 LTS (Active) or Node.js 26 LTS.
-- **Package Manager:** npm (native workspaces).
+Files in `spec/` are import-control documents, not replacements for the canonical specifications.
 
-```bash
-# Clone and build all packages
-git clone https://github.com/mix-framework/mix-framework.git
-cd mix-framework
-npm install
-npm run build
-```
+## Expected first deliverables
 
-### CLI Commands (`mix`)
+The agent must produce:
+- repository inventory;
+- canonical specification inventory and provenance;
+- approved decision inventory;
+- experimental/unapproved code inventory;
+- contradiction and missing-contract report;
+- proposed clean repository structure and dependency graph;
+- phase breakdown with acceptance criteria;
+- exact list of files to preserve, replace, archive, or remove;
+- explicit confirmation that no implementation was started.
 
-```bash
-# Compile a .mix or .tix component to JS, CSS, and Source Maps
-node bin/mix.mjs compile src/Counter.mix --out dist/
+## Approval rule
 
-# Check component syntax and display visual code frames
-node bin/mix.mjs check src/Counter.mix
-
-# Display framework version
-node bin/mix.mjs version
-```
-
-### Vite / Rollup Plugin
-
-```javascript
-// vite.config.js
-import { defineConfig } from "vite";
-import { createMixPlugin } from "./bin/mix.mjs";
-
-export default defineConfig({
-  plugins: [createMixPlugin()]
-});
-```
-
----
-
-## 4. Component Syntax Guide
-
-### Flexible `.mix` Syntax
-
-```mix
-<script>
-  let count = signal(0);
-
-  function increment() {
-    count.set((c) => c + 1);
-  }
-</script>
-
-<style>
-  .counter-btn {
-    background-color: #2563eb;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-  }
-</style>
-
-<button class="counter-btn" on:click={increment}>
-  Count: {count()}
-</button>
-```
-
-### Strict `.tix` Syntax
-
-`.tix` components require strict TypeScript script blocks and typed props:
-
-```tix
-<script lang="ts">
-  export let initialCount: number = 0;
-  let count = signal<number>(initialCount);
-
-  function increment(): void {
-    count.set((c) => c + 1);
-  }
-</script>
-
-<div class="card">
-  <span>Current Count: {count()}</span>
-  <button on:click={increment}>Increment</button>
-</div>
-```
-
-### Dynamic Elements (`<{~expr}>`)
-
-Dynamic tags use canonical `<{~expr}>` syntax (**D-105**), evaluating the tag expression once upon element creation and reusing the resolved tag constructor for the closing boundary:
-
-```mix
-<script>
-  let headingLevel = signal("h2");
-</script>
-
-<{~headingLevel()}>
-  Dynamic Section Title
-</{~headingLevel()}>
-```
-
-### Keyed Control Flow (`{#each}`)
-
-Keyed list reconciliation enforces explicit key expressions with a deterministic first-occurrence duplicate policy (**D-110**):
-
-```mix
-{#each items as item, index (item.id)}
-  <div class="row">
-    <span>#{index()}: {item.title}</span>
-  </div>
-{/each}
-```
-
----
-
-## 5. Performance Baselines
-
-The framework benchmarks against the official baselines defined in `spec/PERFORMANCE.md` using `npm run bench`:
-
-| Benchmark Metric | Target Baseline | Actual Result | Status |
-|---|---|---|---|
-| **Reconciliation: Create 1,000 rows** | < 40ms | **26.44ms** | **✓ PASS** |
-| **Reconciliation: Partial update (every 10th row)** | < 10ms | **2.78ms** | **✓ PASS** |
-| **Reconciliation: Swap 2 rows (row 4 with row 992)**| < 12ms | **2.42ms** | **✓ PASS** |
-| **Reconciliation: Clear 1,000 rows** | < 15ms | **1.80ms** | **✓ PASS** |
-| **Reactivity: Create 50,000 signals** | < 50ms | **11.00ms** | **✓ PASS** |
-| **Reactivity: Computed chain propagation** | < 15ms | **3.52ms** | **✓ PASS** |
-| **Reactivity: Atomic batching (5,000 writes)** | < 15ms | **5.83ms** | **✓ PASS** |
-
----
-
-## 6. Security Model
-
-1. **Normative WHATWG `srcset` Parser (D-107):** Full conformance to HTML Standard §4.8.4.3.7, correctly parsing data URLs and query parameters containing commas, extracting descriptors, and recovering from malformed candidates.
-2. **Dynamic CSS & Style Validation (D-108):** Decodes hex/character CSS escape sequences (`\3b` -> `;`), enforces strict identifier property allowlists, detects delimiter injections, and filters dangerous `url()` schemes.
-3. **Trusted HTML Boundary (D-109):** Rejects unescaped HTML injection (`mix-html`) without an explicit `SanitizerProvider` or native W3C `window.trustedTypes` policy.
-
----
-
-## 7. Verification & Tests
-
-Run the complete test suite:
-
-```bash
-# Execute scaffold checks, compiler conformance, runtime, security, HMR, diagnostics, and CLI suites
-npm test
-
-# Execute performance benchmarks
-npm run bench
-
-# Verify publishable tarball packaging across all packages
-npm run pack
-```
-
----
-
-## 8. License
-
-MIT
+Only the project owner can authorize implementation. Silence, a passing scaffold test, or an agent's claim of readiness is not approval.
