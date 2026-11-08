@@ -260,3 +260,88 @@ test("Gate 2: SourceSpan 1-based line/column accuracy and walk visitor traversal
   const frame = formatDiagnosticCodeFrame(source, p.span);
   assert.match(frame, /6 \| {3}<p>\{x\}<\/p>/);
 });
+
+test("HAA-06 Language Upgrade: Functional React-style components, <$tagName>, {if}/{elseif}/{else}/{endif}, and {each (item, idx) in list}/{endeach}", () => {
+  const source = `interface Props {
+  headingTag?: string;
+}
+
+export default function Dashboard(props: Props = { headingTag: "h2" }) {
+  const count = signal(3);
+  const tasks = signal([{ id: 1, title: "Ship" }]);
+
+  return (
+    <section class="dash">
+      <$props.headingTag id="hdr" onClick={() => count.set(count() + 1)}>
+        Dashboard ({count()})
+      </$props.headingTag>
+      {if count() > 5}
+        <p>High</p>
+      {elseif count() > 0}
+        <ul>
+          {each (task, idx) in tasks()}
+            <li>{idx}: {task.title}</li>
+          {endeach}
+        </ul>
+      {else}
+        <p>Empty</p>
+      {endif}
+    </section>
+  );
+}
+
+<style>
+  .dash { padding: 8px; }
+</style>`;
+
+  const ast = parse(source, { filename: "Dashboard.tix" });
+  assertDeepFrozen(ast);
+
+  assert.strictEqual(ast.script?.lang, "ts");
+  assert.match(ast.script.content, /defineProps<Props>/);
+  assert.ok(ast.style);
+  assert.strictEqual(ast.template.length, 1);
+
+  const section = ast.template[0];
+  assert.strictEqual(section.type, "Element");
+  assert.strictEqual(section.tag, "section");
+
+  const dynHeading = section.children.find(n => n.type === "DynamicElement");
+  assert.ok(dynHeading);
+  assert.strictEqual(dynHeading.rawTagExpression, "props.headingTag");
+  assert.strictEqual(dynHeading.attributes.length, 2);
+  assert.strictEqual(dynHeading.attributes[1].type, "EventBinding");
+  assert.strictEqual(dynHeading.attributes[1].name, "click");
+
+  const ifBlock = section.children.find(n => n.type === "IfBlock");
+  assert.ok(ifBlock);
+  assert.strictEqual(ifBlock.rawCondition, "count() > 5");
+  assert.ok(ifBlock.alternate && !Array.isArray(ifBlock.alternate));
+  assert.strictEqual(ifBlock.alternate.type, "IfBlock");
+  assert.strictEqual(ifBlock.alternate.rawCondition, "count() > 0");
+
+  const ul = ifBlock.alternate.consequent.find(n => n.type === "Element");
+  assert.ok(ul);
+  const eachBlock = ul.children.find(n => n.type === "EachBlock");
+  assert.ok(eachBlock);
+  assert.strictEqual(eachBlock.rawCollection, "tasks()");
+  assert.strictEqual(eachBlock.itemIdentifier, "task");
+  assert.strictEqual(eachBlock.indexIdentifier, "idx");
+
+  // Also support `{each tasks() as (task, idx)} ... {endeach}`
+  const asTupleAst = parse(`<ul>{each tasks() as (task, idx)}<li>{task.title}</li>{endeach}</ul>`);
+  const asTupleEach = asTupleAst.template[0].children[0];
+  assert.strictEqual(asTupleEach.type, "EachBlock");
+  assert.strictEqual(asTupleEach.itemIdentifier, "task");
+  assert.strictEqual(asTupleEach.indexIdentifier, "idx");
+
+  // Mismatched <$tagA>...</$tagB> must throw MIX_ERR_UNCLOSED_TAG
+  assert.throws(
+    () => parse(`<$tagA><span>x</span></$tagB>`),
+    err => {
+      assert.ok(err instanceof MixDiagnosticError);
+      assert.strictEqual(err.code, DiagnosticCodes.MIX_ERR_UNCLOSED_TAG);
+      return true;
+    }
+  );
+});

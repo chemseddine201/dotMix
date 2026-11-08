@@ -23,7 +23,8 @@ import type {
   TemplateNode,
   AttributeNode,
   IfBlockNode,
-  EachBlockNode
+  EachBlockNode,
+  ESTreeNode
 } from "@mix/ast";
 import { MixDiagnosticError, DiagnosticCodes } from "@mix/diagnostics";
 import { LineMap } from "./location.js";
@@ -120,9 +121,232 @@ interface ExtractedSections {
 }
 
 /**
- * Extracts top-level `<script>` and `<style>` blocks while blanking their characters
- * with spaces (preserving `\n` and `\r`) so template character offsets remain 100% identical
- * to the original source file.
+ * Extracts a React-style functional `.mix` or `.tix` component (`export default function App(props) { ... return ( <...> ); }`)
+ * into a `ScriptBlockNode` and a blanked `templateBuffer` preserving exact 1-based line/column and 0-based byte offsets.
+ */
+function tryExtractFunctionalComponent(
+  source: string,
+  chars: string[],
+  lineMap: LineMap,
+  isDefaultTs: boolean
+): ScriptBlockNode | null {
+  const currentText = chars.join("");
+  const fnRe = /(?:export\s+default\s+function|export\s+function|function)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
+  const fnMatch = fnRe.exec(currentText);
+  if (!fnMatch) {
+    return null;
+  }
+
+  const fnStart = fnMatch.index;
+  const openParenIdx = fnStart + fnMatch[0].length - 1;
+
+  // Balance parentheses to extract parameter list
+  let parenDepth = 1;
+  let pos = openParenIdx + 1;
+  while (pos < currentText.length && parenDepth > 0) {
+    const ch = currentText[pos]!;
+    if (ch === "(") parenDepth++;
+    else if (ch === ")") parenDepth--;
+    pos++;
+  }
+  if (parenDepth !== 0) {
+    return null;
+  }
+  const closeParenIdx = pos - 1;
+  const rawParams = currentText.slice(openParenIdx + 1, closeParenIdx).trim();
+
+  // Find opening `{` of component function body (skipping optional `: ReturnType`)
+  while (pos < currentText.length && currentText[pos] !== "{") {
+    pos++;
+  }
+  if (pos >= currentText.length) {
+    return null;
+  }
+  const bodyOpenBraceIdx = pos;
+
+  // Scan function body at top braceDepth === 1 to locate the top-level `return` statement
+  // and the closing `}` of the component function
+  let braceDepth = 1;
+  let returnKeywordIdx = -1;
+  let fnCloseBraceIdx = -1;
+  pos = bodyOpenBraceIdx + 1;
+
+  while (pos < currentText.length && braceDepth > 0) {
+    const ch = currentText[pos]!;
+    // Skip strings and comments while scanning before `return`
+    if (returnKeywordIdx === -1) {
+      if (ch === "'" || ch === '"' || ch === "`") {
+        const quote = ch;
+        pos++;
+        while (pos < currentText.length) {
+          if (currentText[pos] === "\\") {
+            pos += 2;
+            continue;
+          }
+          if (currentText[pos] === quote) {
+            pos++;
+            break;
+          }
+          pos++;
+        }
+        continue;
+      }
+      if (currentText.startsWith("//", pos)) {
+        const nl = currentText.indexOf("\n", pos + 2);
+        pos = nl === -1 ? currentText.length : nl + 1;
+        continue;
+      }
+      if (currentText.startsWith("/*", pos)) {
+        const closeCmt = currentText.indexOf("*/", pos + 2);
+        pos = closeCmt === -1 ? currentText.length : closeCmt + 2;
+        continue;
+      }
+    }
+
+    if (ch === "{") {
+      braceDepth++;
+      pos++;
+      continue;
+    }
+    if (ch === "}") {
+      braceDepth--;
+      if (braceDepth === 0) {
+        fnCloseBraceIdx = pos;
+        break;
+      }
+      pos++;
+      continue;
+    }
+
+    if (
+      braceDepth === 1 &&
+      returnKeywordIdx === -1 &&
+      currentText.startsWith("return", pos) &&
+      (pos === bodyOpenBraceIdx + 1 || !/[A-Za-z0-9_$]/.test(currentText[pos - 1]!)) &&
+      (pos + 6 >= currentText.length || !/[A-Za-z0-9_$]/.test(currentText[pos + 6]!))
+    ) {
+      returnKeywordIdx = pos;
+    }
+    pos++;
+  }
+
+  if (returnKeywordIdx === -1 || fnCloseBraceIdx === -1) {
+    return null;
+  }
+
+  // Locate the returned markup range `[templateStart, templateEnd)` inside `return (...)` or `return <...>`
+  let afterReturn = returnKeywordIdx + 6;
+  while (afterReturn < fnCloseBraceIdx && isAsciiWhitespace(currentText.charCodeAt(afterReturn))) {
+    afterReturn++;
+  }
+
+  let templateStart = afterReturn;
+  let templateEnd = fnCloseBraceIdx;
+  while (templateEnd > templateStart && isAsciiWhitespace(currentText.charCodeAt(templateEnd - 1))) {
+    templateEnd--;
+  }
+  if (templateEnd > templateStart && currentText[templateEnd - 1] === ";") {
+    templateEnd--;
+    while (templateEnd > templateStart && isAsciiWhitespace(currentText.charCodeAt(templateEnd - 1))) {
+      templateEnd--;
+    }
+  }
+
+  if (currentText[templateStart] === "(" && currentText[templateEnd - 1] === ")") {
+    templateStart++;
+    templateEnd--;
+  }
+
+  // Build synthesized script content from preamble + optional props parameter + function body before `return`
+  const preamble = currentText.slice(0, fnStart).trim();
+  const bodyBeforeReturn = currentText.slice(bodyOpenBraceIdx + 1, returnKeywordIdx).trim();
+
+  let propStmt = "";
+  if (rawParams.length > 0) {
+    const identMatch = /^([A-Za-z_$][A-Za-z0-9_$]*)/.exec(rawParams);
+    if (identMatch) {
+      const paramName = identMatch[1]!;
+      let pIdx = identMatch[0].length;
+      while (pIdx < rawParams.length && isAsciiWhitespace(rawParams.charCodeAt(pIdx))) {
+        pIdx++;
+      }
+      let typeAnn: string | undefined;
+      let defaultExpr: string | undefined;
+
+      if (rawParams[pIdx] === ":") {
+        pIdx++;
+        const typeStart = pIdx;
+        let angle = 0;
+        let paren = 0;
+        let brace = 0;
+        let bracket = 0;
+        while (pIdx < rawParams.length) {
+          const c = rawParams[pIdx]!;
+          if (c === "<") angle++;
+          else if (c === ">" && rawParams[pIdx - 1] !== "=") angle = Math.max(0, angle - 1);
+          else if (c === "(") paren++;
+          else if (c === ")") paren = Math.max(0, paren - 1);
+          else if (c === "{") brace++;
+          else if (c === "}") brace = Math.max(0, brace - 1);
+          else if (c === "[") bracket++;
+          else if (c === "]") bracket = Math.max(0, bracket - 1);
+          else if (
+            c === "=" &&
+            rawParams[pIdx + 1] !== ">" &&
+            rawParams[pIdx + 1] !== "=" &&
+            angle === 0 &&
+            paren === 0 &&
+            brace === 0 &&
+            bracket === 0
+          ) {
+            break;
+          }
+          pIdx++;
+        }
+        typeAnn = rawParams.slice(typeStart, pIdx).trim();
+      }
+
+      if (rawParams[pIdx] === "=") {
+        defaultExpr = rawParams.slice(pIdx + 1).trim();
+      }
+
+      if (typeAnn && defaultExpr) {
+        propStmt = `const ${paramName} = defineProps<${typeAnn}>(${defaultExpr});`;
+      } else if (typeAnn) {
+        propStmt = `const ${paramName} = defineProps<${typeAnn}>();`;
+      } else if (defaultExpr) {
+        propStmt = `const ${paramName} = defineProps(${defaultExpr});`;
+      } else {
+        propStmt = `const ${paramName} = defineProps();`;
+      }
+    }
+  }
+
+  const scriptParts = [preamble, propStmt, bodyBeforeReturn].filter((s) => s.length > 0);
+  const scriptContent = scriptParts.join("\n");
+  const lang: "js" | "ts" = isDefaultTs ? "ts" : "js";
+
+  if (scriptContent.trim().length > 0) {
+    parseScriptProgram(scriptContent, 0, lineMap);
+  }
+
+  // Blank everything outside `[templateStart, templateEnd)` in `chars` so template offsets match original source
+  blankRangePreservingNewlines(chars, 0, templateStart);
+  blankRangePreservingNewlines(chars, templateEnd, source.length);
+
+  return deepFreeze({
+    type: "ScriptBlock",
+    lang,
+    content: scriptContent,
+    contentSpan: lineMap.span(0, returnKeywordIdx),
+    span: lineMap.span(0, fnCloseBraceIdx + 1)
+  });
+}
+
+/**
+ * Extracts top-level `<script>` and `<style>` blocks (or Functional React-style component definitions)
+ * while blanking their characters with spaces (preserving `\n` and `\r`) so template character offsets
+ * remain 100% identical to the original source file.
  */
 function extractTopLevelSections(
   source: string,
@@ -134,6 +358,13 @@ function extractTopLevelSections(
   let style: StyleBlockNode | null = null;
 
   const isDefaultTs = filename?.endsWith(".tix") ?? false;
+  const trimmedStart = source.trimStart();
+  const isFunctionalSource =
+    !trimmedStart.startsWith("<script") &&
+    /(?:^|\n)\s*(?:export\s+default\s+function|export\s+function|function)\s+[A-Za-z_$]/.test(
+      source
+    );
+
   let pos = 0;
 
   while (pos < source.length) {
@@ -153,7 +384,12 @@ function extractTopLevelSections(
       continue;
     }
 
-    if (source.startsWith("<script", pos) && (pos + 7 < source.length && (isAsciiWhitespace(source.charCodeAt(pos + 7)) || source.charCodeAt(pos + 7) === 62 /* > */))) {
+    if (
+      !isFunctionalSource &&
+      source.startsWith("<script", pos) &&
+      pos + 7 < source.length &&
+      (isAsciiWhitespace(source.charCodeAt(pos + 7)) || source.charCodeAt(pos + 7) === 62 /* > */)
+    ) {
       const blockStart = pos;
       if (script !== null) {
         failSyntax(
@@ -271,6 +507,10 @@ function extractTopLevelSections(
     pos++;
   }
 
+  if (script === null && isFunctionalSource) {
+    script = tryExtractFunctionalComponent(source, chars, lineMap, isDefaultTs);
+  }
+
   return {
     script,
     style,
@@ -329,6 +569,60 @@ class TemplateParser {
     return deepFreeze(result);
   }
 
+  private isIfOpenAt(pos: number): number {
+    if (this.source.startsWith("{if", pos)) {
+      const next = this.source.charCodeAt(pos + 3);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 3;
+    }
+    if (this.source.startsWith("{#if", pos)) {
+      const next = this.source.charCodeAt(pos + 4);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 4;
+    }
+    return 0;
+  }
+
+  private isEachOpenAt(pos: number): number {
+    if (this.source.startsWith("{each", pos)) {
+      const next = this.source.charCodeAt(pos + 5);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 5;
+    }
+    if (this.source.startsWith("{#each", pos)) {
+      const next = this.source.charCodeAt(pos + 6);
+      if (isAsciiWhitespace(next) || next === 40 /* ( */) return 6;
+    }
+    return 0;
+  }
+
+  private matchElseOrElseIf(pos: number): { kind: "else" | "elseif"; afterKeywordOffset: number } | null {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return null;
+    const slice = this.source.slice(pos, pos + 24);
+    const elseIfMatch = /^\{\s*(?:[:#]?elseif|[:#]?else\s+if)(?=\s|\()/.exec(slice);
+    if (elseIfMatch) {
+      return { kind: "elseif", afterKeywordOffset: pos + elseIfMatch[0].length };
+    }
+    const elseMatch = /^\{\s*(?:[:#]?else)\b/.exec(slice);
+    if (elseMatch) {
+      return { kind: "else", afterKeywordOffset: pos + elseMatch[0].length };
+    }
+    return null;
+  }
+
+  private isElseOrElseIfAt(pos: number): boolean {
+    return this.matchElseOrElseIf(pos) !== null;
+  }
+
+  private isEndIfAt(pos: number): number {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return 0;
+    const m = /^\{\s*(?:endif|#endif|\/if)\s*\}/.exec(this.source.slice(pos, pos + 20));
+    return m ? m[0].length : 0;
+  }
+
+  private isEndEachAt(pos: number): number {
+    if (this.source.charCodeAt(pos) !== 123 /* { */) return 0;
+    const m = /^\{\s*(?:endeach|#endeach|\/each)\s*\}/.exec(this.source.slice(pos, pos + 20));
+    return m ? m[0].length : 0;
+  }
+
   private parseChildren(shouldStop: () => boolean): TemplateNode[] {
     const children: TemplateNode[] = [];
 
@@ -343,16 +637,21 @@ class TemplateParser {
         break;
       }
 
+      if (this.source.startsWith("<$", this.pos)) {
+        children.push(this.parseDollarDynamicElement());
+        continue;
+      }
+
       if (this.source.startsWith("<{~", this.pos)) {
         children.push(this.parseDynamicElement());
         continue;
       }
 
       if (this.source.startsWith("<{", this.pos)) {
-        // Check for illegal whitespace inside `<{ ~` or missing `~` (D-105 / R-SYN-02)
+        // Check for illegal whitespace inside `<{ ~` or missing `$` / `~` (D-105 / R-SYN-02)
         failSyntax(
           DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-          "Invalid dynamic element syntax: dynamic elements must start with '<{~' with no intervening whitespace (D-105).",
+          "Invalid dynamic element syntax: use '<$tagName>' (or '<{~expr}>') with no intervening whitespace (D-105).",
           this.lineMap,
           this.pos,
           Math.min(this.source.length, this.pos + 5)
@@ -374,20 +673,20 @@ class TemplateParser {
         );
       }
 
-      if (this.source.startsWith("{#if", this.pos) && isAsciiWhitespace(this.source.charCodeAt(this.pos + 4))) {
+      if (this.isIfOpenAt(this.pos) > 0) {
         children.push(this.parseIfBlock());
         continue;
       }
 
-      if (this.source.startsWith("{#each", this.pos) && isAsciiWhitespace(this.source.charCodeAt(this.pos + 6))) {
+      if (this.isEachOpenAt(this.pos) > 0) {
         children.push(this.parseEachBlock());
         continue;
       }
 
       if (
-        this.source.startsWith("{:else", this.pos) ||
-        this.source.startsWith("{/if}", this.pos) ||
-        this.source.startsWith("{/each}", this.pos)
+        this.isElseOrElseIfAt(this.pos) ||
+        this.isEndIfAt(this.pos) > 0 ||
+        this.isEndEachAt(this.pos) > 0
       ) {
         // Let enclosing control-flow parser handle branch/closing tags
         break;
@@ -586,8 +885,12 @@ class TemplateParser {
         this.pos = parsed.afterDelimiterOffset;
         const attrSpan = this.lineMap.span(attrStart, this.pos);
 
-        if (rawName.startsWith("@") || rawName.startsWith("on:")) {
-          const eventName = rawName.startsWith("@") ? rawName.slice(1) : rawName.slice(3);
+        if (rawName.startsWith("@") || rawName.startsWith("on:") || /^on[A-Z][A-Za-z]+$/.test(rawName)) {
+          const eventName = rawName.startsWith("@")
+            ? rawName.slice(1)
+            : rawName.startsWith("on:")
+              ? rawName.slice(3)
+              : rawName.slice(2).toLowerCase();
           if (!eventName) {
             failSyntax(
               DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
@@ -773,6 +1076,148 @@ class TemplateParser {
         });
   }
 
+  /**
+   * HAA-06 & D-105: Parses clean `<$tagName ...>...</$tagName>` and `<$tagName ... />`
+   * (or `<${expr} ...>...</${expr}>`) dynamic elements with preserved attributes (TECH-06)
+   * and closing tag token-sequence verification (R-SYN-02).
+   */
+  private parseDollarDynamicElement(): TemplateNode {
+    const start = this.pos; // at '<$'
+    this.pos += 2; // advance past '<$'
+
+    let openExpression: import("@mix/ast").ESTreeNode;
+    let openRawExpression: string;
+
+    if (this.source.charCodeAt(this.pos) === 123 /* { */) {
+      this.pos++; // skip '{'
+      const parsed = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
+      this.pos = parsed.afterDelimiterOffset;
+      openExpression = parsed.expression;
+      openRawExpression = parsed.rawExpression;
+    } else {
+      const exprStart = this.pos;
+      let parenDepth = 0;
+      let bracketDepth = 0;
+      while (this.pos < this.source.length) {
+        const ch = this.source.charCodeAt(this.pos);
+        if (ch === 40 /* ( */) parenDepth++;
+        else if (ch === 41 /* ) */) parenDepth = Math.max(0, parenDepth - 1);
+        else if (ch === 91 /* [ */) bracketDepth++;
+        else if (ch === 93 /* ] */) bracketDepth = Math.max(0, bracketDepth - 1);
+        else if (
+          parenDepth === 0 &&
+          bracketDepth === 0 &&
+          (isAsciiWhitespace(ch) || ch === 62 /* > */ || this.source.startsWith("/>", this.pos))
+        ) {
+          break;
+        }
+        this.pos++;
+      }
+      openRawExpression = this.source.slice(exprStart, this.pos).trim();
+      if (!openRawExpression) {
+        failSyntax(
+          DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+          "Expected tag expression after '<$' in dynamic element.",
+          this.lineMap,
+          start,
+          this.pos
+        );
+      }
+      openExpression = parseExpressionSlice(openRawExpression, exprStart, this.lineMap);
+    }
+
+    const attributes = this.parseAttributes();
+    this.skipWhitespace();
+
+    if (this.source.startsWith("/>", this.pos)) {
+      this.pos += 2;
+      return createDynamicElementNode({
+        span: this.lineMap.span(start, this.pos),
+        tagExpression: openExpression,
+        rawTagExpression: openRawExpression,
+        attributes,
+        children: [],
+        selfClosing: true
+      });
+    }
+
+    if (this.pos >= this.source.length || this.source.charCodeAt(this.pos) !== 62 /* > */) {
+      failSyntax(
+        DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+        "Expected '>' or '/>' to complete dynamic element opening tag '<$...'.",
+        this.lineMap,
+        start,
+        this.pos
+      );
+    }
+    this.pos++; // skip '>'
+
+    const children = this.parseChildren(() => this.source.startsWith("</$", this.pos));
+
+    if (!this.source.startsWith("</$", this.pos)) {
+      failSyntax(
+        DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+        `Unclosed dynamic element '<$${openRawExpression}>': missing matching '</$${openRawExpression}>'.`,
+        this.lineMap,
+        start,
+        this.pos
+      );
+    }
+
+    const closeTagStart = this.pos;
+    this.pos += 3; // skip '</$'
+
+    let closeRawExpression: string;
+    if (this.source.charCodeAt(this.pos) === 123 /* { */) {
+      this.pos++;
+      const closeParsed = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
+      this.pos = closeParsed.afterDelimiterOffset;
+      closeRawExpression = closeParsed.rawExpression;
+    } else {
+      const closeExprStart = this.pos;
+      while (
+        this.pos < this.source.length &&
+        this.source.charCodeAt(this.pos) !== 62 /* > */
+      ) {
+        this.pos++;
+      }
+      closeRawExpression = this.source.slice(closeExprStart, this.pos).trim();
+    }
+
+    this.skipWhitespace();
+    if (this.pos >= this.source.length || this.source.charCodeAt(this.pos) !== 62 /* > */) {
+      failSyntax(
+        DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+        "Expected '>' in dynamic closing tag '</$...>'.",
+        this.lineMap,
+        closeTagStart,
+        this.pos
+      );
+    }
+    this.pos++; // skip '>'
+
+    if (!compareExpressionTokens(openRawExpression, closeRawExpression)) {
+      throw new MixDiagnosticError({
+        code: DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+        message: `Dynamic closing tag '</$${closeRawExpression}>' does not match opening tag '<$${openRawExpression}>' token sequence (R-SYN-02).`,
+        severity: "error",
+        span: this.lineMap.span(closeTagStart, this.pos),
+        notes: [
+          `Opening tag at ${this.lineMap.locationAt(start).line}:${this.lineMap.locationAt(start).column}`
+        ]
+      });
+    }
+
+    return createDynamicElementNode({
+      span: this.lineMap.span(start, this.pos),
+      tagExpression: openExpression,
+      rawTagExpression: openRawExpression,
+      attributes,
+      children,
+      selfClosing: false
+    });
+  }
+
   private parseDynamicElement(): TemplateNode {
     const start = this.pos; // at '<{~'
     this.pos += 3; // advance past '<{~'
@@ -870,26 +1315,26 @@ class TemplateParser {
   }
 
   private parseIfBlock(): IfBlockNode {
-    const start = this.pos; // at '{#if'
-    this.pos += 4; // skip '{#if'
+    const start = this.pos; // at '{if' or '{#if'
+    const openLen = this.isIfOpenAt(start);
+    this.pos += openLen > 0 ? openLen : 3;
     const condResult = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
     this.pos = condResult.afterDelimiterOffset;
 
     const consequent = this.parseChildren(
       () =>
-        this.source.startsWith("{:else", this.pos) ||
-        this.source.startsWith("{/if}", this.pos)
+        this.isElseOrElseIfAt(this.pos) ||
+        this.isEndIfAt(this.pos) > 0
     );
 
     let alternate: readonly TemplateNode[] | IfBlockNode | null = null;
 
-    if (this.source.startsWith("{:else", this.pos)) {
+    const branch = this.matchElseOrElseIf(this.pos);
+    if (branch) {
       const branchStart = this.pos;
-      this.pos += 6; // skip '{:else'
-      this.skipWhitespace();
+      this.pos = branch.afterKeywordOffset;
 
-      if (this.source.startsWith("if", this.pos) && isAsciiWhitespace(this.source.charCodeAt(this.pos + 2))) {
-        this.pos += 2; // skip 'if'
+      if (branch.kind === "elseif") {
         alternate = this.parseElseIfChain(branchStart);
         return deepFreeze({
           type: "IfBlock",
@@ -901,10 +1346,11 @@ class TemplateParser {
         });
       }
 
+      this.skipWhitespace();
       if (this.pos >= this.source.length || this.source.charCodeAt(this.pos) !== 125 /* } */) {
         failSyntax(
           DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-          "Expected '}' or 'if <condition>}' in '{:else}' branch.",
+          "Expected '}' or 'if <condition>}' in '{else}' branch.",
           this.lineMap,
           branchStart,
           this.pos
@@ -912,19 +1358,20 @@ class TemplateParser {
       }
       this.pos++; // skip '}'
 
-      alternate = this.parseChildren(() => this.source.startsWith("{/if}", this.pos));
+      alternate = this.parseChildren(() => this.isEndIfAt(this.pos) > 0);
     }
 
-    if (!this.source.startsWith("{/if}", this.pos)) {
+    const endLen = this.isEndIfAt(this.pos);
+    if (endLen === 0) {
       failSyntax(
         DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
-        "Unclosed '{#if}' block: missing '{/if}'.",
+        "Unclosed '{if}' block: missing '{endif}' (or '{/if}').",
         this.lineMap,
         start,
         this.pos
       );
     }
-    this.pos += 5; // skip '{/if}'
+    this.pos += endLen;
 
     return deepFreeze({
       type: "IfBlock",
@@ -942,19 +1389,18 @@ class TemplateParser {
 
     const consequent = this.parseChildren(
       () =>
-        this.source.startsWith("{:else", this.pos) ||
-        this.source.startsWith("{/if}", this.pos)
+        this.isElseOrElseIfAt(this.pos) ||
+        this.isEndIfAt(this.pos) > 0
     );
 
     let alternate: readonly TemplateNode[] | IfBlockNode | null = null;
 
-    if (this.source.startsWith("{:else", this.pos)) {
+    const branch = this.matchElseOrElseIf(this.pos);
+    if (branch) {
       const nextBranchStart = this.pos;
-      this.pos += 6;
-      this.skipWhitespace();
+      this.pos = branch.afterKeywordOffset;
 
-      if (this.source.startsWith("if", this.pos) && isAsciiWhitespace(this.source.charCodeAt(this.pos + 2))) {
-        this.pos += 2;
+      if (branch.kind === "elseif") {
         alternate = this.parseElseIfChain(nextBranchStart);
         return deepFreeze({
           type: "IfBlock",
@@ -966,29 +1412,31 @@ class TemplateParser {
         });
       }
 
+      this.skipWhitespace();
       if (this.pos >= this.source.length || this.source.charCodeAt(this.pos) !== 125 /* } */) {
         failSyntax(
           DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-          "Expected '}' in '{:else}' branch.",
+          "Expected '}' in '{else}' branch.",
           this.lineMap,
           nextBranchStart,
           this.pos
         );
       }
       this.pos++;
-      alternate = this.parseChildren(() => this.source.startsWith("{/if}", this.pos));
+      alternate = this.parseChildren(() => this.isEndIfAt(this.pos) > 0);
     }
 
-    if (!this.source.startsWith("{/if}", this.pos)) {
+    const endLen = this.isEndIfAt(this.pos);
+    if (endLen === 0) {
       failSyntax(
         DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
-        "Unclosed '{:else if}' block: missing '{/if}'.",
+        "Unclosed '{elseif}' block: missing '{endif}' (or '{/if}').",
         this.lineMap,
         branchStart,
         this.pos
       );
     }
-    this.pos += 5;
+    this.pos += endLen;
 
     return deepFreeze({
       type: "IfBlock",
@@ -1001,11 +1449,13 @@ class TemplateParser {
   }
 
   private parseEachBlock(): EachBlockNode {
-    const start = this.pos; // at '{#each'
-    const headerStart = start + 6;
+    const start = this.pos; // at '{each' or '{#each'
+    const isLegacyHashEach = this.source.startsWith("{#each", start);
+    const openLen = this.isEachOpenAt(start);
+    const headerStart = start + (openLen > 0 ? openLen : 5);
 
-    // Scan tokens with TsParser.tokenizer to find the closing `}` of `{#each ... }`
-    // and the last top-level `as` keyword at braceDepth === 1 && parenDepth === 0
+    // Scan tokens with TsParser.tokenizer to find the closing `}` of `{each ... }`
+    // and top-level `in`/`of` or `as` keywords at braceDepth === 1 && parenDepth === 0
     const sliceFromHeader = this.source.slice(headerStart);
     const tokenizer = createTsTokenizer(sliceFromHeader);
 
@@ -1014,6 +1464,7 @@ class TemplateParser {
     let bracketDepth = 0;
     let headerEndRel = -1;
     let lastTopLevelAsRel: { start: number; end: number } | null = null;
+    let firstTopLevelInOrOfRel: { start: number; end: number; keyword: "in" | "of" } | null = null;
 
     try {
       while (true) {
@@ -1040,111 +1491,232 @@ class TemplateParser {
         } else if (
           braceDepth === 1 &&
           parenDepth === 0 &&
-          bracketDepth === 0 &&
-          tok.value === "as"
+          bracketDepth === 0
         ) {
-          lastTopLevelAsRel = { start: tok.start, end: tok.end };
+          if (tok.value === "as") {
+            lastTopLevelAsRel = { start: tok.start, end: tok.end };
+          } else if (
+            !firstTopLevelInOrOfRel &&
+            (tok.value === "in" || tok.type.label === "in" || tok.value === "of")
+          ) {
+            firstTopLevelInOrOfRel = {
+              start: tok.start,
+              end: tok.end,
+              keyword: tok.value === "of" ? "of" : "in"
+            };
+          }
         }
       }
     } catch {
       failSyntax(
         DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-        "Malformed '{#each}' header expression.",
+        "Malformed '{each}' header expression.",
         this.lineMap,
         start,
         Math.min(this.source.length, start + 30)
       );
     }
 
-    if (headerEndRel === -1 || !lastTopLevelAsRel) {
+    if (headerEndRel === -1 || (!lastTopLevelAsRel && !firstTopLevelInOrOfRel)) {
       failSyntax(
         DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-        "Invalid '{#each}' syntax: expected '{#each collection as item, index (key)}'.",
+        "Invalid '{each}' syntax: expected '{each (item, idx) in collection}' or '{each collection as (item, idx)}'.",
         this.lineMap,
         start,
         Math.min(this.source.length, start + 30)
       );
     }
 
-    const collectionStart = skipJsWhitespaceAndComments(
-      this.source,
-      headerStart,
-      this.lineMap,
-      headerStart + lastTopLevelAsRel.start
-    );
-    const collectionEndRaw = headerStart + lastTopLevelAsRel.start;
-    const rawCollection = this.source.slice(collectionStart, collectionEndRaw).trimEnd();
-    if (!rawCollection) {
-      failSyntax(
-        DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-        "Missing collection expression in '{#each}' block.",
-        this.lineMap,
-        start,
-        collectionEndRaw
-      );
-    }
-
-    const collectionExpr = parseExpressionSlice(rawCollection, collectionStart, this.lineMap);
-
-    // Parse `itemIdentifier [, indexIdentifier] (keyExpression)` after `as`
-    const bindingSliceStart = headerStart + lastTopLevelAsRel.end;
     const headerCloseOffset = headerStart + headerEndRel;
-    const bindingSlice = this.source.slice(bindingSliceStart, headerCloseOffset);
-    const bindingMatch = /^\s*([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*,\s*([A-Za-z_$][A-Za-z0-9_$]*))?\s*\(/.exec(
-      bindingSlice
-    );
+    let rawCollection = "";
+    let collectionExpr: ESTreeNode;
+    let itemIdentifier = "";
+    let indexIdentifier: string | null = null;
+    let keyExpression: ESTreeNode;
+    let rawKeyExpression = "";
 
-    if (!bindingMatch) {
-      failSyntax(
-        DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-        "Keyed '{#each}' block requires an item identifier and explicit '(key)' expression (D-110): '{#each items as item (item.id)}'.",
+    if (firstTopLevelInOrOfRel && !lastTopLevelAsRel) {
+      // HAA-06 canonical form: `{each (task, idx) in tasks()}` or `{each task in tasks()}`
+      const lhsStart = skipJsWhitespaceAndComments(
+        this.source,
+        headerStart,
         this.lineMap,
-        bindingSliceStart,
-        headerCloseOffset + 1
+        headerStart + firstTopLevelInOrOfRel.start
       );
-    }
+      const lhsRaw = this.source.slice(lhsStart, headerStart + firstTopLevelInOrOfRel.start).trim();
+      const innerLhs =
+        lhsRaw.startsWith("(") && lhsRaw.endsWith(")")
+          ? lhsRaw.slice(1, -1).trim()
+          : lhsRaw;
 
-    const itemIdentifier = bindingMatch[1]!;
-    const indexIdentifier = bindingMatch[2] ?? null;
-    const keyOpenParenOffset = bindingSliceStart + bindingMatch[0].length - 1;
+      const tupleMatch = /^([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*,\s*([A-Za-z_$][A-Za-z0-9_$]*))?(?:\s*,\s*([\s\S]+))?$/.exec(
+        innerLhs
+      );
+      if (!tupleMatch) {
+        failSyntax(
+          DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+          "Invalid '{each}' loop binding: expected '{each (item, idx) in collection}' or '{each item in collection}'.",
+          this.lineMap,
+          lhsStart,
+          headerStart + firstTopLevelInOrOfRel.start
+        );
+      }
 
-    const keyParsed = parseEmbeddedExpression(
-      this.source,
-      keyOpenParenOffset + 1,
-      ")",
-      this.lineMap,
-      headerCloseOffset
-    );
+      itemIdentifier = tupleMatch[1]!;
+      indexIdentifier = tupleMatch[2] ?? null;
+      const explicitTupleKey = tupleMatch[3]?.trim() ?? null;
 
-    const afterKeyParen = skipJsWhitespaceAndComments(
-      this.source,
-      keyParsed.afterDelimiterOffset,
-      this.lineMap,
-      headerCloseOffset + 1
-    );
-    if (afterKeyParen !== headerCloseOffset) {
-      failSyntax(
-        DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-        "Unexpected tokens after '(key)' in '{#each}' block.",
+      const collectionStart = skipJsWhitespaceAndComments(
+        this.source,
+        headerStart + firstTopLevelInOrOfRel.end,
         this.lineMap,
-        afterKeyParen,
-        headerCloseOffset + 1
+        headerCloseOffset
       );
+      rawCollection = this.source.slice(collectionStart, headerCloseOffset).trimEnd();
+      if (!rawCollection) {
+        failSyntax(
+          DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+          "Missing collection expression in '{each}' block.",
+          this.lineMap,
+          start,
+          headerCloseOffset
+        );
+      }
+      collectionExpr = parseExpressionSlice(rawCollection, collectionStart, this.lineMap);
+
+      const itemOffsetInSource = headerStart + this.source.slice(headerStart, headerStart + firstTopLevelInOrOfRel.start).indexOf(itemIdentifier);
+      if (explicitTupleKey) {
+        rawKeyExpression = explicitTupleKey;
+        keyExpression = parseExpressionSlice(rawKeyExpression, lhsStart, this.lineMap);
+      } else {
+        rawKeyExpression = itemIdentifier;
+        keyExpression = parseExpressionSlice(rawKeyExpression, itemOffsetInSource, this.lineMap);
+      }
+    } else {
+      // `as` form: `{each tasks() as (task, idx)}` or `{#each tasks() as task, idx (task.id)}`
+      const asRel = lastTopLevelAsRel!;
+      const collectionStart = skipJsWhitespaceAndComments(
+        this.source,
+        headerStart,
+        this.lineMap,
+        headerStart + asRel.start
+      );
+      const collectionEndRaw = headerStart + asRel.start;
+      rawCollection = this.source.slice(collectionStart, collectionEndRaw).trimEnd();
+      if (!rawCollection) {
+        failSyntax(
+          DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+          "Missing collection expression in '{each}' block.",
+          this.lineMap,
+          start,
+          collectionEndRaw
+        );
+      }
+
+      collectionExpr = parseExpressionSlice(rawCollection, collectionStart, this.lineMap);
+
+      const bindingSliceStart = headerStart + asRel.end;
+      const bindingSlice = this.source.slice(bindingSliceStart, headerCloseOffset);
+
+      // Check for HAA-06 tuple binding after `as`: `as (item, idx)` or `as (item, idx, item.id)`
+      const asTupleMatch = /^\s*\(\s*([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*,\s*([A-Za-z_$][A-Za-z0-9_$]*))?(?:\s*,\s*([^)]+))?\s*\)\s*$/.exec(
+        bindingSlice
+      );
+
+      if (asTupleMatch) {
+        itemIdentifier = asTupleMatch[1]!;
+        indexIdentifier = asTupleMatch[2] ?? null;
+        const explicitTupleKey = asTupleMatch[3]?.trim() ?? null;
+        const itemOffsetInSource = bindingSliceStart + bindingSlice.indexOf(itemIdentifier);
+        if (explicitTupleKey) {
+          rawKeyExpression = explicitTupleKey;
+          keyExpression = parseExpressionSlice(rawKeyExpression, bindingSliceStart, this.lineMap);
+        } else {
+          rawKeyExpression = itemIdentifier;
+          keyExpression = parseExpressionSlice(rawKeyExpression, itemOffsetInSource, this.lineMap);
+        }
+      } else {
+        // Check for explicit `(keyExpression)` after `as item, idx`
+        const bindingMatch = /^\s*([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*,\s*([A-Za-z_$][A-Za-z0-9_$]*))?\s*\(/.exec(
+          bindingSlice
+        );
+
+        if (bindingMatch) {
+          itemIdentifier = bindingMatch[1]!;
+          indexIdentifier = bindingMatch[2] ?? null;
+          const keyOpenParenOffset = bindingSliceStart + bindingMatch[0].length - 1;
+
+          const keyParsed = parseEmbeddedExpression(
+            this.source,
+            keyOpenParenOffset + 1,
+            ")",
+            this.lineMap,
+            headerCloseOffset
+          );
+
+          const afterKeyParen = skipJsWhitespaceAndComments(
+            this.source,
+            keyParsed.afterDelimiterOffset,
+            this.lineMap,
+            headerCloseOffset + 1
+          );
+          if (afterKeyParen !== headerCloseOffset) {
+            failSyntax(
+              DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+              "Unexpected tokens after '(key)' in '{each}' block.",
+              this.lineMap,
+              afterKeyParen,
+              headerCloseOffset + 1
+            );
+          }
+
+          keyExpression = keyParsed.expression;
+          rawKeyExpression = keyParsed.rawExpression;
+        } else if (!isLegacyHashEach) {
+          // Clean `{each items as item, idx}` without `#` automatically resolves key
+          const simpleMatch = /^\s*([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*,\s*([A-Za-z_$][A-Za-z0-9_$]*))?\s*$/.exec(
+            bindingSlice
+          );
+          if (!simpleMatch) {
+            failSyntax(
+              DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+              "Invalid '{each}' loop binding.",
+              this.lineMap,
+              bindingSliceStart,
+              headerCloseOffset + 1
+            );
+          }
+          itemIdentifier = simpleMatch[1]!;
+          indexIdentifier = simpleMatch[2] ?? null;
+          const itemOffsetInSource = bindingSliceStart + bindingSlice.indexOf(itemIdentifier);
+          rawKeyExpression = itemIdentifier;
+          keyExpression = parseExpressionSlice(rawKeyExpression, itemOffsetInSource, this.lineMap);
+        } else {
+          failSyntax(
+            DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+            "Keyed '{#each}' block requires an item identifier and explicit '(key)' expression (D-110): '{#each items as item (item.id)}'.",
+            this.lineMap,
+            bindingSliceStart,
+            headerCloseOffset + 1
+          );
+        }
+      }
     }
 
     this.pos = headerCloseOffset + 1; // advance past `}`
 
-    const children = this.parseChildren(() => this.source.startsWith("{/each}", this.pos));
-    if (!this.source.startsWith("{/each}", this.pos)) {
+    const children = this.parseChildren(() => this.isEndEachAt(this.pos) > 0);
+    const endLen = this.isEndEachAt(this.pos);
+    if (endLen === 0) {
       failSyntax(
         DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
-        "Unclosed '{#each}' block: missing '{/each}'.",
+        "Unclosed '{each}' block: missing '{endeach}' (or '{/each}').",
         this.lineMap,
         start,
         this.pos
       );
     }
-    this.pos += 7; // skip `{/each}`
+    this.pos += endLen;
 
     return deepFreeze({
       type: "EachBlock",
@@ -1152,8 +1724,8 @@ class TemplateParser {
       rawCollection,
       itemIdentifier,
       indexIdentifier,
-      keyExpression: keyParsed.expression,
-      rawKeyExpression: keyParsed.rawExpression,
+      keyExpression,
+      rawKeyExpression,
       children,
       span: this.lineMap.span(start, this.pos)
     });

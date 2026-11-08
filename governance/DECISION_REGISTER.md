@@ -15,6 +15,7 @@ This register records constraints known to be accepted in the project's current 
 | D-109 | Explicit trusted HTML boundary and defined SanitizerProvider/Trusted Types integration (ratified by `HAA-03`). | Verify sanitizer trust requirements, application `SanitizerProvider` authority, private `WeakSet` registry, context rejection, and prohibition of caller-supplied sanitizers. |
 | D-110 | No surrogate fallback keys; deterministic duplicate-key diagnostics and atomic behavior (ratified by `HAA-02`, Option A Strict). | Verify pre-reconciliation validation, atomic rejection, DOM preservation, zero allocations, and synchronous `MixError` throwing in both DEV and PROD. |
 | D-111 | HMR method dispatch uses stable component scope/context; lexical closures must not be assumed rebindable. | Verify updated methods access live component state through the stable scope contract. |
+| D-112 | `HAA-06` Language Ergonomics & Syntax Upgrade: (1) Replace `~` dynamic elements with clean `$` syntax `<$tagName>...</$tagName>` and `<$tagName />`; (2) Replace `#if/:else/if` with clean curly keywords `{if cond} ... {elseif cond2} ... {else} ... {endif}`; (3) Replace complex `{#each tasks() as task, idx (task.id)}` with `{each (task, idx) in tasks()} ... {endeach}` (and `{each tasks() as (task, idx)}`) with automatic item key resolution (`item?.id ?? item?.key ?? item`) while preserving `D-110` atomic duplicate-key rejection; (4) Support Functional ReactJS-style `.mix` (JS) and `.tix` (TS) components (`export default function Component(props) { ... return (<...>); }`). | Verify parser frontend, semantic analysis, TypeScript 6.0.3 verification, codegen, showcase, and conformance tests. |
 
 ---
 
@@ -64,6 +65,13 @@ Ratified by Human Architecture Authority on 2026-11-08 for Phase Gate 1 authoriz
     - `@mix/compiler-css`: `{ "@mix/diagnostics": "0.1.0", "@mix/ast": "0.1.0", "css-tree": "3.1.0" }`
     - `@mix/compiler-codegen`: `{ "@mix/diagnostics": "0.1.0", "@mix/ast": "0.1.0", "@mix/compiler-semantic": "0.1.0", "@mix/compiler-css": "0.1.0" }`
     - `@mix/runtime`: `{}` (zero runtime dependencies; `@mix/diagnostics` in `devDependencies` / `references` for `import type` erasure only).
+
+### 6. `HAA-06` (`D-112`) — Language Ergonomics & Syntax Upgrade
+Ratified by Human Architecture Authority on 2026-11-08:
+1. **Dynamic Element Syntax (`<$tagName>`):** Eliminate `~` from user-facing dynamic elements in favor of `<$tagName>...</$tagName>`, `<$props.tag />`, and `<${expr}>...</${expr}>` (while retaining backward parser compatibility for legacy `<{~expr}>` conformance tests).
+2. **Clean Symbol-Free Conditional Blocks (`{if} / {elseif} / {else} / {endif}`):** Replace `{#if} / {:else} / {/if}` with clean symbol-free curly keywords `{if cond} ... {elseif cond2} ... {else} ... {endif}`.
+3. **Clean Standard `each` Loops (`{each (item, idx) in list} ... {endeach}`):** Replace `{#each tasks() as task, idx (task.id)}` with `{each (task, idx) in tasks()} ... {endeach}` (and `{each tasks() as (task, idx)} ... {endeach}`), automatically resolving item keys (`task?.id ?? task?.key ?? task`) without boilerplate `(task.id)` while preserving `D-110` (`HAA-02`) atomic duplicate-key rejection.
+4. **Functional ReactJS-Style `.mix` (JS) and `.tix` (TS) Components:** Write `.mix` (JavaScript) and `.tix` (TypeScript) components as clean React-style functions (`export default function ComponentName(props: PropsType = defaults) { ... return ( <...> ); }`) alongside optional `<style>...</style>`, compiled ahead-of-time to direct surgical DOM operations with zero Virtual DOM.
 
 ---
 

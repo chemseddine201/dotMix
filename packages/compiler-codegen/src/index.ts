@@ -483,11 +483,14 @@ class CodegenContext {
     if (node.indexIdentifier) {
       keyLoopGetters.delete(node.indexIdentifier);
     }
-    const keyJs = this.emitExpr(
-      node.rawKeyExpression,
-      node.keyExpression,
-      keyLoopGetters
-    );
+    const keyJs =
+      node.rawKeyExpression.trim() === itemIdent
+        ? `(${itemIdent}?.id ?? ${itemIdent}?.key ?? ${itemIdent})`
+        : this.emitExpr(
+            node.rawKeyExpression,
+            node.keyExpression,
+            keyLoopGetters
+          );
 
     const itemGetterVar = this.nextId(`get_${itemIdent}`);
     const indexGetterVar = this.nextId(`get_${indexIdent}`);

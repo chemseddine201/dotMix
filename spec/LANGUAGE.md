@@ -21,23 +21,28 @@ Mix and Tix share an identical underlying Abstract Syntax Tree (AST), semantic r
 
 ---
 
-## 2. Component File Structure
+## 2. Component File Structure (`HAA-06` / `D-112`)
 
-A component file consists of up to one `<script>` block, up to one `<style>` block, and template markup in any top-level order:
+Mix (`.mix`, JavaScript) and Tix (`.tix`, TypeScript) components support **Functional ReactJS-Style Component Authoring** (`export default function ComponentName(props) { ... return ( <...> ); }`) alongside optional `<style>` blocks (as well as `<script>` SFC blocks):
 
-```mix
-<script lang="ts">
-  // Reactive state, props, refs, helper functions, lifecycle hooks
-</script>
+```tsx
+interface ViewProps {
+  title: string;
+}
 
-<!-- Template Markup -->
-<main class="container">
-  <Header title={title()} />
-  <h1>{title()}</h1>
-  <{~dynamicView()} class="card">
-    <p>Dynamic content</p>
-  </{~dynamicView()}>
-</main>
+export default function App(props: ViewProps = { title: "Dashboard" }) {
+  const dynamicView = signal("section");
+
+  return (
+    <main class="container">
+      <Header title={props.title} />
+      <h1>{props.title}</h1>
+      <$dynamicView class="card">
+        <p>Dynamic content</p>
+      </$dynamicView>
+    </main>
+  );
+}
 
 <style scoped>
   .container {
@@ -61,23 +66,22 @@ Duplicate `<script>` or `<style>` blocks in a single component file are rejected
 
 ---
 
-## 4. Dynamic Element Syntax (`D-105`, `R-SYN-02`, `R-SYN-03`)
+## 4. Dynamic Element Syntax (`D-105`, `D-112` / `HAA-06`, `R-SYN-02`, `R-SYN-03`)
 
 ### 4.1 Grammar
-Dynamic element tags use the canonical tilde syntax (`<{~...}>`), supporting both paired tags and self-closing tags:
+Dynamic element tags use the clean `$` prefix syntax (`<$tagName>...</$tagName>`, `<$props.tag />`, or `<${expr}>...</${expr}>`; legacy `<{~expr}>` remains supported for backward parser conformance):
 
 ```ebnf
 DynamicElement  = DynamicOpenTag , "/>"
                 | DynamicOpenTag , ">" , { TemplateNode } , DynamicCloseTag ;
-DynamicOpenTag  = "<{~" , TSExpression , "}" , { Attribute } ;
-DynamicCloseTag = "</{~" , TSExpression , "}" , ">" ;
-(* No whitespace is permitted inside "<{~" or "</{~" *)
+DynamicOpenTag  = "<$" , ( TagMemberPath | "{" , TSExpression , "}" ) , { Attribute } ;
+DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
 ```
 
 ### 4.2 Parsing & Evaluation Semantics
-1. **Single Evaluation Rule (`D-105`):** The dynamic tag expression `TSExpression` is evaluated **exactly once** when the dynamic element instance is created.
-2. **Attribute Preservation (`TECH-06`):** All static attributes, dynamic attributes, event listeners, refs, and directives on `<{~expr} ...>` are preserved on `DynamicElementNode` and applied to the resolved element/component.
-3. **Token-Sequence Closing Tag Verification (`R-SYN-02`):** The closing tag expression in `</{~expr}>` is compared against the opening tag expression in `<{~expr}>` by **normalized token sequence (token type and value)** using the Acorn-TypeScript tokenizer while ignoring whitespace and comments. If the token sequences differ, the parser emits `MIX_ERR_UNCLOSED_TAG` with both opening and closing source spans.
+1. **Single Evaluation Rule (`D-105`):** The dynamic tag expression is evaluated **exactly once** when the dynamic element instance is created.
+2. **Attribute Preservation (`TECH-06`):** All static attributes, dynamic attributes, event listeners (`onClick={...}`, `on:click={...}`, `@click={...}`), refs, and directives on `<$tagName ...>` are preserved on `DynamicElementNode` and applied to the resolved element/component.
+3. **Token-Sequence Closing Tag Verification (`R-SYN-02`):** The closing tag expression in `</$tagName>` is compared against the opening tag expression in `<$tagName>` by **normalized token sequence (token type and value)** using the Acorn-TypeScript tokenizer while ignoring whitespace and comments. If the token sequences differ, the parser emits `MIX_ERR_UNCLOSED_TAG` with both opening and closing source spans.
 4. **Closing Tag Non-Evaluation (`R-SYN-03`):** The closing tag expression serves strictly as a lexical delimiter; it is never evaluated at runtime, never emitted in generated code, and never type-checked independently.
 
 ---
@@ -85,7 +89,7 @@ DynamicCloseTag = "</{~" , TSExpression , "}" , ">" ;
 ## 5. Embedded Expression Boundaries (`R-SYN-01`, `R-SYN-01a`, `R-SYN-01b`, `R-SYN-01c`)
 
 1. **Parser-Driven Boundary Detection (`R-SYN-01`):**
-   - The expression parser—not a naive brace-counting lexer—determines the end of every embedded JavaScript/TypeScript expression (`{expr}`, `attr={expr}`, `<{~expr}>`, `{#if expr}`, `{#each expr as ... (keyExpr)}`).
+   - The expression parser—not a naive brace-counting lexer—determines the end of every embedded JavaScript/TypeScript expression (`{expr}`, `attr={expr}`, `<$tagName>`, `{if expr}`, `{each (item, idx) in expr}`).
    - At the start offset `s` of an embedded expression, `@mix/compiler-frontend` invokes:
      ```ts
      const Parser = acorn.Parser.extend(tsPlugin());
@@ -103,27 +107,27 @@ DynamicCloseTag = "</{~" , TSExpression , "}" , ">" ;
 
 ---
 
-## 6. Control-Flow Blocks (`IfBlockNode` & `EachBlockNode`)
+## 6. Control-Flow Blocks (`IfBlockNode` & `EachBlockNode` — `HAA-06` / `D-112`)
 
-### 6.1 Conditional Block (`{#if}`)
+### 6.1 Conditional Block (`{if} ... {elseif} ... {else} ... {endif}`)
 ```mix
-{#if conditionExpr}
+{if conditionExpr}
   <p>Primary branch</p>
-{:else if secondaryExpr}
+{elseif secondaryExpr}
   <p>Secondary branch</p>
-{:else}
+{else}
   <p>Fallback branch</p>
-{/if}
+{endif}
 ```
 
-### 6.2 Keyed Collection Block (`{#each}` — `D-110`)
+### 6.2 Keyed Collection Block (`{each (item, index) in items} ... {endeach}` — `D-110` & `D-112`)
 ```mix
-{#each itemsExpr as item, index (item.id)}
+{each (item, index) in itemsExpr}
   <li>{index}: {item.label}</li>
-{/each}
+{endeach}
 ```
-- The index binding `, index` is optional.
-- The key expression `(keyExpr)` is **mandatory** per `D-110` and Architecture Guardrail §H. Unkeyed `{#each}` blocks are rejected at compile time with `MIX_ERR_PARSE_SYNTAX`.
+- Also supports `{each item in itemsExpr} ... {endeach}` and `{each itemsExpr as (item, index)} ... {endeach}`.
+- Automatically resolves the item key via `(item?.id ?? item?.key ?? item)` (or accepts an explicit third tuple expression `{each (item, index, item.customKey) in itemsExpr}`) while enforcing `D-110` (`HAA-02`) atomic duplicate-key rejection at runtime.
 
 ---
 
@@ -131,6 +135,6 @@ DynamicCloseTag = "</{~" , TSExpression , "}" , ">" ;
 
 - **Static Attributes:** `name="value"` or boolean shorthand `disabled` (`StaticAttributeNode`)
 - **Reactive Attribute Bindings:** `name={expr}` (`DynamicAttributeNode`)
-- **Event Listeners:** `@click={handler}` or `on:click={handler}` (`EventBindingNode`)
+- **Event Listeners:** `onClick={handler}`, `onInput={handler}`, `@click={handler}`, or `on:click={handler}` (`EventBindingNode`)
 - **Element References:** `ref={myRef}` (`RefBindingNode`)
 - **Trusted HTML Directive:** `mix-html={trustedHtmlExpr}` (`DirectiveAttributeNode`, validated at runtime via `SanitizerProvider` and `WeakSet` registry per `D-109` / `HAA-03`)

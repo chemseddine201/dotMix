@@ -1,6 +1,6 @@
-<script>
-  import TypeSafeCard from "./TypeSafeCard.tix";
+import TypeSafeCard from "./TypeSafeCard.tix";
 
+export default function App() {
   const count = signal(1);
   const left = computed(() => count() * 2);
   const right = computed(() => count() + 10);
@@ -32,7 +32,45 @@
       tasks.set([...current.slice(1), current[0]]);
     }
   }
-</script>
+
+  return (
+    <main class="showcase-shell">
+      <header class="showcase-header">
+        <h1>Mix/Tix Compiler-Native Showcase</h1>
+        <div class="trusted-banner" mix-html={bannerHtml()}></div>
+      </header>
+
+      <section class="diamond-section" style:border-color={accentColor()}>
+        <p class="diamond-readout">Count: {count()} | Left: {left()} | Right: {right()} | Sum: {diamondSum()}</p>
+        <button class="inc-btn" onClick={increment}>Increment</button>
+        <button class="toggle-btn" onClick={toggleDetails}>Toggle Details</button>
+      </section>
+
+      {if showDetails()}
+        <section class="details-panel">
+          <img
+            class="responsive-hero"
+            src="/assets/hero.png"
+            srcset={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA 1x, https://cdn.example.com/img?fmt=webp,avif 2x"}
+            alt="Showcase Hero"
+          />
+          <TypeSafeCard badge="Verified .tix Child" priority={count()} />
+        </section>
+      {else}
+        <p class="details-collapsed">Details hidden</p>
+      {endif}
+
+      <section class="tasks-section">
+        <button class="rotate-btn" onClick={rotateTasks}>Rotate Tasks</button>
+        <ul class="task-list">
+          {each (task, idx) in tasks()}
+            <li class="task-row" data-task-id={task.id}>{idx}: {task.title}</li>
+          {endeach}
+        </ul>
+      </section>
+    </main>
+  );
+}
 
 <style>
   .showcase-shell {
@@ -43,39 +81,3 @@
     border-bottom: 2px solid #222;
   }
 </style>
-
-<main class="showcase-shell">
-  <header class="showcase-header">
-    <h1>Mix/Tix Compiler-Native Showcase</h1>
-    <div class="trusted-banner" mix-html={bannerHtml()}></div>
-  </header>
-
-  <section class="diamond-section" style:border-color={accentColor()}>
-    <p class="diamond-readout">Count: {count()} | Left: {left()} | Right: {right()} | Sum: {diamondSum()}</p>
-    <button class="inc-btn" on:click={increment}>Increment</button>
-    <button class="toggle-btn" on:click={toggleDetails}>Toggle Details</button>
-  </section>
-
-  {#if showDetails()}
-    <section class="details-panel">
-      <img
-        class="responsive-hero"
-        src="/assets/hero.png"
-        srcset={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA 1x, https://cdn.example.com/img?fmt=webp,avif 2x"}
-        alt="Showcase Hero"
-      />
-      <TypeSafeCard badge="Verified .tix Child" priority={count()} />
-    </section>
-  {:else}
-    <p class="details-collapsed">Details hidden</p>
-  {/if}
-
-  <section class="tasks-section">
-    <button class="rotate-btn" on:click={rotateTasks}>Rotate Tasks</button>
-    <ul class="task-list">
-      {#each tasks() as task, idx (task.id)}
-        <li class="task-row" data-task-id={task.id}>{idx}: {task.title}</li>
-      {/each}
-    </ul>
-  </section>
-</main>

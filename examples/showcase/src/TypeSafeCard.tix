@@ -1,17 +1,24 @@
-<script lang="ts">
-  interface CardProps {
-    badge: string;
-    priority: number;
-  }
+interface CardProps {
+  badge: string;
+  priority: number;
+}
 
-  const props = defineProps<CardProps>({
+export default function TypeSafeCard(
+  props: CardProps = {
     badge: "Default",
     priority: 1
-  });
-
+  }
+) {
   const cardRef = createRef<Element | null>(null);
   const tagName = "article";
-</script>
+
+  return (
+    <$tagName class="tix-card" ref={cardRef} data-priority={props.priority}>
+      <span class="badge-pill">{props.badge}</span>
+      <strong class="priority-val">P{props.priority}</strong>
+    </$tagName>
+  );
+}
 
 <style>
   .tix-card {
@@ -23,8 +30,3 @@
     font-weight: 600;
   }
 </style>
-
-<{~tagName} class="tix-card" ref={cardRef} data-priority={props.priority}>
-  <span class="badge-pill">{props.badge}</span>
-  <strong class="priority-val">P{props.priority}</strong>
-</{~tagName}>
