@@ -2,7 +2,8 @@
  * @mix/compiler-codegen — Deterministic AOT code generator emitting direct DOM operations.
  */
 
-import type { ComponentDescriptor } from "@mix/compiler-semantic";
+import type { ComponentDescriptor, SourceMapV3 } from "@mix/compiler-semantic";
+import { generateSourceMap } from "@mix/compiler-semantic";
 import type {
   ElementNode,
   DynamicElementNode,
@@ -15,14 +16,17 @@ import type {
 import { compileCss } from "@mix/compiler-css";
 
 export interface CodegenOptions {
-  componentName?: string;
-  scopeId?: string;
+  componentName?: string | undefined;
+  scopeId?: string | undefined;
+  filename?: string | undefined;
+  source?: string | undefined;
 }
 
 export interface CodegenResult {
   readonly code: string;
-  readonly scopeId?: string;
-  readonly css?: string;
+  readonly scopeId?: string | undefined;
+  readonly css?: string | undefined;
+  readonly sourceMap?: SourceMapV3 | undefined;
 }
 
 /**
@@ -57,7 +61,22 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
     lines.push(`  const ${sig.name} = signal(${sig.initialValueCode});`);
     lines.push(`  __scope.${sig.name} = ${sig.name};`);
   }
-  if (descriptor.signals.length > 0) {
+
+  // Methods initialization bound to stable scope (D-111)
+  if (descriptor.methods && descriptor.methods.length > 0) {
+    for (const m of descriptor.methods) {
+      let methodCode = m.code;
+      // D-111: Dispatch state access through this pointer (instance / __scope)
+      // so HMR can swap method implementations without stale lexical closures
+      for (const sig of descriptor.signals) {
+        methodCode = methodCode.replace(new RegExp(`(?<!\\bthis\\.)\\b${sig.name}\\b`, "g"), `this.${sig.name}`);
+      }
+      lines.push(`  ${methodCode}`);
+      lines.push(`  __scope.${m.name} = ${m.name};`);
+    }
+  }
+
+  if (descriptor.signals.length > 0 || (descriptor.methods && descriptor.methods.length > 0)) {
     lines.push("");
   }
 
@@ -76,7 +95,7 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
         lines.push(`  ${elName}.setAttribute("${scopeId}", "");`);
       }
 
-      // Attributes & Events & Directives (D-108, D-109)
+      // Attributes & Events & Directives (D-108, D-109, D-111)
       for (const attr of el.attributes) {
         if (attr.type === "StaticAttribute") {
           lines.push(`  ${elName}.setAttribute("${attr.name}", ${JSON.stringify(attr.value)});`);
@@ -103,8 +122,10 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
             lines.push("  });");
           }
         } else if (attr.type === "EventBinding") {
+          // Dynamic dispatch through __scope for stable HMR (D-111)
           lines.push(`  ${elName}.addEventListener("${attr.eventName}", ($event) => {`);
-          lines.push(`    (${attr.handler.code})($event);`);
+          lines.push(`    const __fn = __scope["${attr.handler.code}"] ?? (${attr.handler.code});`);
+          lines.push(`    __fn.call(__scope, $event);`);
           lines.push("  });");
         } else if (attr.type === "RefBinding") {
           lines.push(`  if (typeof ${attr.target.code} === "function" && "set" in ${attr.target.code}) {`);
@@ -202,12 +223,23 @@ export function generate(descriptor: ComponentDescriptor, options: CodegenOption
   for (const sig of descriptor.signals) {
     lines.push(`    ${sig.name},`);
   }
+  if (descriptor.methods) {
+    for (const m of descriptor.methods) {
+      lines.push(`    ${m.name}: __scope.${m.name},`);
+    }
+  }
   lines.push("  };");
   lines.push("}");
 
+  const finalCode = lines.join("\n") + "\n";
+  const sourceMap = options.filename && options.source
+    ? generateSourceMap(options.filename, options.source, finalCode)
+    : undefined;
+
   return Object.freeze({
-    code: lines.join("\n") + "\n",
+    code: finalCode,
     ...(scopeId ? { scopeId } : {}),
-    ...(compiledCss ? { css: compiledCss } : {})
+    ...(compiledCss ? { css: compiledCss } : {}),
+    ...(sourceMap ? { sourceMap } : {})
   });
 }

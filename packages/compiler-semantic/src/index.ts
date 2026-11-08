@@ -31,6 +31,11 @@ export interface ComponentPropDeclaration {
   readonly defaultValueCode?: string | undefined;
 }
 
+export interface ComponentMethodDeclaration {
+  readonly name: string;
+  readonly code: string;
+}
+
 export interface ScopeSymbol {
   readonly name: string;
   readonly kind: "signal" | "variable" | "prop" | "iteration-item" | "iteration-index";
@@ -52,9 +57,108 @@ export interface ReactiveBinding {
 export interface ComponentDescriptor {
   readonly signals: readonly SignalDeclaration[];
   readonly props: readonly ComponentPropDeclaration[];
+  readonly methods: readonly ComponentMethodDeclaration[];
   readonly bindings: readonly ReactiveBinding[];
   readonly diagnostics: readonly SemanticDiagnostic[];
   readonly ast: ComponentNode;
+}
+
+// --- Source Maps & Diagnostic Code Frame Formatting (D-106) ---
+
+const VLQ_BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+export function encodeVlq(value: number): string {
+  let vlq = value < 0 ? ((-value) << 1) | 1 : value << 1;
+  let encoded = "";
+  do {
+    let digit = vlq & 31;
+    vlq >>>= 5;
+    if (vlq > 0) {
+      digit |= 32;
+    }
+    encoded += VLQ_BASE64_CHARS[digit];
+  } while (vlq > 0);
+  return encoded;
+}
+
+export interface SourceMapV3 {
+  readonly version: 3;
+  readonly file: string;
+  readonly sources: readonly string[];
+  readonly sourcesContent?: readonly string[];
+  readonly names: readonly string[];
+  readonly mappings: string;
+}
+
+/**
+ * Generates a standard SourceMap V3 mapping line deltas back to original source template.
+ */
+export function generateSourceMap(
+  filename: string,
+  source: string,
+  generated: string
+): SourceMapV3 {
+  const genLines = generated.split(/\r?\n/);
+  const srcLines = source.split(/\r?\n/);
+
+  const lineMappings: string[] = [];
+  let prevOrigLine = 0;
+
+  for (let i = 0; i < genLines.length; i++) {
+    if (i < srcLines.length) {
+      const origLineDelta = i - prevOrigLine;
+      prevOrigLine = i;
+      // Segment: generated column 0, source index 0, original line delta, original column 0
+      const segment = encodeVlq(0) + encodeVlq(0) + encodeVlq(origLineDelta) + encodeVlq(0);
+      lineMappings.push(segment);
+    } else {
+      lineMappings.push("");
+    }
+  }
+
+  return Object.freeze({
+    version: 3,
+    file: filename.replace(/\.(mix|tix)$/, ".js"),
+    sources: Object.freeze([filename]),
+    sourcesContent: Object.freeze([source]),
+    names: Object.freeze([]),
+    mappings: lineMappings.join(";")
+  });
+}
+
+/**
+ * Formats a diagnostic with a visual code frame and caret underline highlighting (D-106).
+ */
+export function formatDiagnostic(
+  source: string,
+  diag: SemanticDiagnostic,
+  filename = "anonymous.mix",
+  _options: { colors?: boolean } = {}
+): string {
+  const lineNum = diag.span.start.line;
+  const colNum = diag.span.start.column;
+  const severityTag = diag.severity === "error" ? "error" : "warning";
+
+  const lines = source.split(/\r?\n/);
+  const targetLine = lines[lineNum - 1] ?? "";
+
+  const startCol = Math.max(1, colNum);
+  const endCol = diag.span.end.line === lineNum
+    ? Math.max(startCol, diag.span.end.column)
+    : targetLine.length + 1;
+  const underlineLen = Math.max(1, endCol - startCol);
+
+  const pad = String(lineNum).length;
+  const gutter = " ".repeat(pad);
+
+  return [
+    `${severityTag}[${diag.code}]: ${diag.message}`,
+    `  --> ${filename}:${lineNum}:${colNum}`,
+    `  ${gutter} |`,
+    `  ${lineNum} | ${targetLine}`,
+    `  ${gutter} | ${" ".repeat(startCol - 1)}${"^".repeat(underlineLen)}`,
+    `  ${gutter} |`
+  ].join("\n");
 }
 
 /**
@@ -65,6 +169,7 @@ export function analyze(ast: ComponentNode): ComponentDescriptor {
   const diagnostics: SemanticDiagnostic[] = [];
   const signals: SignalDeclaration[] = [];
   const props: ComponentPropDeclaration[] = [];
+  const methods: ComponentMethodDeclaration[] = [];
   const bindings: ReactiveBinding[] = [];
 
   let nextScopeId = 0;
@@ -109,6 +214,31 @@ export function analyze(ast: ComponentNode): ComponentDescriptor {
         kind: "prop",
         scopeId: rootScope.id
       });
+    }
+
+    // Extract function/method declarations for stable scope HMR (D-111)
+    const funcRegex = /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)\s*\{([^}]*)\}/g;
+    while ((match = funcRegex.exec(content)) !== null) {
+      const name = match[1]!;
+      methods.push({ name, code: match[0] });
+      rootScope.symbols.set(name, {
+        name,
+        kind: "variable",
+        scopeId: rootScope.id
+      });
+    }
+
+    const arrowFuncRegex = /(?:let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*\{[^}]*\}/g;
+    while ((match = arrowFuncRegex.exec(content)) !== null) {
+      const name = match[1]!;
+      if (!signals.some((s) => s.name === name)) {
+        methods.push({ name, code: match[0] });
+        rootScope.symbols.set(name, {
+          name,
+          kind: "variable",
+          scopeId: rootScope.id
+        });
+      }
     }
   }
 
@@ -235,6 +365,7 @@ export function analyze(ast: ComponentNode): ComponentDescriptor {
   return Object.freeze({
     signals: Object.freeze(signals),
     props: Object.freeze(props),
+    methods: Object.freeze(methods),
     bindings: Object.freeze(bindings),
     diagnostics: Object.freeze(diagnostics),
     ast

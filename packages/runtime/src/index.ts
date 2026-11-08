@@ -933,6 +933,18 @@ export function reconcileKeyed<T>(
       }
     }
 
+    // Fast path: clear all items
+    if (newEntries.size === 0) {
+      for (const [_, removed] of oldEntries) {
+        removed.owner.dispose();
+      }
+      while (parentElement.firstChild && parentElement.firstChild !== anchor) {
+        parentElement.removeChild(parentElement.firstChild);
+      }
+      (parentElement as unknown as { __mix_keyed_map: Map<unknown, KeyedEntry<T>> }).__mix_keyed_map = newEntries;
+      return;
+    }
+
     // Clean up removed items (D-110: recursive owner disposal)
     for (const [_, removed] of oldEntries) {
       removed.owner.dispose();
@@ -941,9 +953,17 @@ export function reconcileKeyed<T>(
       }
     }
 
-    // Position new entries in order
+    // Position new entries in order with minimal DOM mutations
+    let cursor: Node | null = parentElement.firstChild;
     for (const [_, entry] of newEntries) {
-      parentElement.insertBefore(entry.element, anchor);
+      if (entry.element !== cursor) {
+        if (cursor && cursor.nextSibling === entry.element) {
+          cursor = entry.element;
+        } else {
+          parentElement.insertBefore(entry.element, cursor);
+        }
+      }
+      cursor = cursor ? cursor.nextSibling : null;
     }
 
     (parentElement as unknown as { __mix_keyed_map: Map<unknown, KeyedEntry<T>> }).__mix_keyed_map = newEntries;
@@ -995,4 +1015,47 @@ export function addEventListener(
 ): () => void {
   el.addEventListener(event, handler);
   return () => el.removeEventListener(event, handler);
+}
+
+// --- 9. HMR Stable Scope Method Replacement (D-111) ---
+
+export interface ComponentInstance {
+  readonly __scope: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * Applies an HMR update to an active component instance by updating methods
+ * on the instance's stable __scope without unmounting DOM elements or resetting
+ * live reactive signal state (D-111).
+ */
+export function applyHmrUpdate(
+  instance: ComponentInstance,
+  updatedFactoryOrMethods: ((...args: unknown[]) => ComponentInstance) | Record<string, unknown>
+): void {
+  if (!instance || !instance.__scope) return;
+
+  const methodsToApply: Record<string, unknown> = {};
+
+  if (typeof updatedFactoryOrMethods === "function") {
+    const dummyInstance = updatedFactoryOrMethods({}, null);
+    if (dummyInstance && dummyInstance.__scope) {
+      for (const key of Object.keys(dummyInstance.__scope)) {
+        const val = dummyInstance.__scope[key];
+        // Only swap methods; preserve reactive signals and state (D-111)
+        if (typeof val === "function" && !("set" in val)) {
+          methodsToApply[key] = val;
+        }
+      }
+    }
+  } else if (typeof updatedFactoryOrMethods === "object" && updatedFactoryOrMethods !== null) {
+    Object.assign(methodsToApply, updatedFactoryOrMethods);
+  }
+
+  for (const [name, fn] of Object.entries(methodsToApply)) {
+    if (typeof fn === "function" && !("set" in fn)) {
+      instance.__scope[name] = fn;
+      (instance as Record<string, unknown>)[name] = fn;
+    }
+  }
 }

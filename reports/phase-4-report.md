@@ -126,3 +126,4 @@ Per `ROADMAP.md`, Phase 5 will focus on Developer Experience:
 2. **Stable Scope HMR Harness (D-111):** Implement runtime hot module replacement method swap tests proving live state preservation via stable `__scope`.
 3. **Diagnostic Formatting & Source Maps:** Rich terminal error formatting with bidirectional source spans.
 4. **Performance Benchmarks:** Reproducible benchmark suite comparing compilation and reactive update throughput.
+
