@@ -6,7 +6,8 @@
     "rootDir": "./src"
   },
   "references": [
-    { "path": "../ast" }
+    { "path": "../ast" },
+    { "path": "../runtime" }
   ],
   "include": ["src/**/*"]
 }

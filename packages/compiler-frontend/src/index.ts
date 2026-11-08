@@ -30,95 +30,26 @@ import {
   createSourceSpan
 } from "@mix/ast";
 
+import { MixError } from "@mix/runtime/core";
+import { parseTSExpression, assertDynamicCloseMatch } from "./parser/index.js";
+
+export * from "./parser/index.js";
+
 export const VOID_ELEMENTS = new Set([
   "area", "base", "br", "col", "embed", "hr", "img", "input",
   "link", "meta", "param", "source", "track", "wbr"
 ]);
 
 /**
- * Scan expression boundary from opening '{' at startOffset to its matching '}',
- * accounting for strings, template strings, comments, and nested braces (D-105).
+ * Scan expression boundary from opening '{' at startOffset to its matching '}' (R-SYN-01).
+ * Uses Acorn + @sveltejs/acorn-typescript with preserveParens: true.
  */
 export function scanExpressionBoundary(source: string, startOffset: number): number {
   if (source[startOffset] !== "{") {
     throw new Error(`Expected '{' at offset ${startOffset}`);
   }
-
-  let depth = 0;
-  let i = startOffset;
-  const len = source.length;
-
-  while (i < len) {
-    const char = source[i];
-
-    // Single-line comment
-    if (char === "/" && source[i + 1] === "/") {
-      i += 2;
-      while (i < len && source[i] !== "\n") i++;
-      continue;
-    }
-
-    // Multi-line comment
-    if (char === "/" && source[i + 1] === "*") {
-      i += 2;
-      while (i < len && !(source[i] === "*" && source[i + 1] === "/")) i++;
-      i += 2;
-      continue;
-    }
-
-    // Single-quoted string
-    if (char === "'") {
-      i++;
-      while (i < len && source[i] !== "'") {
-        if (source[i] === "\\") i++;
-        i++;
-      }
-      i++;
-      continue;
-    }
-
-    // Double-quoted string
-    if (char === '"') {
-      i++;
-      while (i < len && source[i] !== '"') {
-        if (source[i] === "\\") i++;
-        i++;
-      }
-      i++;
-      continue;
-    }
-
-    // Template string
-    if (char === "`") {
-      i++;
-      while (i < len && source[i] !== "`") {
-        if (source[i] === "\\") {
-          i += 2;
-          continue;
-        }
-        if (source[i] === "$" && source[i + 1] === "{") {
-          i = scanExpressionBoundary(source, i + 1);
-          continue;
-        }
-        i++;
-      }
-      i++;
-      continue;
-    }
-
-    if (char === "{") {
-      depth++;
-    } else if (char === "}") {
-      depth--;
-      if (depth === 0) {
-        return i; // Index of closing '}'
-      }
-    }
-
-    i++;
-  }
-
-  throw new Error(`Unterminated expression starting at offset ${startOffset}`);
+  const parsed = parseTSExpression(source, startOffset + 1, "}");
+  return parsed.endOffset - 1;
 }
 
 /**
@@ -292,7 +223,7 @@ export function parse(source: string, options: ParseOptions | string = "Componen
   );
 }
 
-function parseTemplate(source: string, start: number, end: number, file: string): TemplateChildNode[] {
+export function parseTemplate(source: string, start: number, end: number, file: string): TemplateChildNode[] {
   const nodes: TemplateChildNode[] = [];
   let i = start;
 
@@ -307,67 +238,106 @@ function parseTemplate(source: string, start: number, end: number, file: string)
       continue;
     }
 
-    // 2. Dynamic Element: <{~expr ...}> ... </{~expr}> or <{~expr} /> (D-105)
+    // 2. Dynamic Element: <{~expr ...}> ... </{~expr}> or <{~expr ...}/> (§4.2)
+    if (source.startsWith("<{", i) && !source.startsWith("<{~", i)) {
+      throw new MixError(
+        "MIX_SYN_EXPR_INVALID",
+        `Spaces are forbidden inside dynamic tag opening delimiter '<{~' at offset ${i}`
+      );
+    }
+    if (source.startsWith("</{", i) && !source.startsWith("</{~", i)) {
+      throw new MixError(
+        "MIX_SYN_EXPR_INVALID",
+        `Spaces are forbidden inside dynamic tag closing delimiter '</{~' at offset ${i}`
+      );
+    }
+
     if (source.startsWith("<{~", i)) {
       const openTagStart = i;
       const exprStart = i + 3;
 
-      // Check self-closing: }/> or } />
-      const selfCloseMatch = /^([\s\S]*?)\}\s*\/>/.exec(source.slice(exprStart));
-      if (selfCloseMatch) {
-        const rawTagExpr = selfCloseMatch[1]!.trim();
-        const tagEndOffset = openTagStart + 3 + selfCloseMatch[0].length;
-        const tagExprSpan = createSourceSpan(exprStart, exprStart + rawTagExpr.length, file);
-        const tagExpressionNode = createExpressionNode(rawTagExpr, tagExprSpan);
+      const parsedOpen = parseTSExpression(source, exprStart, "}");
+      const rawTagExpr = parsedOpen.raw.trim();
+      const tagExprSpan = createSourceSpan(exprStart, parsedOpen.endOffset - 1, file);
+      const tagExpressionNode = createExpressionNode(rawTagExpr, tagExprSpan);
 
+      let p = parsedOpen.endOffset;
+      // Skip whitespace
+      while (p < end && /\s/.test(source[p]!)) p++;
+
+      // Scan attributes until / > or >
+      const attrStart = p;
+      while (p < end && source[p] !== ">" && !(source[p] === "/" && source[p + 1] === ">")) {
+        p++;
+      }
+      const rawAttrs = source.slice(attrStart, p).trim();
+      const attributes = rawAttrs.length > 0 ? parseAttributes(rawAttrs, attrStart, file) : [];
+
+      if (source[p] === "/" && source[p + 1] === ">") {
+        const totalEnd = p + 2;
         nodes.push(
           createDynamicElementNode(
             tagExpressionNode,
+            attributes,
             [],
-            [],
-            createSourceSpan(openTagStart, tagEndOffset, file)
+            createSourceSpan(openTagStart, totalEnd, file)
           )
         );
-
-        i = tagEndOffset;
+        i = totalEnd;
         continue;
       }
 
-      // Find standard closing '}>'
-      const closeTagBracket = source.indexOf("}>", exprStart);
-      if (closeTagBracket === -1) {
-        throw new Error(`Unclosed dynamic element opening tag at offset ${openTagStart}`);
-      }
-      const rawTagExpr = source.slice(exprStart, closeTagBracket).trim();
-      const openTagEnd = closeTagBracket + 2;
+      if (source[p] === ">") {
+        const openTagEnd = p + 1;
+        const closePattern = "</{~";
+        const closeTagIdx = source.indexOf(closePattern, openTagEnd);
+        if (closeTagIdx === -1) {
+          throw new MixError(
+            "MIX_SYN_DYNAMIC_CLOSE_MISMATCH",
+            `Unclosed dynamic element <{~${rawTagExpr}}> starting at offset ${openTagStart}`
+          );
+        }
 
-      // Scan dynamic element children up to matching </{~
-      const closePattern = "</{~";
-      const closeTagIdx = source.indexOf(closePattern, openTagEnd);
-      if (closeTagIdx === -1) {
-        throw new Error(`Unclosed dynamic element <{~${rawTagExpr}}> at offset ${openTagStart}`);
-      }
-      const closeEndBracket = source.indexOf("}>", closeTagIdx + closePattern.length);
-      if (closeEndBracket === -1) {
-        throw new Error(`Malformed dynamic element closing tag at offset ${closeTagIdx}`);
-      }
-      const totalEnd = closeEndBracket + 2;
+        const closeExprStart = closeTagIdx + closePattern.length;
+        const parsedClose = parseTSExpression(source, closeExprStart, "}");
+        const closeExpr = parsedClose.raw.trim();
 
-      const tagExprSpan = createSourceSpan(exprStart, closeTagBracket, file);
-      const tagExpressionNode = createExpressionNode(rawTagExpr, tagExprSpan);
-      const children = parseTemplate(source, openTagEnd, closeTagIdx, file);
+        let cp = parsedClose.endOffset;
+        while (cp < end && /\s/.test(source[cp]!)) cp++;
+        if (source[cp] !== ">") {
+          throw new MixError(
+            "MIX_SYN_DYNAMIC_CLOSE_MISMATCH",
+            `Malformed dynamic element closing tag at offset ${closeTagIdx}`
+          );
+        }
+        const totalEnd = cp + 1;
 
-      nodes.push(
-        createDynamicElementNode(
-          tagExpressionNode,
-          [],
-          children,
-          createSourceSpan(openTagStart, totalEnd, file)
-        )
+        // R-SYN-02: Token-stream comparison between opening and closing tags
+        assertDynamicCloseMatch(
+          rawTagExpr,
+          closeExpr,
+          { start: exprStart, end: parsedOpen.endOffset - 1 },
+          { start: closeExprStart, end: parsedClose.endOffset - 1 }
+        );
+
+        const children = parseTemplate(source, openTagEnd, closeTagIdx, file);
+        nodes.push(
+          createDynamicElementNode(
+            tagExpressionNode,
+            attributes,
+            children,
+            createSourceSpan(openTagStart, totalEnd, file)
+          )
+        );
+
+        i = totalEnd;
+        continue;
+      }
+
+      throw new MixError(
+        "MIX_SYN_EXPR_UNTERMINATED",
+        `Malformed dynamic element opening tag at offset ${openTagStart}`
       );
-
-      i = totalEnd;
-      continue;
     }
 
     // 3. Control Flow: {#if condition}

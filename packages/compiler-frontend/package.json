@@ -16,7 +16,10 @@
     "README.md"
   ],
   "dependencies": {
-    "@mix/ast": "0.1.0"
+    "@mix/ast": "0.1.0",
+    "@mix/runtime": "0.1.0",
+    "acorn": "^8.14.0",
+    "@sveltejs/acorn-typescript": "^1.4.1"
   },
   "scripts": {
     "build": "tsc -b"
