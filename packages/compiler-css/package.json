@@ -1,0 +1,6 @@
+{
+  "name": "@mix/compiler-css",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CSS parsing, scoping, and style validation."
+}

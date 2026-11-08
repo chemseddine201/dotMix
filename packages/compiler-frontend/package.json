@@ -1,0 +1,6 @@
+{
+  "name": "@mix/compiler-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lexing, markup parsing, and expression parser integration."
+}

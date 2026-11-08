@@ -1,0 +1,6 @@
+{
+  "name": "@mix/ast",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AST types and immutable syntax tree contracts."
+}

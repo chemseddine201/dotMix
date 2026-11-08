@@ -1,0 +1,6 @@
+{
+  "name": "@mix/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform-neutral reactive core plus renderer adapter contracts."
+}

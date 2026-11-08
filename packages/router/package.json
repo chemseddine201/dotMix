@@ -1,0 +1,6 @@
+{
+  "name": "@mix/router",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Future routing package; Phase 2 placeholder only."
+}

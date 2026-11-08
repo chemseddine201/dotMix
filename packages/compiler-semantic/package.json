@@ -1,0 +1,6 @@
+{
+  "name": "@mix/compiler-semantic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Name resolution, type projection, and semantic validation."
+}

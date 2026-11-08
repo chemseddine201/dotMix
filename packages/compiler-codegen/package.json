@@ -1,0 +1,6 @@
+{
+  "name": "@mix/compiler-codegen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic AOT code generation targeting direct DOM operations."
+}
