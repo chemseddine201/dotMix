@@ -20,6 +20,10 @@
     "./platform": {
       "types": "./dist/platform/index.d.ts",
       "import": "./dist/platform/index.js"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -27,6 +31,9 @@
     "dist",
     "README.md"
   ],
+  "dependencies": {
+    "@csstools/css-tokenizer": "^3.0.3"
+  },
   "scripts": {
     "build": "tsc -b"
   }

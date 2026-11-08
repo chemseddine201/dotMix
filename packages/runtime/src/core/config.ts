@@ -64,3 +64,4 @@ export function configureRuntime(partial: Partial<RuntimeConfig>): void {
 export function resetRuntimeConfig(): void {
   activeConfig = { ...defaultConfig };
 }
+

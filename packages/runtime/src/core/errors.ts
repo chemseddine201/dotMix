@@ -48,3 +48,4 @@ export class MixError extends Error {
     this.details = details ? Object.freeze({ ...details }) : undefined;
   }
 }
+

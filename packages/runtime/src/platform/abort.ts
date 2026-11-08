@@ -74,3 +74,4 @@ export function fromAbortSignal(signal: AbortSignal): CancellationToken {
 
   return source.token;
 }
+
