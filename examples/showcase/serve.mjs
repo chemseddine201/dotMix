@@ -44,6 +44,18 @@ function sendFile(res, filePath) {
   fs.createReadStream(filePath).pipe(res);
 }
 
+function resolveTarget(baseDir, rel) {
+  let target = path.resolve(baseDir, rel);
+  if (!fs.existsSync(target) || fs.statSync(target).isDirectory()) {
+    if (fs.existsSync(target + ".js")) {
+      target = target + ".js";
+    } else if (fs.existsSync(path.join(target, "index.js"))) {
+      target = path.join(target, "index.js");
+    }
+  }
+  return target;
+}
+
 const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url ?? "/", `http://localhost:${PORT}`);
   const pathname = decodeURIComponent(urlObj.pathname);
@@ -60,7 +72,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname.startsWith("/dist/")) {
     const rel = pathname.slice("/dist/".length);
-    const target = path.resolve(webOutDir, rel);
+    const target = resolveTarget(webOutDir, rel);
     if (target.startsWith(webOutDir)) {
       sendFile(res, target);
       return;
@@ -69,7 +81,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname.startsWith("/runtime/")) {
     const rel = pathname.slice("/runtime/".length);
-    const target = path.resolve(runtimeDistDir, rel);
+    const target = resolveTarget(runtimeDistDir, rel);
     if (target.startsWith(runtimeDistDir)) {
       sendFile(res, target);
       return;
@@ -78,7 +90,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname.startsWith("/router/")) {
     const rel = pathname.slice("/router/".length);
-    const target = path.resolve(routerDistDir, rel);
+    const target = resolveTarget(routerDistDir, rel);
     if (target.startsWith(routerDistDir)) {
       sendFile(res, target);
       return;
@@ -87,12 +99,13 @@ const server = http.createServer((req, res) => {
 
   if (pathname.startsWith("/sync/")) {
     const rel = pathname.slice("/sync/".length);
-    const target = path.resolve(syncDistDir, rel);
+    const target = resolveTarget(syncDistDir, rel);
     if (target.startsWith(syncDistDir)) {
       sendFile(res, target);
       return;
     }
   }
+
 
   // SPA fallback: Route HTML requests to index.html so direct URL navigation / refresh works
   if (!pathname.includes(".")) {
