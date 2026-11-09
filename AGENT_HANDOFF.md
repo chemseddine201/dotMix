@@ -2,9 +2,10 @@
 
 ## Current Active Assignment
 
-Execute **Phase Gate 27: Golden Path (Production Hardening)** per `agent/GATE_27_30_PRODUCTION_HARDENING_TASK.md` and `governance/PHASE_GATES.md`.
+Execute **Phase Gate 28: Correctness and Security (P1)** per `agent/GATE_27_30_PRODUCTION_HARDENING_TASK.md` and `governance/PHASE_GATES.md`.
 
 ## Authorized Scope
 
-- **Gate 27 (Approved):** Golden Path E2E Harness & Scaffold/Compiler Hardening (`T-27.1`, `T-27.2`, and upon HAA decision ratification of `D-130`/`D-131`: `T-27.3`, `T-27.4`)
-- **Gates 28–30:** Defined in `agent/GATE_27_30_PRODUCTION_HARDENING_TASK.md` and `governance/PHASE_GATES.md`; require explicit per-gate written approval from Human Architecture Authority (`"Gate 28 is approved"`, etc.) before execution.
+- **Gate 27 (Completed):** Golden Path E2E Harness & Scaffold/Compiler Hardening (`T-27.1` – `T-27.4` completed and verified across all 10 variants).
+- **Gate 28 (Approved & Active):** Correctness and Security (`T-28.1` – `T-28.6`; `D-132` and `D-133 (Option b)` ratified in `HAA-09`).
+- **Gates 29–30:** Require explicit per-gate written approval from Human Architecture Authority after Gate 28 completion report.
