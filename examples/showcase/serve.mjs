@@ -7,6 +7,7 @@ import { buildShowcase } from "./build.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runtimeDistDir = path.resolve(__dirname, "../../packages/runtime/dist");
 const routerDistDir = path.resolve(__dirname, "../../packages/router/dist");
+const syncDistDir = path.resolve(__dirname, "../../packages/sync/dist");
 const webOutDir = path.join(__dirname, "dist-web");
 const indexHtmlPath = path.join(__dirname, "index.html");
 
@@ -79,6 +80,15 @@ const server = http.createServer((req, res) => {
     const rel = pathname.slice("/router/".length);
     const target = path.resolve(routerDistDir, rel);
     if (target.startsWith(routerDistDir)) {
+      sendFile(res, target);
+      return;
+    }
+  }
+
+  if (pathname.startsWith("/sync/")) {
+    const rel = pathname.slice("/sync/".length);
+    const target = path.resolve(syncDistDir, rel);
+    if (target.startsWith(syncDistDir)) {
       sendFile(res, target);
       return;
     }

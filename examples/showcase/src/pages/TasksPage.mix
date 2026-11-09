@@ -1,11 +1,23 @@
-export default function TasksPage() {
-  const tasks = signal([
-    { id: "t-1", title: "Compile AST directly to surgical DOM", done: true, priority: 1 },
-    { id: "t-2", title: "Verify O(N log N) LIS minimal DOM movement", done: true, priority: 2 },
-    { id: "t-3", title: "Ship React Router v6/v7 Parity Engine", done: true, priority: 1 },
-    { id: "t-4", title: "Full enterprise showcase and test verification", done: false, priority: 1 }
-  ]);
+import { syncCollection, getDefaultSyncEngine, BroadcastChannelTransport } from "@mix/sync";
 
+export default function TasksPage() {
+  const engine = getDefaultSyncEngine();
+  if (typeof window !== "undefined" && !window.__MIX_TEST_ENV__ && !window.__mix_tasks_channel_set) {
+    window.__mix_tasks_channel_set = true;
+    engine.setChannel(new BroadcastChannelTransport("mix_showcase_tasks"));
+  }
+
+  const taskStore = syncCollection("showcase-tasks", {
+    driver: "indexeddb",
+    initialItems: [
+      { id: "t-1", title: "Compile AST directly to surgical DOM", done: true, priority: 1 },
+      { id: "t-2", title: "Verify O(N log N) LIS minimal DOM movement", done: true, priority: 2 },
+      { id: "t-3", title: "Ship React Router v6/v7 Parity Engine", done: true, priority: 1 },
+      { id: "t-4", title: "Ship Local-First Offline CRDT Sync Engine (@mix/sync)", done: false, priority: 1 }
+    ]
+  });
+
+  const tasks = taskStore.items;
   const draftTitle = signal("");
   const filter = signal("all");
 
@@ -27,31 +39,61 @@ export default function TasksPage() {
 
   function addTask() {
     const title = draftTitle().trim() || `Sprint Task #${total() + 1}`;
-    batch(() => {
-      tasks.set([...tasks(), { id: `t-${total() + 1}`, title, done: false, priority: 1 }]);
-      draftTitle.set("");
-      filter.set("all");
-    });
+    taskStore.insert({ id: `t-${Date.now()}`, title, done: false, priority: 1 });
+    draftTitle.set("");
+    filter.set("all");
   }
 
   function toggleTask(id) {
-    tasks.set(
-      tasks().map((t) => (t.id === id ? { ...t, done: !t.done } : t))
-    );
+    const t = tasks().find((item) => item.id === id);
+    if (t) {
+      taskStore.update(id, { done: !t.done });
+    }
+  }
+
+  function deleteTask(id, e) {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
+    taskStore.delete(id);
   }
 
   function rotateList() {
     const list = tasks();
     if (list.length > 1) {
-      tasks.set([...list.slice(1), list[0]]);
+      taskStore.reorder(0, list.length - 1);
+    }
+  }
+
+  function toggleNetwork() {
+    if (engine.isOnline()) {
+      engine.goOffline();
+    } else {
+      engine.goOnline();
     }
   }
 
   return (
     <div class="page-tasks">
       <div class="tasks-header">
-        <h2>📋 Stateful Task Board (LIS Keyed Reconciler)</h2>
-        <p>Keyed loops use Longest Increasing Subsequence to minimize DOM operations.</p>
+        <div class="header-titles">
+          <h2>📋 Local-First Task Board (@mix/sync CRDT)</h2>
+          <p>Instant 0ms mutations, IndexedDB persistence, cross-tab BroadcastChannel, and LIS minimal DOM movements.</p>
+        </div>
+        <div class="sync-banner">
+          <div class="sync-status">
+            <span class={"status-indicator " + engine.status()}></span>
+            <span class="status-label">
+              Network: <strong>{engine.isOnline() ? "Online" : "Simulated Offline"}</strong>
+              {" · Store: "}
+              <span class={"sync-badge " + taskStore.status()}>{taskStore.status().toUpperCase()}</span>
+              {taskStore.pendingCount() > 0 ? ` (${taskStore.pendingCount()} buffered in DB)` : ""}
+            </span>
+          </div>
+          <button class={"btn-network " + (engine.isOnline() ? "btn-disconnect" : "btn-connect")} onClick={toggleNetwork}>
+            {engine.isOnline() ? "🔌 Disconnect (Simulate Offline)" : "⚡ Reconnect & Flush Queue"}
+          </button>
+        </div>
       </div>
 
       <div class="composer-bar">
@@ -78,6 +120,7 @@ export default function TasksPage() {
             <span class="task-num">#{idx + 1}</span>
             <span class="task-text">{task.title}</span>
             <span class="task-status">{task.done ? "✓ Done" : "○ Pending"}</span>
+            <button class="btn-delete" onClick={(e) => deleteTask(task.id, e)} title="Delete task">×</button>
           </li>
         {endeach}
       </ul>
@@ -95,15 +138,100 @@ export default function TasksPage() {
     border-radius: 12px;
     border: 1px solid #e2e8f0;
   }
-  .tasks-header h2 {
+  .tasks-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .header-titles h2 {
     margin: 0 0 6px 0;
     font-size: 18px;
     color: #0f172a;
   }
-  .tasks-header p {
+  .header-titles p {
     margin: 0;
     color: #64748b;
     font-size: 13px;
+  }
+  .sync-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+  .sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #334155;
+  }
+  .status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .status-indicator.synced {
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  .status-indicator.syncing {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  }
+  .status-indicator.offline {
+    background: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+  .sync-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .sync-badge.synced {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .sync-badge.syncing {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .sync-badge.offline {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .btn-network {
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.15s ease;
+  }
+  .btn-disconnect {
+    background: #fff1f2;
+    color: #be123c;
+    border-color: #fecdd3;
+  }
+  .btn-disconnect:hover {
+    background: #ffe4e6;
+  }
+  .btn-connect {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+  }
+  .btn-connect:hover {
+    background: #d1fae5;
   }
   .composer-bar {
     display: flex;
@@ -202,5 +330,20 @@ export default function TasksPage() {
   .task-item:not(.is-done) .task-status {
     color: #d97706;
   }
+  .btn-delete {
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #94a3b8;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-delete:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+  }
 </style>
-

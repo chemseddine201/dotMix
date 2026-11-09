@@ -14,6 +14,9 @@ const runtimeUrl = pathToFileURL(
 const routerUrl = pathToFileURL(
   path.resolve(__dirname, "../../packages/router/dist/index.js")
 ).href;
+const syncUrl = pathToFileURL(
+  path.resolve(__dirname, "../../packages/sync/dist/index.js")
+).href;
 
 function scanSourceFiles(dir, base = "") {
   if (!fs.existsSync(dir)) return [];
@@ -93,11 +96,14 @@ export function buildShowcase(options = {}) {
     let content = fs.readFileSync(path.join(srcDir, f), "utf8");
     const runtimeTarget = options.runtimeImportPath ?? runtimeUrl;
     const routerTarget = options.routerImportPath ?? (options.runtimeImportPath ? "/router/index.js" : routerUrl);
+    const syncTarget = options.syncImportPath ?? (options.runtimeImportPath ? "/sync/index.js" : syncUrl);
     content = content
       .replaceAll('from "@mix/runtime"', `from "${runtimeTarget}"`)
       .replaceAll('from "@mix/router"', `from "${routerTarget}"`)
+      .replaceAll('from "@mix/sync"', `from "${syncTarget}"`)
       .replaceAll('from "/runtime/index.js"', `from "${runtimeTarget}"`)
-      .replaceAll('from "/router/index.js"', `from "${routerTarget}"`);
+      .replaceAll('from "/router/index.js"', `from "${routerTarget}"`)
+      .replaceAll('from "/sync/index.js"', `from "${syncTarget}"`);
     fs.writeFileSync(path.join(outDir, f), content, "utf8");
     compiledArtifacts.set(f, { file: f });
   }

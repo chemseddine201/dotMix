@@ -63,6 +63,15 @@ export function syncCollection<T>(
     void driver.setItem(key, crdtArray.toJSON());
   }
 
+  // Pre-seed initial items if provided
+  if (options.initialItems && options.initialItems.length > 0) {
+    for (const it of options.initialItems) {
+      const id = resolveItemId(it, options.idField);
+      crdtArray.insert(id, it, engine.clock.tick());
+    }
+    updateItems();
+  }
+
   // Register with SyncEngine
   engine.registerStore(key, {
     applyRemoteMutation(remoteMut: Mutation<unknown>) {
@@ -99,9 +108,11 @@ export function syncCollection<T>(
     try {
       await driver.init();
       const saved = await driver.getItem<ArrayEntry<T>[]>(key);
-      if (Array.isArray(saved)) {
-        crdtArray.merge(saved);
+      if (Array.isArray(saved) && saved.length > 0) {
+        crdtArray.restoreSnapshot(saved);
         updateItems();
+      } else if (crdtArray.length > 0) {
+        saveSnapshot();
       }
     } catch {
       // Ignore hydration errors

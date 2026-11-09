@@ -53,6 +53,10 @@ export class BroadcastChannelTransport implements SyncChannel {
   constructor(channelName = "mix_sync_broadcast") {
     if (typeof BroadcastChannel !== "undefined") {
       this.channel = new BroadcastChannel(channelName);
+      const unrefChannel = this.channel as unknown as { unref?: () => void };
+      if (typeof unrefChannel.unref === "function") {
+        unrefChannel.unref();
+      }
       this.channel.onmessage = (event: MessageEvent<SyncPacket>) => {
         for (const h of this.handlers) {
           void h(event.data);

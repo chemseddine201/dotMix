@@ -58,6 +58,7 @@ export interface SyncCollectionOptions<T> {
   readonly idField?: keyof T | ((item: T) => string);
   readonly driver?: SyncDriver | "memory" | "indexeddb" | "opfs";
   readonly syncEngine?: unknown; // SyncEngine instance
+  readonly initialItems?: readonly T[];
 }
 
 export interface SyncCollection<T> {
