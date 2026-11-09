@@ -28,3 +28,4 @@ export interface HydrateResult {
   readonly recoveredCount: number;
   readonly unmountAll: () => void;
 }
+

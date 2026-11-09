@@ -109,3 +109,4 @@ export default function Layout() {
     assert.ok(!codegen.css.includes(":deep"));
   });
 });
+

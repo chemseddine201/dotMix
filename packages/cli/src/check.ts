@@ -54,7 +54,11 @@ export function check(options: CheckOptions = {}): CheckResult {
     const filename = path.basename(filePath);
     try {
       const source = fs.readFileSync(filePath, "utf-8");
-      const ast = parse(source, { filename });
+      const readExternalStyle = (relPath: string): string => {
+        const resolved = path.resolve(path.dirname(filePath), relPath);
+        return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
+      };
+      const ast = parse(source, { filename, readFile: readExternalStyle });
       const desc = analyze(ast, { filename, source, throwOnError: false });
 
       if (desc.diagnostics && desc.diagnostics.length > 0) {

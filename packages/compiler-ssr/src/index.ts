@@ -13,6 +13,7 @@ import type {
   SlotOutletNode,
   ComponentCallNode,
   DynamicElementNode,
+  AwaitBlockNode,
   AttributeNode,
 } from "@mix/ast";
 import type { ComponentDescriptor } from "@mix/compiler-semantic";
@@ -182,6 +183,34 @@ export function compileToSsr(
         parts.push(`}\n`);
         if (includeMarkers) {
           parts.push(`__html += "<!--/mix:c:${id}-->";\n`);
+        }
+        break;
+      }
+
+      case "AwaitBlock": {
+        const awaitBlock = node as AwaitBlockNode;
+        const id = markerId++;
+        if (includeMarkers) {
+          parts.push(`__html += "<!--mix:await:${id}-->";\n`);
+        }
+        parts.push(`{\n`);
+        parts.push(`  const __awaitTarget = (${awaitBlock.rawExpression});\n`);
+        parts.push(`  const __isPromise = __awaitTarget !== null && typeof __awaitTarget === "object" && typeof __awaitTarget.then === "function";\n`);
+        parts.push(`  const __isPendingResource = __awaitTarget !== null && typeof __awaitTarget === "object" && "loading" in __awaitTarget && typeof __awaitTarget.loading === "function" && __awaitTarget.loading();\n`);
+        parts.push(`  if (__isPromise || __isPendingResource) {\n`);
+        for (const child of awaitBlock.pending) {
+          generateNode(child);
+        }
+        parts.push(`  } else {\n`);
+        const thenVar = awaitBlock.thenIdentifier || `__resolved_${id}`;
+        parts.push(`    const ${thenVar} = (__awaitTarget !== null && typeof __awaitTarget === "object" && "data" in __awaitTarget && typeof __awaitTarget.data === "function") ? __awaitTarget.data() : __awaitTarget;\n`);
+        for (const child of awaitBlock.thenBranch) {
+          generateNode(child);
+        }
+        parts.push(`  }\n`);
+        parts.push(`}\n`);
+        if (includeMarkers) {
+          parts.push(`__html += "<!--/mix:await:${id}-->";\n`);
         }
         break;
       }

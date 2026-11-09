@@ -45,3 +45,4 @@ export function asAngularComponent<P extends Record<string, unknown>>(
     }
   };
 }
+

@@ -2,6 +2,8 @@
  * @mix/vite-plugin — Vite / Rollup plugin for Mix/Tix compiler
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { parse } from "@mix/compiler-frontend";
 import { analyze } from "@mix/compiler-semantic";
 import { generate, type CodegenResult } from "@mix/compiler-codegen";
@@ -40,7 +42,12 @@ export function mix(options: MixPluginOptions = {}) {
         return null;
       }
 
-      const ast = parse(code, { filename });
+      const readExternalStyle = (relPath: string): string => {
+        const resolved = path.resolve(path.dirname(filename), relPath);
+        return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
+      };
+
+      const ast = parse(code, { filename, readFile: readExternalStyle });
       const descriptor = analyze(ast, { filename, source: code });
       const isDev = process.env.NODE_ENV !== "production";
       const hmr = options.hmr ?? (isDev && !transformOptions?.ssr);
@@ -49,6 +56,7 @@ export function mix(options: MixPluginOptions = {}) {
         filename,
         runtimeImportPath: options.runtimeImportPath ?? "@mix/runtime",
         hmr,
+        resolveStyle: (src: string) => readExternalStyle(src),
       });
 
       let finalCode = result.code;

@@ -55,9 +55,16 @@ export function build(options: BuildOptions = {}): BuildResult {
   for (const file of files) {
     const filename = path.basename(file);
     const source = fs.readFileSync(file, "utf-8");
-    const ast = parse(source, { filename });
+    const readExternalStyle = (relPath: string): string => {
+      const resolved = path.resolve(path.dirname(file), relPath);
+      return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
+    };
+    const ast = parse(source, { filename, readFile: readExternalStyle });
     const desc = analyze(ast, { filename, source });
-    const codegen = generate(desc, { filename });
+    const codegen = generate(desc, {
+      filename,
+      resolveStyle: (src: string) => readExternalStyle(src),
+    });
 
     const baseName = filename.replace(/\.(mix|tix)$/, "");
     const jsPath = path.join(outDir, `${baseName}.js`);

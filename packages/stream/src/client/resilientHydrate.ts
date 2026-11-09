@@ -2,7 +2,7 @@
  * @mix/stream — Client-side Resilient Progressive Hydration Engine
  */
 
-import { mount, type MountedComponent } from "@mix/runtime";
+import { mount, hydrate, type MountedComponent } from "@mix/runtime";
 import type { HydrateResult, IslandManifest, StreamResilienceOptions } from "../types.js";
 
 export type ComponentRegistry = Record<
@@ -37,7 +37,7 @@ export async function resilientHydrate(
   }
 
   const islandElements = Array.from(root.querySelectorAll("mix-island"));
-  const handles: MountedComponent[] = [];
+  const handles: Array<Pick<MountedComponent, "unmount">> = [];
   let recoveredCount = 0;
 
   for (const el of islandElements) {
@@ -76,11 +76,17 @@ export async function resilientHydrate(
       }
     }
 
-    // Clear SSR placeholder nodes and mount live interactive component
-    el.innerHTML = "";
     const props = manifest?.state ?? {};
-    const handle = mount(() => Component(props), el as HTMLElement);
-    handles.push(handle);
+    if (el.innerHTML.includes("<!--mix:")) {
+      // Surgical node-preserving hydration when SSR hydration markers are present
+      const dispose = hydrate(() => Component(props), el as HTMLElement);
+      handles.push({ unmount: dispose });
+    } else {
+      // Clear inert placeholder nodes and mount live interactive component
+      el.innerHTML = "";
+      const handle = mount(() => Component(props), el as HTMLElement);
+      handles.push(handle);
+    }
   }
 
   return {
