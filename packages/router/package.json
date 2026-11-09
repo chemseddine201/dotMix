@@ -1,0 +1,14 @@
+{
+  "name": "@mix/router",
+  "version": "0.1.0",
+  "description": "Production Client Router for Mix/Tix with Radix-Trie matching and zero external dependencies",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@mix/runtime": "0.1.0"
+  },
+  "devDependencies": {
+    "@mix/diagnostics": "0.1.0"
+  }
+}

@@ -56,14 +56,26 @@ test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async ()
   }
 });
 
-test("Foundation 2: Layer boundaries, zero runtime in compiler, and deferred router", async () => {
+test("Foundation 2: Layer boundaries, zero runtime in compiler, and router boundaries (Gate 12 / D-115)", async () => {
   const packagesDir = path.join(rootDir, "packages");
 
-  assert.strictEqual(
-    fs.existsSync(path.join(packagesDir, "router")),
-    false,
-    "packages/router must remain absent per Charter non-goals and HAA-04"
-  );
+  // Router boundary checks (Gate 12 / D-115):
+  if (fs.existsSync(path.join(packagesDir, "router"))) {
+    const routerPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "router", "package.json"), "utf-8"));
+    assert.strictEqual(
+      routerPkg.dependencies?.["@mix/runtime"],
+      "0.1.0",
+      "@mix/router must depend only on @mix/runtime"
+    );
+    const nonMixRuntimeDeps = Object.keys(routerPkg.dependencies || {}).filter(
+      (dep) => dep !== "@mix/runtime"
+    );
+    assert.deepStrictEqual(
+      nonMixRuntimeDeps,
+      [],
+      "@mix/router must declare ZERO external runtime dependencies"
+    );
+  }
 
   const diagPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "diagnostics", "package.json"), "utf-8"));
   assert.deepStrictEqual(diagPkg.dependencies, {}, "@mix/diagnostics must declare zero dependencies");

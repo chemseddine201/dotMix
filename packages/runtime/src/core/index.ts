@@ -1075,3 +1075,7 @@ export function defineProps<P = Record<string, unknown>>(defaults?: Partial<P>):
 export function getActiveComponentProps(): Record<string, unknown> | null {
   return activeComponentProps;
 }
+
+export const createSignal = signal;
+export const createMemo = computed;
+
