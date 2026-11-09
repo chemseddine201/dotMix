@@ -37,6 +37,9 @@ export type BindingKind =
   | "param"
   | "loop";
 
+export const STYLE_EXTENSION_REGEX = /\.(css|scss|sass|less|styl|stylus|pcss|postcss)(\?.*)?$/i;
+export const ALLOWED_RELATIVE_IMPORT_REGEX = /\.(tix|mix|js|mjs|ts|css|scss|sass|less|styl|stylus|pcss|postcss)(\?.*)?$/i;
+
 export interface SymbolBinding {
   readonly name: string;
   readonly kind: BindingKind;
@@ -474,17 +477,17 @@ function analyzeScriptBlock(
   for (const stmt of sf.statements) {
     if (ts.isImportDeclaration(stmt) && ts.isStringLiteral(stmt.moduleSpecifier)) {
       const spec = stmt.moduleSpecifier.text;
-      if (spec.endsWith(".css") || /\.(css)(\?.*)?$/.test(spec)) {
+      if (STYLE_EXTENSION_REGEX.test(spec)) {
         cssImports.push(spec);
       }
-      // R-RS-01: Relative imports in .tix / .mix must have an explicit extension (.tix, .mix, .js, .ts, .css)
+      // R-RS-01: Relative imports in .tix / .mix must have an explicit extension (.tix, .mix, .js, .ts, .css, .scss, .sass, .less, etc.)
       if (
         (spec.startsWith("./") || spec.startsWith("../")) &&
-        !/\.(tix|mix|js|mjs|ts|css)(\?.*)?$/.test(spec)
+        !ALLOWED_RELATIVE_IMPORT_REGEX.test(spec)
       ) {
         diagnostics.push({
           code: DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE,
-          message: `Relative import '${spec}' is missing an explicit file extension (e.g. '.tix' or '.js') (R-RS-01).`,
+          message: `Relative import '${spec}' is missing an explicit file extension (e.g. '.tix', '.js', or '.scss') (R-RS-01).`,
           severity: "error",
           span: spanForNode(stmt.moduleSpecifier)
         });
@@ -1144,6 +1147,41 @@ declare module "*.css" {
   export default css;
 }
 
+declare module "*.scss" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.sass" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.less" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.styl" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.stylus" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.pcss" {
+  const css: string;
+  export default css;
+}
+
+declare module "*.postcss" {
+  const css: string;
+  export default css;
+}
+
 interface HTMLElementTagNameMap {
   div: HTMLDivElement;
   span: HTMLSpanElement;
@@ -1272,7 +1310,7 @@ export function typecheckTix(
     },
     resolveModuleNames(moduleNames: string[], containingFile: string): (ts.ResolvedModule | undefined)[] {
       return moduleNames.map(modName => {
-        if (modName === "@mix/runtime" || modName === "@mix/runtime/typecheck" || modName.endsWith(".css")) {
+        if (modName === "@mix/runtime" || modName === "@mix/runtime/typecheck" || STYLE_EXTENSION_REGEX.test(modName)) {
           return {
             resolvedFileName: "/__mix_ambient.d.ts",
             isExternalLibraryImport: true
@@ -1402,8 +1440,8 @@ export function extractAndTranspileScript(
       if (stmt.importClause?.isTypeOnly) {
         continue;
       }
-      // Skip pure CSS imports (`import "./foo.css"`) because styles are compiled into __injectStylesheet
-      if (ts.isStringLiteral(stmt.moduleSpecifier) && (stmt.moduleSpecifier.text.endsWith(".css") || stmt.moduleSpecifier.text.includes(".css?"))) {
+      // Skip pure stylesheet imports (`import "./foo.css"`, `.scss`, `.less`, etc.) because styles are compiled into __injectStylesheet
+      if (ts.isStringLiteral(stmt.moduleSpecifier) && STYLE_EXTENSION_REGEX.test(stmt.moduleSpecifier.text)) {
         continue;
       }
       importSlices.push(text.trim());

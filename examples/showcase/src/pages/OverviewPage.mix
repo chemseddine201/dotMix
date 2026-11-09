@@ -142,5 +142,3 @@ export default function OverviewPage() {
     </div>
   );
 }
-
-<style src="./OverviewPage.css"></style>

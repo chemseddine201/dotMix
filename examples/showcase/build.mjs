@@ -41,7 +41,7 @@ function scanCssFiles(dir, base = "") {
     const rel = base ? `${base}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       result.push(...scanCssFiles(path.join(dir, entry.name), rel));
-    } else if (entry.name.endsWith(".css")) {
+    } else if (/\.(css|scss|sass|less|styl|stylus|pcss|postcss)$/i.test(entry.name)) {
       result.push(rel);
     }
   }

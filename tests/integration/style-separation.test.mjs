@@ -108,5 +108,56 @@ export default function Layout() {
     assert.ok(!codegen.css.includes(":global"));
     assert.ok(!codegen.css.includes(":deep"));
   });
+
+  test("4. Supports importing preprocessor files (.scss, .sass, .less, .styl, .pcss) without <style> tag", () => {
+    const source = `
+import "./Card.scss";
+import "./Header.less";
+import "./Footer.pcss";
+
+export default function MultiStyleCard() {
+  return (
+    <div class="card-root">
+      <header class="card-header">Header</header>
+      <footer class="card-footer">Footer</footer>
+    </div>
+  );
+}
+`;
+
+    const ast = parse(source, { filename: "MultiStyleCard.mix" });
+    const descriptor = analyze(ast, { filename: "MultiStyleCard.mix", source });
+
+    assert.ok(descriptor.cssImports, "descriptor.cssImports must exist");
+    assert.deepStrictEqual(descriptor.cssImports, [
+      "./Card.scss",
+      "./Header.less",
+      "./Footer.pcss"
+    ]);
+
+    // Verify code generation resolves preprocessed styles and attaches scope hashes
+    const preprocessorCssMap = {
+      "./Card.scss": ".card-root { border-radius: 8px; }",
+      "./Header.less": ".card-header { font-size: 1.25rem; font-weight: bold; }",
+      "./Footer.pcss": ".card-footer { color: #888; }"
+    };
+
+    const codegen = generate(descriptor, {
+      filename: "MultiStyleCard.mix",
+      resolveStyle: (relPath) => preprocessorCssMap[relPath] ?? ""
+    });
+
+    assert.ok(codegen.css, "codegen.css must be generated");
+    assert.ok(codegen.css.includes(".card-root[data-mix-"));
+    assert.ok(codegen.css.includes(".card-header[data-mix-"));
+    assert.ok(codegen.css.includes(".card-footer[data-mix-"));
+
+    // Ensure none of the preprocessor imports leak into the JS output
+    assert.ok(!codegen.js.includes('import "./Card.scss"'));
+    assert.ok(!codegen.js.includes('import "./Header.less"'));
+    assert.ok(!codegen.js.includes('import "./Footer.pcss"'));
+    assert.ok(codegen.js.includes("__injectStylesheet"));
+  });
 });
+
 
