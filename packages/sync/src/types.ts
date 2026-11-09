@@ -33,6 +33,7 @@ export interface SyncDriver {
   getPendingMutations(storeKey?: string): Promise<Mutation<unknown>[]>;
   markMutationsCommitted(mutationIdStrs: string[]): Promise<void>;
   markMutationRejected(mutationIdStr: string): Promise<void>;
+  pruneMutations?(predicate: (m: Mutation<unknown>) => boolean): Promise<number>;
   clear(): Promise<void>;
 }
 

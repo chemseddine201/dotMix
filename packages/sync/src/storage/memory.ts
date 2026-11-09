@@ -53,6 +53,12 @@ export class MemoryDriver implements SyncDriver {
     }
   }
 
+  async pruneMutations(predicate: (m: Mutation<unknown>) => boolean): Promise<number> {
+    const prevLen = this.mutations.length;
+    this.mutations = this.mutations.filter((m) => !predicate(m));
+    return prevLen - this.mutations.length;
+  }
+
   async clear(): Promise<void> {
     this.store.clear();
     this.mutations = [];

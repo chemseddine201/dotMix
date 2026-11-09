@@ -41,9 +41,14 @@ function resolveItemId<T>(item: T, idField?: keyof T | ((item: T) => string)): s
 }
 
 export function syncCollection<T>(
-  key: string,
-  options: SyncCollectionOptions<T> = { key }
+  keyOrOptions: string | SyncCollectionOptions<T>,
+  opts?: SyncCollectionOptions<T>
 ): SyncCollection<T> {
+  const options: SyncCollectionOptions<T> =
+    typeof keyOrOptions === "string"
+      ? (opts ?? { key: keyOrOptions })
+      : keyOrOptions;
+  const key = options.key;
   const engine = (options.syncEngine as SyncEngine) || getDefaultSyncEngine();
   const driver = resolveDriver(options.driver);
   const crdtArray = new ReplicableArray<T>();
@@ -100,6 +105,11 @@ export function syncCollection<T>(
         updateItems();
         saveSnapshot();
       }
+    },
+    compact(ackWatermarkClock: number): number {
+      const purged = crdtArray.compact(ackWatermarkClock);
+      saveSnapshot();
+      return purged;
     },
   });
 

@@ -10,6 +10,7 @@ import { MemoryDriver } from "../storage/memory.js";
 export interface SyncStoreHandler {
   applyRemoteMutation(mutation: Mutation<unknown>): void;
   rollbackMutation(mutationIdStr: string): void;
+  compact?(ackWatermarkClock: number): number;
 }
 
 export class SyncEngine {
@@ -168,6 +169,27 @@ export class SyncEngine {
         });
       }
     }
+  }
+
+  async compact(ackWatermarkClock: number): Promise<{ purgedTombstones: number; prunedLogEntries: number }> {
+    let purgedTombstones = 0;
+    for (const store of this.stores.values()) {
+      if (typeof store.compact === "function") {
+        purgedTombstones += store.compact(ackWatermarkClock);
+      }
+    }
+
+    let prunedLogEntries = 0;
+    if (typeof this.driver.pruneMutations === "function") {
+      prunedLogEntries = await this.driver.pruneMutations(
+        (m) => m.state === "committed" && m.id.timestamp <= ackWatermarkClock
+      );
+    }
+
+    return {
+      purgedTombstones,
+      prunedLogEntries,
+    };
   }
 
   destroy(): void {

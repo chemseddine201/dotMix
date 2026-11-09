@@ -222,6 +222,17 @@ export class ReplicableArray<T> {
     }
   }
 
+  compact(ackWatermarkClock: number): number {
+    let purged = 0;
+    for (const [id, entry] of this.entries.entries()) {
+      if (entry.deleted && entry.mutationId.timestamp <= ackWatermarkClock) {
+        this.entries.delete(id);
+        purged++;
+      }
+    }
+    return purged;
+  }
+
   toJSON(): ArrayEntry<T>[] {
     return Array.from(this.entries.values());
   }
