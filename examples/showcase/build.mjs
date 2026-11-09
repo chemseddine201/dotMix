@@ -33,6 +33,21 @@ function scanSourceFiles(dir, base = "") {
   return result;
 }
 
+function scanCssFiles(dir, base = "") {
+  if (!fs.existsSync(dir)) return [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const result = [];
+  for (const entry of entries) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      result.push(...scanCssFiles(path.join(dir, entry.name), rel));
+    } else if (entry.name.endsWith(".css")) {
+      result.push(rel);
+    }
+  }
+  return result;
+}
+
 export function buildShowcase(options = {}) {
   const outDir = options.outDir ?? distDir;
   fs.mkdirSync(outDir, { recursive: true });
@@ -43,7 +58,15 @@ export function buildShowcase(options = {}) {
   for (const file of files) {
     const fullPath = path.join(srcDir, file);
     const source = fs.readFileSync(fullPath, "utf8");
-    const ast = parse(source, { filename: file });
+    const styleResolver = (relPath) => {
+      const abs = path.resolve(path.dirname(fullPath), relPath);
+      return fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : "";
+    };
+
+    const ast = parse(source, {
+      filename: file,
+      readFile: styleResolver
+    });
     const descriptor = analyze(ast, {
       filename: file,
       source,
@@ -60,7 +83,8 @@ export function buildShowcase(options = {}) {
     const codegen = generate(descriptor, {
       filename: file,
       runtimeImportPath: options.runtimeImportPath ?? runtimeUrl,
-      sourceMap: true
+      sourceMap: true,
+      resolveStyle: styleResolver
     });
 
     const jsFilename = `${file}.js`;
@@ -106,6 +130,15 @@ export function buildShowcase(options = {}) {
       .replaceAll('from "/sync/index.js"', `from "${syncTarget}"`);
     fs.writeFileSync(path.join(outDir, f), content, "utf8");
     compiledArtifacts.set(f, { file: f });
+  }
+
+  // Also copy any standalone or extracted .css files
+  const plainCssFiles = scanCssFiles(srcDir);
+  for (const f of plainCssFiles) {
+    const srcCss = path.join(srcDir, f);
+    const outCss = path.join(outDir, f);
+    fs.mkdirSync(path.dirname(outCss), { recursive: true });
+    fs.copyFileSync(srcCss, outCss);
   }
 
   return compiledArtifacts;

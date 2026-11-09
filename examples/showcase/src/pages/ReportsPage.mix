@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "@mix/router";
+import "./ReportsPage.css";
 
 export default function ReportsPage() {
   const params = useParams();
@@ -29,65 +30,4 @@ export default function ReportsPage() {
   );
 }
 
-<style>
-  .page-reports {
-    padding: 24px;
-    background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .card-header h2 {
-    margin: 0 0 6px 0;
-    font-size: 18px;
-    color: #0f172a;
-  }
-  .card-header p {
-    margin: 0;
-    color: #64748b;
-    font-size: 13px;
-  }
-  .splat-box {
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .box-label {
-    font-size: 14px;
-    color: #475569;
-    font-weight: 600;
-  }
-  .splat-code {
-    font-size: 16px;
-    color: #d97706;
-    font-weight: 700;
-  }
-  .switch-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: #64748b;
-  }
-  .chip-btn {
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #334155;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .chip-btn:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-  }
-</style>
-
+<style src="./ReportsPage.css"></style>

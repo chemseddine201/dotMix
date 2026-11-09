@@ -69,6 +69,7 @@ const HTML_VOID_ELEMENTS = new Set([
 
 export interface ParseOptions {
   filename?: string;
+  readFile?: (path: string) => string;
 }
 
 function failSyntax(
@@ -354,7 +355,8 @@ function tryExtractFunctionalComponent(
 function extractTopLevelSections(
   source: string,
   lineMap: LineMap,
-  filename?: string
+  filename?: string,
+  options?: ParseOptions
 ): ExtractedSections {
   const chars = source.split("");
   let script: ScriptBlockNode | null = null;
@@ -480,26 +482,48 @@ function extractTopLevelSections(
       const openTagAttrText = source.slice(pos + 6, openTagEnd);
       // Component styles are scoped by default per spec/CSS_SCOPING.md §1 unless explicitly scoped="false"
       const scopedFalse = /\bscoped\s*=\s*(?:"false"|'false')/.test(openTagAttrText);
+      const isSelfClosing = openTagAttrText.trimEnd().endsWith("/");
+      const srcMatch = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(openTagAttrText);
+      const srcAttr = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? "") : undefined;
+
+      let blockEnd: number;
+      let content = "";
       const contentStart = openTagEnd + 1;
-      const closeTagStart = source.indexOf("</style>", contentStart);
-      if (closeTagStart === -1) {
-        failSyntax(
-          DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
-          "Unclosed <style> block: missing '</style>'.",
-          lineMap,
-          blockStart,
-          source.length
-        );
+      let contentEnd = contentStart;
+
+      if (isSelfClosing) {
+        blockEnd = openTagEnd + 1;
+      } else {
+        const closeTagStart = source.indexOf("</style>", contentStart);
+        if (closeTagStart === -1) {
+          failSyntax(
+            DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+            "Unclosed <style> block: missing '</style>'.",
+            lineMap,
+            blockStart,
+            source.length
+          );
+        }
+        blockEnd = closeTagStart + 8;
+        contentEnd = closeTagStart;
+        content = source.slice(contentStart, closeTagStart);
       }
-      const blockEnd = closeTagStart + 8;
-      const content = source.slice(contentStart, closeTagStart);
+
+      if (srcAttr && content.trim().length === 0 && options?.readFile) {
+        try {
+          content = options.readFile(srcAttr);
+        } catch {
+          // Keep content empty if readFile fails; let analyzer/codegen diagnose if needed
+        }
+      }
 
       style = deepFreeze({
         type: "StyleBlock",
         scoped: !scopedFalse,
         content,
-        contentSpan: lineMap.span(contentStart, closeTagStart),
-        span: lineMap.span(blockStart, blockEnd)
+        contentSpan: lineMap.span(contentStart, contentEnd),
+        span: lineMap.span(blockStart, blockEnd),
+        ...(srcAttr ? { src: srcAttr } : {})
       });
 
       blankRangePreservingNewlines(chars, blockStart, blockEnd);
@@ -1874,7 +1898,7 @@ class TemplateParser {
 export function parse(source: string, options?: ParseOptions): ComponentNode {
   const filename = options?.filename;
   const lineMap = new LineMap(source, filename);
-  const { script, style, templateBuffer } = extractTopLevelSections(source, lineMap, filename);
+  const { script, style, templateBuffer } = extractTopLevelSections(source, lineMap, filename, options);
   const parser = new TemplateParser(templateBuffer, lineMap);
   const template = parser.parseRootTemplate();
 

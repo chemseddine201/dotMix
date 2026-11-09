@@ -71,3 +71,4 @@ export function compareMutationIds(a: MutationId, b: MutationId): number {
   }
   return a.sequence - b.sequence;
 }
+

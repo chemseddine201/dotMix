@@ -84,6 +84,7 @@ export interface ComponentDescriptor {
   readonly refs: readonly string[];
   readonly functions: readonly string[];
   readonly imports: ReadonlyMap<string, string>;
+  readonly cssImports?: readonly string[];
   readonly diagnostics: readonly Diagnostic[];
 }
 
@@ -423,6 +424,7 @@ function analyzeScriptBlock(
   refs: string[];
   functions: string[];
   imports: Map<string, string>;
+  cssImports: string[];
 } {
   const bindings = new Map<string, SymbolBinding>();
   const signals: string[] = [];
@@ -431,9 +433,10 @@ function analyzeScriptBlock(
   const refs: string[] = [];
   const functions: string[] = [];
   const imports = new Map<string, string>();
+  const cssImports: string[] = [];
 
   if (!ast.script) {
-    return { bindings, signals, computeds, props, refs, functions, imports };
+    return { bindings, signals, computeds, props, refs, functions, imports, cssImports };
   }
 
   const scriptContent = ast.script.content;
@@ -471,10 +474,13 @@ function analyzeScriptBlock(
   for (const stmt of sf.statements) {
     if (ts.isImportDeclaration(stmt) && ts.isStringLiteral(stmt.moduleSpecifier)) {
       const spec = stmt.moduleSpecifier.text;
-      // R-RS-01: Relative imports in .tix / .mix must have an explicit extension (.tix, .mix, .js, .ts)
+      if (spec.endsWith(".css") || /\.(css)(\?.*)?$/.test(spec)) {
+        cssImports.push(spec);
+      }
+      // R-RS-01: Relative imports in .tix / .mix must have an explicit extension (.tix, .mix, .js, .ts, .css)
       if (
         (spec.startsWith("./") || spec.startsWith("../")) &&
-        !/\.(tix|mix|js|mjs|ts)(\?.*)?$/.test(spec)
+        !/\.(tix|mix|js|mjs|ts|css)(\?.*)?$/.test(spec)
       ) {
         diagnostics.push({
           code: DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE,
@@ -554,7 +560,7 @@ function analyzeScriptBlock(
     }
   }
 
-  return { bindings, signals, computeds, props, refs, functions, imports };
+  return { bindings, signals, computeds, props, refs, functions, imports, cssImports };
 }
 
 export function analyze(ast: ComponentNode, options?: AnalyzeOptions): ComponentDescriptor {
@@ -562,7 +568,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
   const lineMap = options?.source !== undefined ? new InternalLineMap(options.source, filename) : null;
   const diagnostics: Diagnostic[] = [];
 
-  const { bindings, signals, computeds, props, refs, functions, imports } = analyzeScriptBlock(
+  const { bindings, signals, computeds, props, refs, functions, imports, cssImports } = analyzeScriptBlock(
     ast,
     lineMap,
     diagnostics
@@ -705,6 +711,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
     refs,
     functions,
     imports,
+    cssImports,
     diagnostics
   });
 }
@@ -1132,6 +1139,11 @@ declare module "@mix/runtime" {
   export function createTrustedHtml(dirtyHtml: string): object;
 }
 
+declare module "*.css" {
+  const css: string;
+  export default css;
+}
+
 interface HTMLElementTagNameMap {
   div: HTMLDivElement;
   span: HTMLSpanElement;
@@ -1260,7 +1272,7 @@ export function typecheckTix(
     },
     resolveModuleNames(moduleNames: string[], containingFile: string): (ts.ResolvedModule | undefined)[] {
       return moduleNames.map(modName => {
-        if (modName === "@mix/runtime" || modName === "@mix/runtime/typecheck") {
+        if (modName === "@mix/runtime" || modName === "@mix/runtime/typecheck" || modName.endsWith(".css")) {
           return {
             resolvedFileName: "/__mix_ambient.d.ts",
             isExternalLibraryImport: true
@@ -1388,6 +1400,10 @@ export function extractAndTranspileScript(
     if (ts.isImportDeclaration(stmt)) {
       // Skip type-only imports (`import type ...`)
       if (stmt.importClause?.isTypeOnly) {
+        continue;
+      }
+      // Skip pure CSS imports (`import "./foo.css"`) because styles are compiled into __injectStylesheet
+      if (ts.isStringLiteral(stmt.moduleSpecifier) && (stmt.moduleSpecifier.text.endsWith(".css") || stmt.moduleSpecifier.text.includes(".css?"))) {
         continue;
       }
       importSlices.push(text.trim());

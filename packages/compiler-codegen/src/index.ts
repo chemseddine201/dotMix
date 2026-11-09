@@ -35,6 +35,7 @@ export interface CodegenOptions {
   sourceMap?: boolean;
   hmr?: boolean;
   scopeId?: string;
+  resolveStyle?: (src: string, fromFile: string) => string;
 }
 
 export interface CodegenResult {
@@ -690,22 +691,45 @@ export function generate(
   const runtimeImportPath = options?.runtimeImportPath ?? "@mix/runtime";
   const hmrEnabled = options?.hmr ?? false;
 
-  // 1. Compile component <style> if present
+  // 1. Compile component <style> or external CSS imports if present
   let compiledCss: string | undefined;
   let scopeId: string | undefined;
   let scopeAttribute: string | undefined;
 
+  let rawCssToCompile = "";
+  let isScoped = true;
+
   if (descriptor.ast.style) {
-    const cssResult = compileCss(descriptor.ast.style.content, {
+    isScoped = descriptor.ast.style.scoped;
+    if (descriptor.ast.style.content && descriptor.ast.style.content.trim().length > 0) {
+      rawCssToCompile = descriptor.ast.style.content;
+    } else if (descriptor.ast.style.src && options?.resolveStyle) {
+      rawCssToCompile = options.resolveStyle(descriptor.ast.style.src, filename);
+    }
+  }
+
+  if (!rawCssToCompile && descriptor.cssImports && descriptor.cssImports.length > 0 && options?.resolveStyle) {
+    const pieces: string[] = [];
+    for (const cssFile of descriptor.cssImports) {
+      const content = options.resolveStyle(cssFile, filename);
+      if (content) pieces.push(content);
+    }
+    if (pieces.length > 0) {
+      rawCssToCompile = pieces.join("\n");
+    }
+  }
+
+  if (rawCssToCompile.trim().length > 0) {
+    const cssResult = compileCss(rawCssToCompile, {
       filename,
-      scoped: descriptor.ast.style.scoped,
+      scoped: isScoped,
       ...(options?.scopeId !== undefined ? { scopeId: options.scopeId } : {}),
-      baseOffset: descriptor.ast.style.span.start.offset,
-      baseLine: descriptor.ast.style.span.start.line
+      baseOffset: descriptor.ast.style?.span.start.offset ?? 0,
+      baseLine: descriptor.ast.style?.span.start.line ?? 1
     });
     compiledCss = cssResult.code;
     scopeId = cssResult.scopeId;
-    if (descriptor.ast.style.scoped) {
+    if (isScoped) {
       scopeAttribute = cssResult.scopeAttribute;
     }
   }

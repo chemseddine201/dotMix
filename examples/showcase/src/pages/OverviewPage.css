@@ -1,0 +1,69 @@
+.page-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.overview-hero {
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.hero-title {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+.hero-subtitle {
+  margin: 0 0 12px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+.security-banner {
+  padding: 8px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1e40af;
+}
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.diamond-box {
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.diamond-box h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+.diamond-formula {
+  font-size: 15px;
+  color: #475569;
+  margin-bottom: 14px;
+}
+.diamond-formula strong {
+  color: #2563eb;
+}
+.diamond-buttons {
+  display: flex;
+  gap: 10px;
+}
+.btn-action {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-action:hover {
+  background: #e2e8f0;
+}

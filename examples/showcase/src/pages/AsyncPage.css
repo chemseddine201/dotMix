@@ -1,0 +1,55 @@
+.page-async {
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.card-header h2 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+.card-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+.status-card {
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 14px;
+}
+.spinner {
+  font-size: 18px;
+  animation: spin 1.5s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.resolved-title {
+  margin: 0 0 12px 0;
+  color: #059669;
+  font-size: 15px;
+}
+.resolved-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+.telemetry-item strong {
+  color: #0f172a;
+}

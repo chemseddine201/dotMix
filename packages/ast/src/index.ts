@@ -42,6 +42,7 @@ export interface StyleBlockNode extends ASTNodeBase {
   readonly scoped: boolean;
   readonly content: string;
   readonly contentSpan: SourceSpan;
+  readonly src?: string;
 }
 
 export interface StaticAttributeNode extends ASTNodeBase {

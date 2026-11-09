@@ -46,3 +46,4 @@ export class LWWRegister<T> {
     return new LWWRegister<T>(json.value, json.mutationId);
   }
 }
+
