@@ -1,0 +1,212 @@
+import { defineAbility, subject, Can } from "@mix/runtime/permissions";
+import "./PermissionsPage.css";
+
+export default function PermissionsPage() {
+  const currentRole = signal("author");
+  const authorId = signal(101);
+  const isLocked = signal(false);
+  const articleStatus = signal("draft");
+
+  const article = {
+    id: 42,
+    title: "Advanced Micro-Compiler Design",
+    authorId: () => authorId(),
+    isLocked: () => isLocked(),
+    status: () => articleStatus()
+  };
+
+  const trackedArticle = subject("Article", article);
+
+  const ability = computed(() => {
+    const role = currentRole();
+    return defineAbility((can, cannot) => {
+      if (role === "admin") {
+        can("manage", "all");
+        return;
+      }
+
+      if (role === "editor") {
+        can("read", "Article");
+        can("update", "Article");
+        can("delete", "Article");
+        return;
+      }
+
+      if (role === "author") {
+        can("read", "Article");
+        can("create", "Article");
+        // ABAC: can update only own articles when not locked
+        can("update", "Article", (art) => {
+          const auth = typeof art.authorId === "function" ? art.authorId() : art.authorId;
+          const locked = typeof art.isLocked === "function" ? art.isLocked() : art.isLocked;
+          return auth === 101 && !locked;
+        });
+        // Field-level permission: Authors can update title but NOT status
+        can("update", "Article", ["title", "content"]);
+        cannot("update", "Article", ["status"]);
+        cannot("delete", "Article");
+        return;
+      }
+
+      // Guest: read only
+      can("read", "Article");
+      cannot("update", "Article");
+      cannot("delete", "Article");
+    });
+  });
+
+  const canEditArticle = computed(() => ability().can("update", trackedArticle));
+  const canEditStatus = computed(() => ability().can("update", trackedArticle, "status"));
+  const canDeleteArticle = computed(() => ability().can("delete", trackedArticle));
+
+  function setRole(r) {
+    currentRole.set(r);
+  }
+
+  function toggleLock() {
+    isLocked.set(!isLocked());
+  }
+
+  function switchAuthor() {
+    authorId.set(authorId() === 101 ? 202 : 101);
+  }
+
+  return (
+    <div class="permissions-container">
+      <div class="permissions-header">
+        <h1>Native Fine-Grained Permissions (RBAC & ABAC)</h1>
+        <p>Built-in isomorphic access control with fine-grained signal reactivity, field-level permissions, and zero VDOM overhead.</p>
+      </div>
+
+      <div class="permissions-grid">
+        <div class="permissions-card">
+          <h2>Active User Role</h2>
+          <div class="role-selector">
+            <button
+              class={`role-btn ${currentRole() === "admin" ? "active" : ""}`}
+              @click={() => setRole("admin")}
+            >
+              Super Admin
+            </button>
+            <button
+              class={`role-btn ${currentRole() === "editor" ? "active" : ""}`}
+              @click={() => setRole("editor")}
+            >
+              Editor
+            </button>
+            <button
+              class={`role-btn ${currentRole() === "author" ? "active" : ""}`}
+              @click={() => setRole("author")}
+            >
+              Author (ID: 101)
+            </button>
+            <button
+              class={`role-btn ${currentRole() === "guest" ? "active" : ""}`}
+              @click={() => setRole("guest")}
+            >
+              Guest
+            </button>
+          </div>
+
+          <h2>Reactive Subject State</h2>
+          <div class="article-box">
+            <div class="article-row">
+              <span class="label">Article:</span>
+              <span class="val">#42 "Micro-Compiler Design"</span>
+            </div>
+            <div class="article-row">
+              <span class="label">Author ID:</span>
+              <span class="val">{authorId() === 101 ? "101 (You)" : "202 (Other User)"}</span>
+            </div>
+            <div class="article-row">
+              <span class="label">Lock State:</span>
+              <span class="val">{isLocked() ? "LOCKED" : "UNLOCKED"}</span>
+            </div>
+            <div class="article-row">
+              <span class="label">Publication Status:</span>
+              <span class="val">{articleStatus()}</span>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn-sm" @click={toggleLock}>
+              {isLocked() ? "Unlock Article" : "Lock Article"}
+            </button>
+            <button class="btn-sm" @click={switchAuthor}>
+              {authorId() === 101 ? "Set Author to Other (202)" : "Set Author to You (101)"}
+            </button>
+          </div>
+        </div>
+
+        <div class="permissions-card">
+          <h2>Evaluated Capabilities</h2>
+          
+          <div class="action-row">
+            <span>Can Edit Article (ABAC):</span>
+            <span class={`badge ${canEditArticle() ? "badge-allowed" : "badge-denied"}`}>
+              {canEditArticle() ? "ALLOWED" : "DENIED"}
+            </span>
+          </div>
+
+          <div class="action-row">
+            <span>Can Edit Status (Field-level):</span>
+            <span class={`badge ${canEditStatus() ? "badge-allowed" : "badge-denied"}`}>
+              {canEditStatus() ? "ALLOWED" : "DENIED"}
+            </span>
+          </div>
+
+          <div class="action-row">
+            <span>Can Delete Article:</span>
+            <span class={`badge ${canDeleteArticle() ? "badge-allowed" : "badge-denied"}`}>
+              {canDeleteArticle() ? "ALLOWED" : "DENIED"}
+            </span>
+          </div>
+
+          <h2 style="margin-top: 20px;">Gated UI via &lt;Can&gt;</h2>
+          <div style="display: flex; gap: 10px; margin-top: 12px; align-items: center;">
+            <Can
+              I="update"
+              this={trackedArticle}
+              ability={ability()}
+              fallback="Editing Disabled"
+            >
+              <button class="btn-sm" style="background: #2563eb; color: white;">Edit Content</button>
+            </Can>
+
+            <Can
+              I="delete"
+              this={trackedArticle}
+              ability={ability()}
+              fallback="Delete Forbidden"
+            >
+              <button class="btn-sm" style="background: #dc2626; color: white;">Delete Post</button>
+            </Can>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="comparison-box">
+        <h2>How Mix Solves CASL Architectural Gaps</h2>
+        <div class="comparison-list">
+          <div class="comparison-item">
+            <h3>1. Zero VDOM Re-render Overhead</h3>
+            <p>CASL triggers full React re-render cascades whenever abilities update. Mix binds &lt;Can&gt; directly to fine-grained signals, flipping DOM nodes with 0ms overhead.</p>
+          </div>
+          <div class="comparison-item">
+            <h3>2. Dynamic Signal-Aware ABAC</h3>
+            <p>CASL only inspects static plain objects. Mix evaluates reactive signals inside rule predicates, instantly reacting when subject attributes change.</p>
+          </div>
+          <div class="comparison-item">
+            <h3>3. Pre-Loader Router Protection</h3>
+            <p>CASL requires manual guard boilerplate while loaders wastefully run. Mix evaluates permissions during Radix-Trie traversal before data loaders execute.</p>
+          </div>
+          <div class="comparison-item">
+            <h3>4. Async Cancellation</h3>
+            <p>Mix integrates ability.canAsync() with CancellationToken (D-104), automatically cancelling stale authorization requests on rapid navigation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

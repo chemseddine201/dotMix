@@ -9,4 +9,5 @@ export * from "./platform/index.js";
 export * from "./security/index.js";
 export * from "./typecheck/index.js";
 export * from "./forms/index.js";
+export * from "./permissions/index.js";
 

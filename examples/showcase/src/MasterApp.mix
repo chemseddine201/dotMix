@@ -9,6 +9,7 @@ import UserPage from "./pages/UserPage.mix";
 import ReportsPage from "./pages/ReportsPage.mix";
 import AnalyticsPage from "./pages/AnalyticsPage.mix";
 import AsyncPage from "./pages/AsyncPage.mix";
+import PermissionsPage from "./pages/PermissionsPage.mix";
 import "./MasterApp.css";
 
 // Configure application security sanitizer authority (D-109 / HAA-03)
@@ -51,6 +52,10 @@ export default function MasterApp() {
     {
       path: "/async",
       element: AsyncPage,
+    },
+    {
+      path: "/permissions",
+      element: PermissionsPage,
     }
   ];
 

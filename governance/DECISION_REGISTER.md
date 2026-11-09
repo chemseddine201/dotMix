@@ -88,6 +88,14 @@ Ratified by Human Architecture Authority on 2026-11-08:
 3. **Clean Standard `each` Loops (`{each (item, idx) in list} ... {endeach}`):** Replace `{#each tasks() as task, idx (task.id)}` with `{each (task, idx) in tasks()} ... {endeach}` (and `{each tasks() as (task, idx)} ... {endeach}`), automatically resolving item keys (`task?.id ?? task?.key ?? task`) without boilerplate `(task.id)` while preserving `D-110` (`HAA-02`) atomic duplicate-key rejection.
 4. **Functional ReactJS-Style `.mix` (JS) and `.tix` (TS) Components:** Write `.mix` (JavaScript) and `.tix` (TypeScript) components as clean React-style functions (`export default function ComponentName(props: PropsType = defaults) { ... return ( <...> ); }`) alongside optional `<style>...</style>`, compiled ahead-of-time to direct surgical DOM operations with zero Virtual DOM.
 
+### 7. `HAA-07` (`D-128`) — Native Fine-Grained Permissions Engine (Gate 25)
+Ratified by Human Architecture Authority on 2026-11-09:
+1. **Zero-Dependency Native Permissions Engine:** Incorporate isomorphic RBAC + ABAC permissions natively into `@mix/runtime/permissions`, with zero external dependencies.
+2. **Fine-Grained Signal Reactivity:** Unlike CASL's re-render cascades, rules and reactive subjects are wired directly to fine-grained signal dependencies (`_rules()` signal, reactive signal predicates on subjects). DOM gates update surgically without Virtual DOM or component re-renders.
+3. **Async Cancellation:** `ability.canAsync()` integrates natively with `CancellationToken` (D-104), cleanly aborting in-flight remote authorization requests upon rapid navigation or UI state transitions.
+4. **Pre-Loader Route Guards:** `@mix/router` routes declare `permissions: { action, subject, redirectTo }`, verified synchronously during Radix-Trie traversal before data loaders execute, preventing unauthorized data requests.
+5. **Declarative `<Can>` Component & Field-Level Rules:** Supports fine-grained field restrictions (`can("update", "Doc", ["title"])`) and `<Can I="update" this={doc} field="title">` with native fallback switching.
+
 ---
 
 ## Change-control protocol

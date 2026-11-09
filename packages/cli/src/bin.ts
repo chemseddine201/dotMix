@@ -6,11 +6,21 @@
 
 import { check } from "./check.js";
 import { build } from "./build.js";
+import { create } from "./create.js";
 
 const args = process.argv.slice(2);
 const command = args[0] || "help";
 
 switch (command) {
+  case "create":
+  case "init": {
+    const projectName = args[1] || "my-mix-app";
+    const res = create({ projectName });
+    console.log(`\n✓ Created Mix project '${projectName}' in ${res.targetDir}`);
+    console.log(`  Scaffolded ${res.createdFiles.length} files (layouts, pages, components, stores, permissions).`);
+    break;
+  }
+
   case "check": {
     const target = args[1];
     const checkOpts: Record<string, unknown> = {};
@@ -52,6 +62,7 @@ switch (command) {
 Mix/Tix Framework CLI
 
 Usage:
+  mix create [name]      Scaffold a React-inspired Mix application
   mix check [dir/file]   Typecheck .tix and analyze .mix files
   mix build [src] [dist] Ahead-of-time compile components
   mix version            Display CLI version

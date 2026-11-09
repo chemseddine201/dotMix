@@ -160,6 +160,7 @@ export function createRouter(options: RouterOptions): Router {
   let activeSource: CancellationSource | null = null;
   let unlistenHistory: (() => void) | null = null;
   let isInternalNav = false;
+  let currentAbility = options.ability;
 
   async function resolveRouteLazy(route: RouteObject): Promise<void> {
     if (route.lazy && typeof route.lazy === "function") {
@@ -208,6 +209,32 @@ export function createRouter(options: RouterOptions): Router {
     const targetLoc = parseLocation(to, routes);
     const fromLoc = currentRoute();
     navigation.set({ state: "loading", location: targetLoc });
+
+    // Check route permissions before any guards or loaders run
+    for (const m of targetLoc.matched) {
+      const perm = m.route.permissions;
+      if (perm) {
+        let ab: unknown = currentAbility;
+        if (typeof ab === "function") {
+          ab = (ab as () => unknown)();
+        }
+        if (ab && typeof (ab as { can?: unknown }).can === "function") {
+          const allowed = (ab as { can: (a: string, s: string, f?: string) => boolean }).can(
+            perm.action,
+            perm.subject,
+            perm.field
+          );
+          if (!allowed) {
+            navigation.set({ state: "idle" });
+            activeSource = null;
+            if (perm.redirectTo) {
+              return navigateTo(perm.redirectTo, true, false);
+            }
+            return false;
+          }
+        }
+      }
+    }
 
     const allGuards: NavigationGuard[] = [...beforeEachGuards];
     for (const m of targetLoc.matched) {
@@ -404,6 +431,12 @@ export function createRouter(options: RouterOptions): Router {
       const source = createCancellationSource(null);
       const targetLoc = parseLocation(to, routes);
       await runLoaders(targetLoc, source.token);
+    },
+    get ability() {
+      return currentAbility;
+    },
+    setAbility(ability: unknown): void {
+      currentAbility = ability;
     },
     destroy(): void {
       if (activeSource) {

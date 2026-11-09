@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { mix } from "../../packages/vite-plugin/dist/index.js";
-import { check, build } from "../../packages/cli/dist/index.js";
+import { check, build, create } from "../../packages/cli/dist/index.js";
 
 describe("Gate 14: Build Tooling & Bundler Integration (D-117)", () => {
   test("1. Vite plugin transforms .mix component, extracts virtual CSS, and supports load()", () => {
@@ -141,4 +141,40 @@ describe("Gate 14: Build Tooling & Bundler Integration (D-117)", () => {
       fs.rmSync(outDir, { recursive: true, force: true });
     }
   });
+
+  test("5. CLI create() scaffolds React-inspired modular project layout with permissions & SCSS", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-create-test-"));
+    const appDir = path.join(tmpDir, "sample-app");
+
+    try {
+      const res = create({ projectName: "sample-app", targetDir: appDir });
+      assert.strictEqual(res.success, true);
+      assert.ok(res.createdFiles.length >= 10, "Should scaffold all core blueprint files");
+
+      // Verify React-inspired folder structure
+      assert.ok(fs.existsSync(path.join(appDir, "src/layouts/RootLayout.mix")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/layouts/RootLayout.scss")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/pages/HomePage.mix")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/pages/HomePage.scss")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/components/common/Button.mix")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/components/common/Button.scss")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/stores/authStore.ts")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/permissions/abilities.ts")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/routes.ts")));
+      assert.ok(fs.existsSync(path.join(appDir, "src/main.mix")));
+      assert.ok(fs.existsSync(path.join(appDir, "package.json")));
+      assert.ok(fs.existsSync(path.join(appDir, "mix.config.ts")));
+
+      // Verify content references native permissions and styles
+      const mainContent = fs.readFileSync(path.join(appDir, "src/main.mix"), "utf-8");
+      assert.ok(mainContent.includes("PermissionProvider"));
+      assert.ok(mainContent.includes("defineAppAbility"));
+
+      const homeContent = fs.readFileSync(path.join(appDir, "src/pages/HomePage.mix"), "utf-8");
+      assert.ok(homeContent.includes("<Can I="));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
+

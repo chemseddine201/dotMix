@@ -355,3 +355,23 @@ Acceptance:
 - Completions provide accurate block-scoped variables only within their lexical AST boundaries;
 - CSS class completions suggest all selectors from linked stylesheets with `Property` kind;
 - Unmocked automated tests verify LSP methods across multi-file scenarios.
+
+## Gate 25 — Native Fine-Grained Permissions Engine (`@mix/runtime/permissions` & `@mix/router`) (D-128)
+
+Scope:
+- Native RBAC + ABAC Permissions Engine: `Ability`, `AbilityBuilder`, `defineAbility`, `createAbility`, `subject`, `ForbiddenError`;
+- Fine-Grained Reactive Signal Predicates: Tracks reactive signal properties on subjects with zero-latency DOM updates and zero VDOM re-renders;
+- Declarative `<Can>` Component: Surgical conditional DOM gating with `I`, `a`/`an`/`this`, `field`, `not`, and `fallback` props;
+- Granular Field-Level Permissions: Supports restricting specific object fields on actions (`can("update", "Doc", ["title"])`);
+- Async Evaluation with Cancellation: Native `ability.canAsync()` integrated with generation-checked `CancellationToken` (D-104);
+- Deep Router Integration: `RoutePermissionConfig` on `RouteObject` and `RouteRecord`, evaluating access during Radix-Trie traversal before data loaders execute.
+
+Acceptance:
+- Core RBAC/ABAC rules, wildcards (`manage`, `all`), and inverted rule overrides (`cannot`) evaluate correctly;
+- Reactive signal subjects trigger automatic memoized recalculations without manual `ability.update()` calls;
+- `<Can>` component gates DOM elements and swaps fallbacks reactively;
+- Field-level permissions isolate allowed fields from forbidden fields;
+- Async permission checks abort cleanly upon `CancellationToken` cancellation;
+- Router redirects unauthorized navigations instantly before executing route loaders;
+- Zero external runtime dependencies in `@mix/runtime` and `@mix/router`.
+

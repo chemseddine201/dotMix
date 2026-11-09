@@ -29,8 +29,10 @@ export default function Sidebar() {
       <NavLink to="/sync" class="nav-link">
         ⚡ Offline Sync (CRDT)
       </NavLink>
+      <NavLink to="/permissions" class="nav-link">
+        🛡️ Permissions (RBAC/ABAC)
+      </NavLink>
     </nav>
   );
 }
 
-<style src="./Sidebar.css"></style>

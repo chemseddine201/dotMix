@@ -64,6 +64,14 @@ export interface NavigationState {
   location?: RouteLocation | undefined;
 }
 
+export interface RoutePermissionConfig {
+  action: string;
+  subject: string;
+  field?: string;
+  redirectTo?: string;
+  fallback?: unknown;
+}
+
 export interface RouteObject {
   path?: string | undefined;
   index?: boolean | undefined;
@@ -75,11 +83,13 @@ export interface RouteObject {
   caseSensitive?: boolean | undefined;
   children?: RouteObject[] | undefined;
   meta?: Record<string, unknown> | undefined;
+  permissions?: RoutePermissionConfig | undefined;
   beforeEnter?: NavigationGuard | undefined;
   loader?: LoaderFunction | undefined;
   action?: ActionFunction | undefined;
   lazy?: LazyRouteFunction | undefined;
 }
+
 
 export type RouteRecord<TProps = unknown> = RouteObject & {
   children?: RouteRecord<TProps>[] | undefined;
@@ -131,7 +141,9 @@ export interface RouterOptions {
   initialPath?: string | undefined;
   basename?: string | undefined;
   beforeEach?: NavigationGuard | undefined;
+  ability?: unknown | undefined;
 }
+
 
 export interface MemoryRouterOptions extends Omit<RouterOptions, "history" | "routes"> {
   initialEntries?: string[] | undefined;
@@ -179,5 +191,7 @@ export interface Router {
   resolve(to: string): RouteLocation;
   submit(target: unknown, options?: SubmitOptions): Promise<unknown>;
   prefetchRoute(to: string): Promise<void>;
+  readonly ability?: unknown;
+  setAbility(ability: unknown): void;
   destroy(): void;
 }

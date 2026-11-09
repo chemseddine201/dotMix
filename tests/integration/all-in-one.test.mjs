@@ -138,7 +138,7 @@ describe("All-In-One Modular Architecture Suite", () => {
 
     // 2. Navigation items exist in Sidebar
     const navLinks = root.querySelectorAll(".nav-link");
-    assert.strictEqual(navLinks.length, 8);
+    assert.strictEqual(navLinks.length, 9);
     assert.ok(navLinks[0].textContent.includes("Overview"), "Overview link must render label");
     assert.ok(navLinks[0].classList.contains("active"), "Overview link is active at /");
     assert.ok(navLinks[1].textContent.includes("Tasks"), "Tasks link must render label");
@@ -148,6 +148,8 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.ok(navLinks[5].textContent.includes("Async Block"), "Async link must render label");
     assert.ok(navLinks[6].textContent.includes("Forms"), "Forms link must render label");
     assert.ok(navLinks[7].textContent.includes("Sync"), "Sync link must render label");
+    assert.ok(navLinks[8].textContent.includes("Permissions"), "Permissions link must render label");
+
 
     // 3. Switch to /tasks -> renders TasksPage while parent layout remains mounted (mounts=1)
     navLinks[1].click();
@@ -182,5 +184,11 @@ describe("All-In-One Modular Architecture Suite", () => {
     navLinks[7].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".sync-page"), "SyncPage rendered in outlet");
+
+    // 9. Switch to /permissions -> renders PermissionsPage with RBAC/ABAC engine (Gate 25 / D-128)
+    navLinks[8].click();
+    assert.strictEqual(mountCounter.textContent, "1");
+    assert.ok(root.querySelector(".permissions-container"), "PermissionsPage rendered in outlet");
+
   });
 });
