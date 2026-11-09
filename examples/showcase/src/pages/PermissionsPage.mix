@@ -10,9 +10,9 @@ export default function PermissionsPage() {
   const article = {
     id: 42,
     title: "Advanced Micro-Compiler Design",
-    authorId: () => authorId(),
-    isLocked: () => isLocked(),
-    status: () => articleStatus()
+    authorId,
+    isLocked,
+    status: articleStatus
   };
 
   const trackedArticle = subject("Article", article);
@@ -54,10 +54,6 @@ export default function PermissionsPage() {
       cannot("delete", "Article");
     });
   });
-
-  const canEditArticle = computed(() => ability().can("update", trackedArticle));
-  const canEditStatus = computed(() => ability().can("update", trackedArticle, "status"));
-  const canDeleteArticle = computed(() => ability().can("delete", trackedArticle));
 
   function setRole(r) {
     currentRole.set(r);
@@ -143,23 +139,23 @@ export default function PermissionsPage() {
           
           <div class="action-row">
             <span>Can Edit Article (ABAC):</span>
-            <span class={`badge ${canEditArticle() ? "badge-allowed" : "badge-denied"}`}>
-              {canEditArticle() ? "ALLOWED" : "DENIED"}
-            </span>
+            <Can I="update" this={trackedArticle} ability={ability()} fallback="DENIED">
+              <span class="badge badge-allowed">ALLOWED</span>
+            </Can>
           </div>
 
           <div class="action-row">
             <span>Can Edit Status (Field-level):</span>
-            <span class={`badge ${canEditStatus() ? "badge-allowed" : "badge-denied"}`}>
-              {canEditStatus() ? "ALLOWED" : "DENIED"}
-            </span>
+            <Can I="update" this={trackedArticle} field="status" ability={ability()} fallback="DENIED">
+              <span class="badge badge-allowed">ALLOWED</span>
+            </Can>
           </div>
 
           <div class="action-row">
             <span>Can Delete Article:</span>
-            <span class={`badge ${canDeleteArticle() ? "badge-allowed" : "badge-denied"}`}>
-              {canDeleteArticle() ? "ALLOWED" : "DENIED"}
-            </span>
+            <Can I="delete" this={trackedArticle} ability={ability()} fallback="DENIED">
+              <span class="badge badge-allowed">ALLOWED</span>
+            </Can>
           </div>
 
           <h2 style="margin-top: 20px;">Gated UI via &lt;Can&gt;</h2>

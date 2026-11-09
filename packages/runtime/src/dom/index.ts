@@ -656,7 +656,18 @@ export function injectStylesheet(id: string, cssText: string): HTMLStyleElement 
 export function normalizeToNodeArray(rendered: Node | readonly Node[] | null | undefined): Node[] {
   if (!rendered) return [];
   if (Array.isArray(rendered)) {
-    return [...(rendered as readonly Node[])];
+    const out: Node[] = [];
+    for (const item of rendered) {
+      if (item && (item as Node).nodeType === 11) {
+        out.push(...Array.from((item as DocumentFragment).childNodes));
+      } else if (item) {
+        out.push(item as Node);
+      }
+    }
+    return out;
+  }
+  if ((rendered as Node).nodeType === 11) {
+    return Array.from((rendered as DocumentFragment).childNodes);
   }
   return [rendered as Node];
 }
