@@ -12,7 +12,8 @@
     { "path": "packages/router" },
     { "path": "packages/compiler-ssr" },
     { "path": "packages/vite-plugin" },
-    { "path": "packages/cli" }
+    { "path": "packages/cli" },
+    { "path": "packages/language-server" }
   ]
 }
 

@@ -1,0 +1,14 @@
+{
+  "name": "@mix/language-server",
+  "version": "0.1.0",
+  "description": "Language Server Protocol implementation for Mix/Tix",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@mix/compiler-frontend": "0.1.0",
+    "@mix/compiler-semantic": "0.1.0",
+    "@mix/diagnostics": "0.1.0",
+    "typescript": "6.0.3"
+  }
+}

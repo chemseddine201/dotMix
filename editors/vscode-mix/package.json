@@ -1,0 +1,41 @@
+{
+  "name": "vscode-mix",
+  "displayName": "Mix / Tix Language Support",
+  "description": "Rich language support and syntax highlighting for Mix (.mix) and Tix (.tix) components",
+  "version": "0.1.0",
+  "publisher": "mix-framework",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mix",
+        "aliases": ["Mix", "mix"],
+        "extensions": [".mix"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tix",
+        "aliases": ["Tix", "tix"],
+        "extensions": [".tix"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mix",
+        "scopeName": "source.mix",
+        "path": "./syntaxes/mix.tmLanguage.json"
+      },
+      {
+        "language": "tix",
+        "scopeName": "source.tix",
+        "path": "./syntaxes/mix.tmLanguage.json"
+      }
+    ]
+  }
+}
