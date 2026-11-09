@@ -1,4 +1,4 @@
-import { createMemoryRouter, RouterProvider } from "@mix/router";
+import { createBrowserRouter, createMemoryRouter, RouterProvider } from "@mix/router";
 import { setSanitizerProvider } from "@mix/runtime";
 import DashboardLayout from "./DashboardLayout.mix";
 import OverviewPage from "./pages/OverviewPage.mix";
@@ -16,7 +16,7 @@ setSanitizerProvider({
 });
 
 export default function MasterApp() {
-  const router = createMemoryRouter([
+  const routes = [
     {
       path: "/",
       element: OverviewPage,
@@ -41,7 +41,11 @@ export default function MasterApp() {
       path: "/async",
       element: AsyncPage,
     }
-  ]);
+  ];
+
+  const router = typeof window !== "undefined" && window.history && typeof window.history.pushState === "function" && !window.__MIX_TEST_ENV__
+    ? createBrowserRouter(routes)
+    : createMemoryRouter(routes);
 
   return (
     <RouterProvider router={router}>

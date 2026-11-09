@@ -84,6 +84,16 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // SPA fallback: Route HTML requests to index.html so direct URL navigation / refresh works
+  if (!pathname.includes(".")) {
+    buildShowcase({
+      outDir: webOutDir,
+      runtimeImportPath: "/runtime/index.js"
+    });
+    sendFile(res, indexHtmlPath);
+    return;
+  }
+
   res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
   res.end("404 Not Found");
 });

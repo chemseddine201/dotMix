@@ -31,6 +31,7 @@ describe("All-In-One Modular Architecture Suite", () => {
 
   beforeEach(() => {
     win = new Window();
+    win.__MIX_TEST_ENV__ = true;
     document = win.document;
     globalThis.window = win;
     globalThis.document = document;
