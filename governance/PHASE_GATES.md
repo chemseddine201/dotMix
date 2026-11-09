@@ -375,3 +375,18 @@ Acceptance:
 - Router redirects unauthorized navigations instantly before executing route loaders;
 - Zero external runtime dependencies in `@mix/runtime` and `@mix/router`.
 
+## Gate 26 — Project Scaffolding & Initialized Framework Architecture (`@mix/cli`) (D-129)
+
+Scope:
+- Full React-Inspired Project Scaffolding: `mix create [name] [options]` and `mix init` generating standard enterprise directory tree: `layouts/`, `pages/`, `components/` (common/ & domain/), `stores/`, `permissions/`, `styles/`, `routes.ts`, `main.mix`, `mix.config.ts`, `package.json`, `tsconfig.json`;
+- Language & Preprocessor Flexibility: Supports TypeScript (`.tix`) by default or JavaScript (`.mix`), with universal stylesheet preprocessor selection (`.scss`, `.sass`, `.less`, `.pcss`, `.css`);
+- Out-of-the-Box Native Capabilities: Generated project comes with working demonstrations of built-in RBAC/ABAC permissions (`defineAppAbility`, `<Can>`), offline CRDT state (`syncCollection`), and reactive typed forms (`createForm`, `validators`);
+- CLI Flags & Options: Command-line arguments `--ts`/`--js`, `--scss`/`--less`/`--css`, `--target <dir>`.
+
+Acceptance:
+- CLI creates complete 20+ file project tree without missing directories or stubs;
+- Scaffolded components parse and semantically analyze with 0 errors and 0 warnings;
+- Preprocessor formats and file extensions accurately match requested options;
+- Unmocked integration tests verify project scaffolding across TypeScript and JavaScript variants.
+
+

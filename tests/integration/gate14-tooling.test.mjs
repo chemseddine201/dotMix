@@ -147,7 +147,7 @@ describe("Gate 14: Build Tooling & Bundler Integration (D-117)", () => {
     const appDir = path.join(tmpDir, "sample-app");
 
     try {
-      const res = create({ projectName: "sample-app", targetDir: appDir });
+      const res = create({ projectName: "sample-app", targetDir: appDir, typescript: false });
       assert.strictEqual(res.success, true);
       assert.ok(res.createdFiles.length >= 10, "Should scaffold all core blueprint files");
 

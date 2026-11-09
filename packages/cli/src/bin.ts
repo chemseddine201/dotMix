@@ -14,10 +14,39 @@ const command = args[0] || "help";
 switch (command) {
   case "create":
   case "init": {
-    const projectName = args[1] || "my-mix-app";
-    const res = create({ projectName });
+    let projectName = "my-mix-app";
+    let targetDir: string | undefined;
+    let typescript = true;
+    let styleFormat: "scss" | "sass" | "less" | "pcss" | "css" = "scss";
+
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i]!;
+      if (arg === "--js" || arg === "--javascript") {
+        typescript = false;
+      } else if (arg === "--ts" || arg === "--typescript") {
+        typescript = true;
+      } else if (arg === "--scss") {
+        styleFormat = "scss";
+      } else if (arg === "--less") {
+        styleFormat = "less";
+      } else if (arg === "--css") {
+        styleFormat = "css";
+      } else if (arg === "--sass") {
+        styleFormat = "sass";
+      } else if (arg === "--pcss") {
+        styleFormat = "pcss";
+      } else if (arg === "--target" || arg === "-d") {
+        targetDir = args[++i];
+      } else if (!arg.startsWith("-")) {
+        projectName = arg;
+      }
+    }
+
+    const res = create({ projectName, targetDir, typescript, styleFormat });
     console.log(`\n✓ Created Mix project '${projectName}' in ${res.targetDir}`);
-    console.log(`  Scaffolded ${res.createdFiles.length} files (layouts, pages, components, stores, permissions).`);
+    console.log(`  Scaffolded ${res.createdFiles.length} files (${typescript ? "TypeScript .tix" : "JavaScript .mix"}, ${styleFormat.toUpperCase()}).`);
+    console.log(`  Includes layouts, pages, components, stores, permissions, and tests.\n`);
+    console.log(`Next steps:\n  cd ${projectName}\n  npm install\n  npm run dev\n`);
     break;
   }
 
@@ -62,10 +91,13 @@ switch (command) {
 Mix/Tix Framework CLI
 
 Usage:
-  mix create [name]      Scaffold a React-inspired Mix application
-  mix check [dir/file]   Typecheck .tix and analyze .mix files
-  mix build [src] [dist] Ahead-of-time compile components
-  mix version            Display CLI version
+  mix create [name] [options]  Scaffold a React-inspired Mix application
+                               Options: --ts (default) | --js
+                                        --scss (default) | --less | --css
+                                        --target <dir>
+  mix check [dir/file]         Typecheck .tix and analyze .mix files
+  mix build [src] [dist]       Ahead-of-time compile components
+  mix version                  Display CLI version
 `);
     break;
   }

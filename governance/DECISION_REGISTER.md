@@ -96,6 +96,13 @@ Ratified by Human Architecture Authority on 2026-11-09:
 4. **Pre-Loader Route Guards:** `@mix/router` routes declare `permissions: { action, subject, redirectTo }`, verified synchronously during Radix-Trie traversal before data loaders execute, preventing unauthorized data requests.
 5. **Declarative `<Can>` Component & Field-Level Rules:** Supports fine-grained field restrictions (`can("update", "Doc", ["title"])`) and `<Can I="update" this={doc} field="title">` with native fallback switching.
 
+### 8. `HAA-08` (`D-129`) — Initialized Project Architecture & CLI Scaffolding (Gate 26)
+Ratified by Human Architecture Authority on 2026-11-09:
+1. **Standard Modular Hierarchy:** `mix create [name] [options]` and `mix init` scaffold a production-grade directory tree: `layouts/`, `pages/`, `components/` (common/ & domain/), `stores/`, `permissions/`, `styles/`, `routes.ts`, `main.mix`, `mix.config.ts`, `package.json`, `tsconfig.json`.
+2. **Language & Preprocessor Options:** Supports TypeScript (`.tix`) by default and JavaScript (`.mix`), with universal stylesheet preprocessor selection (`.scss`, `.sass`, `.less`, `.pcss`, `.css`) without `<style>` tags.
+3. **Out-of-the-Box Integrations:** Scaffolded applications include working, verifiable implementations of built-in RBAC/ABAC permissions (`defineAppAbility`, `<Can>`), offline-first CRDT state (`syncCollection`), and reactive typed forms (`createForm`, `validators`).
+4. **CLI Flags & Parameters:** Supports `--ts` / `--js`, `--scss` / `--less` / `--css`, and `--target <dir>`.
+
 ---
 
 ## Change-control protocol
