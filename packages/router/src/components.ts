@@ -39,9 +39,9 @@ export function isDomNode(val: unknown): val is Node {
 export function renderRouteContent(
   compOrElem: unknown,
   props: { route?: unknown; params?: Record<string, string> }
-): Node | null {
+): Node[] {
   if (compOrElem === null || compOrElem === undefined) {
-    return null;
+    return [];
   }
   let rendered: unknown = compOrElem;
   if (typeof compOrElem === "function") {
@@ -52,13 +52,34 @@ export function renderRouteContent(
     }
   }
 
+  if (Array.isArray(rendered)) {
+    const list: Node[] = [];
+    for (const item of rendered) {
+      if (isDomNode(item)) {
+        if (item.nodeType === 11 /* DocumentFragment */) {
+          list.push(...Array.from(item.childNodes));
+        } else {
+          list.push(item);
+        }
+      } else if (typeof item === "string" || typeof item === "number") {
+        list.push(document.createTextNode(String(item)));
+      }
+    }
+    return list;
+  }
+
   if (isDomNode(rendered)) {
-    return rendered;
+    if (rendered.nodeType === 11 /* DocumentFragment */) {
+      return Array.from(rendered.childNodes);
+    }
+    return [rendered];
   }
+
   if (typeof rendered === "string" || typeof rendered === "number") {
-    return document.createTextNode(String(rendered));
+    return [document.createTextNode(String(rendered))];
   }
-  return null;
+
+  return [];
 }
 
 export interface RouterProviderProps {
@@ -148,14 +169,14 @@ export function useRoutes(
 
   let currentRecord: unknown = null;
   let currentDisposer: (() => void) | null = null;
-  let currentRenderedNode: Node | null = null;
+  let currentRenderedNodes: Node[] = [];
 
   createEffect(() => {
     const matches = matchesMemo();
     const topMatch = matches[0];
     const nextRecord = topMatch ? topMatch.route : null;
 
-    if (nextRecord === currentRecord && currentRenderedNode !== null) {
+    if (nextRecord === currentRecord && currentRenderedNodes.length > 0) {
       return;
     }
     currentRecord = nextRecord;
@@ -164,10 +185,12 @@ export function useRoutes(
       currentDisposer();
       currentDisposer = null;
     }
-    if (currentRenderedNode && currentRenderedNode.parentNode) {
-      currentRenderedNode.parentNode.removeChild(currentRenderedNode);
-      currentRenderedNode = null;
+    for (const node of currentRenderedNodes) {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
     }
+    currentRenderedNodes = [];
 
     if (topMatch) {
       createRoot((dispose) => {
@@ -179,15 +202,16 @@ export function useRoutes(
           topMatch.route.element ??
           topMatch.route.Component ??
           topMatch.route.component;
-        const rendered = renderRouteContent(comp, {
+        const nodes = renderRouteContent(comp, {
           route: locMemo(),
           params: topMatch.params,
         });
 
-        if (rendered && isDomNode(rendered)) {
-          currentRenderedNode = rendered;
-          if (anchor.parentNode) {
-            anchor.parentNode.insertBefore(currentRenderedNode, anchor);
+        if (nodes.length > 0) {
+          currentRenderedNodes = nodes;
+          const parent = anchor.parentNode ?? fragment;
+          for (const node of nodes) {
+            parent.insertBefore(node, anchor);
           }
         }
       });
@@ -227,7 +251,7 @@ export function Outlet(props: OutletProps = {}): Node {
 
   let currentRecord: unknown = null;
   let currentDisposer: (() => void) | null = null;
-  let currentRenderedNode: Node | null = null;
+  let currentRenderedNodes: Node[] = [];
 
   createEffect(() => {
     const matches = matchesContext
@@ -238,7 +262,7 @@ export function Outlet(props: OutletProps = {}): Node {
       ? ((matched as { record?: RouteRecord }).record ?? matched.route)
       : null;
 
-    if (nextRecord === currentRecord && currentRenderedNode !== null) {
+    if (nextRecord === currentRecord && currentRenderedNodes.length > 0) {
       return;
     }
     currentRecord = nextRecord;
@@ -247,10 +271,12 @@ export function Outlet(props: OutletProps = {}): Node {
       currentDisposer();
       currentDisposer = null;
     }
-    if (currentRenderedNode && currentRenderedNode.parentNode) {
-      currentRenderedNode.parentNode.removeChild(currentRenderedNode);
-      currentRenderedNode = null;
+    for (const node of currentRenderedNodes) {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
     }
+    currentRenderedNodes = [];
 
     if (matched) {
       createRoot((dispose) => {
@@ -270,27 +296,29 @@ export function Outlet(props: OutletProps = {}): Node {
           (matched as { component?: unknown }).component ??
           (matched as { record?: { component?: unknown } }).record?.component;
 
-        const rendered = renderRouteContent(comp, {
+        const nodes = renderRouteContent(comp, {
           route: router.currentRoute(),
           params: matched.params,
         });
 
-        if (rendered && isDomNode(rendered)) {
-          currentRenderedNode = rendered;
-          if (anchor.parentNode) {
-            anchor.parentNode.insertBefore(currentRenderedNode, anchor);
+        if (nodes.length > 0) {
+          currentRenderedNodes = nodes;
+          const parent = anchor.parentNode ?? fragment;
+          for (const node of nodes) {
+            parent.insertBefore(node, anchor);
           }
         }
       });
     } else if (props.fallback) {
-      const fb = renderRouteContent(props.fallback, {
+      const fbNodes = renderRouteContent(props.fallback, {
         route: router.currentRoute(),
         params: {},
       });
-      if (fb && isDomNode(fb)) {
-        currentRenderedNode = fb;
-        if (anchor.parentNode) {
-          anchor.parentNode.insertBefore(currentRenderedNode, anchor);
+      if (fbNodes.length > 0) {
+        currentRenderedNodes = fbNodes;
+        const parent = anchor.parentNode ?? fragment;
+        for (const node of fbNodes) {
+          parent.insertBefore(node, anchor);
         }
       }
     }
@@ -377,6 +405,14 @@ export function Link(props: LinkProps): HTMLAnchorElement {
         el.appendChild(child);
       } else if (typeof child === "string" || typeof child === "number") {
         el.textContent = String(child);
+      }
+    } else if (Array.isArray(props.children)) {
+      for (const c of props.children) {
+        if (isDomNode(c)) {
+          el.appendChild(c);
+        } else if (typeof c === "string" || typeof c === "number") {
+          el.appendChild(document.createTextNode(String(c)));
+        }
       }
     } else if (isDomNode(props.children)) {
       el.appendChild(props.children);
@@ -484,6 +520,14 @@ export function NavLink(props: NavLinkProps): HTMLAnchorElement {
           el.textContent = String(child);
         }
       });
+    } else if (Array.isArray(props.children)) {
+      for (const c of props.children) {
+        if (isDomNode(c)) {
+          el.appendChild(c);
+        } else if (typeof c === "string" || typeof c === "number") {
+          el.appendChild(document.createTextNode(String(c)));
+        }
+      }
     } else if (isDomNode(props.children)) {
       el.appendChild(props.children);
     } else if (typeof props.children === "string" || typeof props.children === "number") {

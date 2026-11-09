@@ -11,16 +11,30 @@ const distDir = path.join(__dirname, "dist");
 const runtimeUrl = pathToFileURL(
   path.resolve(__dirname, "../../packages/runtime/dist/index.js")
 ).href;
+const routerUrl = pathToFileURL(
+  path.resolve(__dirname, "../../packages/router/dist/index.js")
+).href;
+
+function scanSourceFiles(dir, base = "") {
+  if (!fs.existsSync(dir)) return [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const result = [];
+  for (const entry of entries) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      result.push(...scanSourceFiles(path.join(dir, entry.name), rel));
+    } else if (entry.name.endsWith(".mix") || entry.name.endsWith(".tix")) {
+      result.push(rel);
+    }
+  }
+  return result;
+}
 
 export function buildShowcase(options = {}) {
   const outDir = options.outDir ?? distDir;
   fs.mkdirSync(outDir, { recursive: true });
 
-  const files = fs
-    .readdirSync(srcDir)
-    .filter((f) => f.endsWith(".mix") || f.endsWith(".tix"))
-    .sort();
-
+  const files = scanSourceFiles(srcDir).sort();
   const compiledArtifacts = new Map();
 
   for (const file of files) {
@@ -48,6 +62,7 @@ export function buildShowcase(options = {}) {
 
     const jsFilename = `${file}.js`;
     const jsPath = path.join(outDir, jsFilename);
+    fs.mkdirSync(path.dirname(jsPath), { recursive: true });
     fs.writeFileSync(jsPath, codegen.js, "utf8");
 
     if (codegen.css) {
@@ -70,12 +85,20 @@ export function buildShowcase(options = {}) {
     });
   }
 
-  // Copy plain JS modules (e.g. RouterDemo.js)
-  const plainJsFiles = fs
-    .readdirSync(srcDir)
-    .filter((f) => f.endsWith(".js"));
+  // Also support any helper .js modules if needed
+  const plainJsFiles = fs.existsSync(srcDir)
+    ? fs.readdirSync(srcDir).filter((f) => f.endsWith(".js"))
+    : [];
   for (const f of plainJsFiles) {
-    fs.copyFileSync(path.join(srcDir, f), path.join(outDir, f));
+    let content = fs.readFileSync(path.join(srcDir, f), "utf8");
+    const runtimeTarget = options.runtimeImportPath ?? runtimeUrl;
+    const routerTarget = options.routerImportPath ?? (options.runtimeImportPath ? "/router/index.js" : routerUrl);
+    content = content
+      .replaceAll('from "@mix/runtime"', `from "${runtimeTarget}"`)
+      .replaceAll('from "@mix/router"', `from "${routerTarget}"`)
+      .replaceAll('from "/runtime/index.js"', `from "${runtimeTarget}"`)
+      .replaceAll('from "/router/index.js"', `from "${routerTarget}"`);
+    fs.writeFileSync(path.join(outDir, f), content, "utf8");
     compiledArtifacts.set(f, { file: f });
   }
 

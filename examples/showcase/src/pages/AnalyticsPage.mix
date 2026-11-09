@@ -1,0 +1,102 @@
+import { useSearchParams } from "@mix/router";
+
+export default function AnalyticsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  function setRange(range) {
+    setSearchParams({ range, severity: searchParams.get("severity") || "all" });
+  }
+
+  function setSeverity(severity) {
+    setSearchParams({ range: searchParams.get("range") || "24h", severity });
+  }
+
+  return (
+    <div class="page-analytics">
+      <div class="card-header">
+        <h2>🔍 URL Search Parameters Synchronization</h2>
+        <p>Demonstrates <code>useSearchParams()</code> synchronized bi-directionally with browser query string.</p>
+      </div>
+
+      <div class="btn-group">
+        <span class="group-label">Time Range:</span>
+        <button class="filter-btn" onClick={() => setRange("24h")}>Range: 24h</button>
+        <button class="filter-btn" onClick={() => setRange("7d")}>Range: 7d</button>
+        <button class="filter-btn" onClick={() => setRange("30d")}>Range: 30d</button>
+      </div>
+
+      <div class="btn-group">
+        <span class="group-label">Severity:</span>
+        <button class="filter-btn" onClick={() => setSeverity("all")}>All Severities</button>
+        <button class="filter-btn" onClick={() => setSeverity("critical")}>Critical Only</button>
+      </div>
+
+      <div class="query-box">
+        <div><strong>Range:</strong> {searchParams.get("range") || "24h"}</div>
+        <div><strong>Severity:</strong> {searchParams.get("severity") || "all"}</div>
+        <div class="raw-query"><strong>Raw URL Query:</strong> <code>{searchParams.toString() || "(default)"}</code></div>
+      </div>
+    </div>
+  );
+}
+
+<style>
+  .page-analytics {
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: #0f172a;
+  }
+  .card-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .btn-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .group-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    min-width: 80px;
+  }
+  .filter-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filter-btn:hover {
+    background: #f1f5f9;
+  }
+  .query-box {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .raw-query code {
+    color: #2563eb;
+    font-weight: 700;
+  }
+</style>
+

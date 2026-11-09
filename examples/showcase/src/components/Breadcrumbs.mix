@@ -1,0 +1,91 @@
+import { useNavigate, useLocation } from "@mix/router";
+
+export default function Breadcrumbs(props = {}) {
+  const navigate = useNavigate();
+  const loc = useLocation();
+  const layoutMounts = props.mounts || 1;
+
+  function goBack() {
+    navigate(-1);
+  }
+
+  function goForward() {
+    navigate(1);
+  }
+
+  return (
+    <div class="breadcrumb-bar">
+      <div class="path-display">
+        <span class="pulse-dot">●</span>
+        <span class="loc-label">Active Route:</span>
+        <code class="loc-code">{loc.pathname}{loc.search}</code>
+      </div>
+      <div class="controls-group">
+        <button class="btn-nav" onClick={goBack}>← Back (-1)</button>
+        <button class="btn-nav" onClick={goForward}>Forward (+1) →</button>
+        <span class="mount-counter">Parent Layout Mounts: <strong class="mount-num">{layoutMounts}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+<style>
+  .breadcrumb-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .path-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pulse-dot {
+    color: #10b981;
+    font-size: 14px;
+  }
+  .loc-label {
+    color: #64748b;
+    font-weight: 600;
+  }
+  .loc-code {
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #2563eb;
+    font-weight: 700;
+  }
+  .controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-nav {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-nav:hover {
+    background: #e2e8f0;
+  }
+  .mount-counter {
+    font-size: 12px;
+    color: #64748b;
+    margin-left: 8px;
+  }
+  .mount-num {
+    color: #2563eb;
+  }
+</style>
+

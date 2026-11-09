@@ -1,0 +1,94 @@
+import { useParams, useNavigate } from "@mix/router";
+
+export default function UserPage() {
+  const params = useParams();
+  const navigate = useNavigate();
+
+  function switchUser(userId) {
+    navigate(`/users/${userId}`);
+  }
+
+  return (
+    <div class="page-user">
+      <div class="card-header">
+        <h2>👤 Dynamic Route Parameter Resolution</h2>
+        <p>Pattern <code>/users/:id</code> extracts dynamic route segment via <code>useParams()</code>.</p>
+      </div>
+
+      <div class="param-box">
+        <span class="box-label">Matched Parameter:</span>
+        <code class="param-code">:id = "{params().id || params.id}"</code>
+      </div>
+
+      <div class="switch-row">
+        <span>Quick switch user ID:</span>
+        <button class="chip-btn" onClick={() => switchUser("alice-core")}>User: alice-core</button>
+        <button class="chip-btn" onClick={() => switchUser("bob-security")}>User: bob-security</button>
+        <button class="chip-btn" onClick={() => switchUser("lead-architect")}>User: lead-architect</button>
+      </div>
+    </div>
+  );
+}
+
+<style>
+  .page-user {
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: #0f172a;
+  }
+  .card-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .param-box {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .box-label {
+    font-size: 14px;
+    color: #475569;
+    font-weight: 600;
+  }
+  .param-code {
+    font-size: 16px;
+    color: #2563eb;
+    font-weight: 700;
+  }
+  .switch-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #64748b;
+  }
+  .chip-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chip-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+</style>
+

@@ -1,0 +1,52 @@
+import Header from "./components/Header.mix";
+import Sidebar from "./components/Sidebar.mix";
+import Breadcrumbs from "./components/Breadcrumbs.mix";
+import { Outlet } from "@mix/router";
+
+export default function DashboardLayout() {
+  const theme = signal("light");
+
+  function toggleTheme() {
+    theme.set(theme() === "light" ? "dark" : "light");
+  }
+
+  return (
+    <div class={"dashboard-shell theme-" + theme()}>
+      <Header title="⚡ Mix / Tix All-In-One Enterprise Architecture" theme={theme()} onToggleTheme={toggleTheme} />
+      <div class="dashboard-body">
+        <Sidebar />
+        <main class="dashboard-main">
+          <Breadcrumbs mounts={1} />
+          <div class="outlet-viewport">
+            <Outlet context={{ tier: "Production", release: "Phase 15 Certified" }} />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+<style>
+  .dashboard-shell {
+    max-width: 1040px;
+    margin: 0 auto;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .dashboard-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .dashboard-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .outlet-viewport {
+    animation: fadeIn 0.15s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+

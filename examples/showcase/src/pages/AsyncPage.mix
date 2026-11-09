@@ -1,0 +1,94 @@
+export default function AsyncPage() {
+  const isLoaded = signal(false);
+
+  setTimeout(() => {
+    isLoaded.set(true);
+  }, 100);
+
+  return (
+    <div class="page-async">
+      <div class="card-header">
+        <h2>⏳ Declarative Async Operations</h2>
+        <p>Demonstrates fine-grained async state transition with clean reactive updates.</p>
+      </div>
+
+      <div class="status-card">
+        {if !isLoaded()}
+          <div class="loading-state">
+            <span class="spinner">🔄</span>
+            <span>Fetching real-time cluster telemetry...</span>
+          </div>
+        {else}
+          <div class="resolved-state">
+            <h4 class="resolved-title">✓ Cluster Telemetry Synchronized</h4>
+            <div class="resolved-grid">
+              <div class="telemetry-item">Active Nodes: <strong>16</strong></div>
+              <div class="telemetry-item">P99 Latency: <strong>4.2ms</strong></div>
+              <div class="telemetry-item">Memory Pressure: <strong>38%</strong></div>
+              <div class="telemetry-item">HTTP Status: <strong>200 OK</strong></div>
+            </div>
+          </div>
+        {endif}
+      </div>
+    </div>
+  );
+}
+
+<style>
+  .page-async {
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: #0f172a;
+  }
+  .card-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .status-card {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+  .loading-state {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #64748b;
+    font-size: 14px;
+  }
+  .spinner {
+    font-size: 18px;
+    animation: spin 1.5s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .resolved-title {
+    margin: 0 0 12px 0;
+    color: #059669;
+    font-size: 15px;
+  }
+  .resolved-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    font-size: 13px;
+    color: #334155;
+  }
+  .telemetry-item strong {
+    color: #0f172a;
+  }
+</style>
+

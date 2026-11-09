@@ -1,0 +1,206 @@
+export default function TasksPage() {
+  const tasks = signal([
+    { id: "t-1", title: "Compile AST directly to surgical DOM", done: true, priority: 1 },
+    { id: "t-2", title: "Verify O(N log N) LIS minimal DOM movement", done: true, priority: 2 },
+    { id: "t-3", title: "Ship React Router v6/v7 Parity Engine", done: true, priority: 1 },
+    { id: "t-4", title: "Full enterprise showcase and test verification", done: false, priority: 1 }
+  ]);
+
+  const draftTitle = signal("");
+  const filter = signal("all");
+
+  const total = computed(() => tasks().length);
+  const completed = computed(() => tasks().filter((t) => t.done).length);
+  const pending = computed(() => total() - completed());
+
+  const visibleTasks = computed(() => {
+    const f = filter();
+    const list = tasks();
+    if (f === "active") return list.filter((t) => !t.done);
+    if (f === "done") return list.filter((t) => t.done);
+    return list;
+  });
+
+  function handleInput(e) {
+    draftTitle.set(e.target.value);
+  }
+
+  function addTask() {
+    const title = draftTitle().trim() || `Sprint Task #${total() + 1}`;
+    batch(() => {
+      tasks.set([...tasks(), { id: `t-${total() + 1}`, title, done: false, priority: 1 }]);
+      draftTitle.set("");
+      filter.set("all");
+    });
+  }
+
+  function toggleTask(id) {
+    tasks.set(
+      tasks().map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
+  }
+
+  function rotateList() {
+    const list = tasks();
+    if (list.length > 1) {
+      tasks.set([...list.slice(1), list[0]]);
+    }
+  }
+
+  return (
+    <div class="page-tasks">
+      <div class="tasks-header">
+        <h2>📋 Stateful Task Board (LIS Keyed Reconciler)</h2>
+        <p>Keyed loops use Longest Increasing Subsequence to minimize DOM operations.</p>
+      </div>
+
+      <div class="composer-bar">
+        <input
+          class="task-input"
+          type="text"
+          value={draftTitle()}
+          placeholder="New sprint task title..."
+          onInput={handleInput}
+        />
+        <button class="btn-primary" onClick={addTask}>+ Add Task</button>
+        <button class="btn-secondary" onClick={rotateList}>Rotate Order (LIS)</button>
+      </div>
+
+      <div class="filter-bar">
+        <button class={"tab-btn " + (filter() === "all" ? "active" : "")} onClick={() => filter.set("all")}>All ({total()})</button>
+        <button class={"tab-btn " + (filter() === "active" ? "active" : "")} onClick={() => filter.set("active")}>Active ({pending()})</button>
+        <button class={"tab-btn " + (filter() === "done" ? "active" : "")} onClick={() => filter.set("done")}>Done ({completed()})</button>
+      </div>
+
+      <ul class="task-list">
+        {each (task, idx) in visibleTasks()}
+          <li class={"task-item " + (task.done ? "is-done" : "")} data-id={task.id} onClick={() => toggleTask(task.id)}>
+            <span class="task-num">#{idx + 1}</span>
+            <span class="task-text">{task.title}</span>
+            <span class="task-status">{task.done ? "✓ Done" : "○ Pending"}</span>
+          </li>
+        {endeach}
+      </ul>
+    </div>
+  );
+}
+
+<style>
+  .page-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+  .tasks-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: #0f172a;
+  }
+  .tasks-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .composer-bar {
+    display: flex;
+    gap: 10px;
+  }
+  .task-input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+  }
+  .btn-primary {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-secondary {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 10px;
+  }
+  .tab-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+  .task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .task-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .task-item:last-child {
+    border-bottom: none;
+  }
+  .task-item:hover {
+    background: #f8fafc;
+  }
+  .task-num {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    width: 24px;
+  }
+  .task-text {
+    flex: 1;
+    font-size: 14px;
+    color: #1e293b;
+  }
+  .task-item.is-done .task-text {
+    text-decoration: line-through;
+    color: #94a3b8;
+  }
+  .task-status {
+    font-size: 12px;
+    font-weight: 600;
+    color: #059669;
+  }
+  .task-item:not(.is-done) .task-status {
+    color: #d97706;
+  }
+</style>
+

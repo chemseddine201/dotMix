@@ -1,0 +1,59 @@
+import { createMemoryRouter, RouterProvider } from "@mix/router";
+import { setSanitizerProvider } from "@mix/runtime";
+import DashboardLayout from "./DashboardLayout.mix";
+import OverviewPage from "./pages/OverviewPage.mix";
+import TasksPage from "./pages/TasksPage.mix";
+import UserPage from "./pages/UserPage.mix";
+import ReportsPage from "./pages/ReportsPage.mix";
+import AnalyticsPage from "./pages/AnalyticsPage.mix";
+import AsyncPage from "./pages/AsyncPage.mix";
+
+// Configure application security sanitizer authority (D-109 / HAA-03)
+setSanitizerProvider({
+  sanitizeHtml(raw) {
+    return raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+  }
+});
+
+export default function MasterApp() {
+  const router = createMemoryRouter([
+    {
+      path: "/",
+      element: OverviewPage,
+    },
+    {
+      path: "/tasks",
+      element: TasksPage,
+    },
+    {
+      path: "/users/:id",
+      element: UserPage,
+    },
+    {
+      path: "/reports/*",
+      element: ReportsPage,
+    },
+    {
+      path: "/analytics",
+      element: AnalyticsPage,
+    },
+    {
+      path: "/async",
+      element: AsyncPage,
+    }
+  ]);
+
+  return (
+    <RouterProvider router={router}>
+      <div class="master-root">
+        <DashboardLayout />
+      </div>
+    </RouterProvider>
+  );
+}
+
+<style>
+  .master-root {
+    width: 100%;
+  }
+</style>

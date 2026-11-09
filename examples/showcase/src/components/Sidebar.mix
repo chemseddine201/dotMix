@@ -1,0 +1,71 @@
+import { NavLink } from "@mix/router";
+
+export default function Sidebar() {
+  return (
+    <nav class="app-sidebar">
+      <span class="nav-section-title">Navigation</span>
+      <NavLink to="/" end class="nav-link">
+        📊 Overview
+      </NavLink>
+      <NavLink to="/tasks" class="nav-link">
+        📋 Tasks (LIS Keyed)
+      </NavLink>
+      <NavLink to="/users/lead-architect" class="nav-link">
+        👤 User Route (:id)
+      </NavLink>
+      <NavLink to="/reports/2026/perf.log" class="nav-link">
+        📁 File Splat (*)
+      </NavLink>
+      <NavLink to="/analytics" class="nav-link">
+        🔍 Search Params (?q)
+      </NavLink>
+      <NavLink to="/async" class="nav-link">
+        ⏳ Async Block
+      </NavLink>
+    </nav>
+  );
+}
+
+<style>
+  .app-sidebar {
+    width: 230px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .nav-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-bottom: 8px;
+    padding-left: 8px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .nav-link:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  :global(.nav-link.active) {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  }
+</style>
+
