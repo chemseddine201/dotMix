@@ -12,6 +12,7 @@ import {
 } from "@mix/runtime";
 import type {
   CancellationSource,
+  CancellationToken,
 } from "@mix/runtime";
 import type {
   Router,
@@ -32,6 +33,8 @@ import type {
   To,
   PathPattern,
   PathMatch,
+  NavigationState,
+  SubmitOptions,
 } from "./types.js";
 import { RouteTrie, normalizePath } from "./trie.js";
 import { createMemoryHistory, createBrowserHistory, createHashHistory } from "./history.js";
@@ -107,7 +110,7 @@ export function parseLocation(
         });
       }
     }
-  } else {
+  } else if (routesOrTrie && typeof (routesOrTrie as RouteTrie).match === "function") {
     const matchResult = routesOrTrie.match(pathname);
     if (matchResult) {
       params = matchResult.params;
@@ -143,6 +146,11 @@ export function createRouter(options: RouterOptions): Router {
   const initialLoc = parseLocation(history.location || options.initialPath || "/", routes);
 
   const currentRoute = createSignal<RouteLocation>(initialLoc);
+  const navigation = createSignal<NavigationState>({ state: "idle" });
+  const loaderData = createSignal<Record<string, unknown>>({});
+  const actionData = createSignal<unknown>(undefined);
+  const revalidationKey = createSignal<number>(0);
+
   const beforeEachGuards: NavigationGuard[] = [];
   if (options.beforeEach) {
     beforeEachGuards.push(options.beforeEach);
@@ -151,6 +159,40 @@ export function createRouter(options: RouterOptions): Router {
   let navGeneration = 0;
   let activeSource: CancellationSource | null = null;
   let unlistenHistory: (() => void) | null = null;
+  let isInternalNav = false;
+
+  async function resolveRouteLazy(route: RouteObject): Promise<void> {
+    if (route.lazy && typeof route.lazy === "function") {
+      const res = await route.lazy();
+      if (res.default) route.component = res.default;
+      if (res.Component) route.Component = res.Component;
+      if (res.loader) route.loader = res.loader;
+      if (res.action) route.action = res.action;
+      route.lazy = undefined;
+    }
+  }
+
+  async function runLoaders(targetLoc: RouteLocation, token: CancellationToken): Promise<Record<string, unknown> | null> {
+    const results: Record<string, unknown> = {};
+    for (const m of targetLoc.matched) {
+      const r = m.route;
+      if (r.lazy) {
+        await resolveRouteLazy(r);
+        if (token.isCancelled) return null;
+      }
+      if (r.loader && typeof r.loader === "function") {
+        const key = r.id ?? r.path ?? targetLoc.pathname;
+        const res = await r.loader({
+          params: targetLoc.params,
+          request: { url: targetLoc.fullPath, method: "GET" },
+          cancellationToken: token,
+        });
+        if (token.isCancelled) return null;
+        results[key] = res;
+      }
+    }
+    return results;
+  }
 
   async function navigateTo(to: string, isReplace: boolean, fromHistory = false): Promise<boolean> {
     if (activeSource) {
@@ -165,12 +207,37 @@ export function createRouter(options: RouterOptions): Router {
 
     const targetLoc = parseLocation(to, routes);
     const fromLoc = currentRoute();
+    navigation.set({ state: "loading", location: targetLoc });
 
     const allGuards: NavigationGuard[] = [...beforeEachGuards];
     for (const m of targetLoc.matched) {
       if (m.record?.beforeEnter) {
         allGuards.push(m.record.beforeEnter);
       }
+    }
+
+    const hasLoadersOrLazy = targetLoc.matched.some(
+      (m) => Boolean(m.route.lazy || m.route.loader)
+    );
+
+    if (allGuards.length === 0 && !hasLoadersOrLazy) {
+      if (!fromHistory) {
+        isInternalNav = true;
+        try {
+          if (isReplace) {
+            history.replace(targetLoc.fullPath);
+          } else {
+            history.push(targetLoc.fullPath);
+          }
+        } finally {
+          isInternalNav = false;
+        }
+      }
+
+      currentRoute.set(targetLoc);
+      navigation.set({ state: "idle" });
+      activeSource = null;
+      return true;
     }
 
     for (const guard of allGuards) {
@@ -183,6 +250,7 @@ export function createRouter(options: RouterOptions): Router {
           return false;
         }
         if (res === false) {
+          navigation.set({ state: "idle" });
           return false;
         }
         if (typeof res === "string") {
@@ -190,6 +258,7 @@ export function createRouter(options: RouterOptions): Router {
         }
       } catch (err) {
         console.error("Navigation guard error:", err);
+        navigation.set({ state: "idle" });
         return false;
       }
     }
@@ -198,21 +267,38 @@ export function createRouter(options: RouterOptions): Router {
       return false;
     }
 
+    const loaded = await runLoaders(targetLoc, token);
+    if (token.isCancelled || navGeneration !== gen) {
+      return false;
+    }
+
+    if (loaded) {
+      loaderData.set((prev) => ({ ...prev, ...loaded }));
+    }
+
     if (!fromHistory) {
-      if (isReplace) {
-        history.replace(targetLoc.fullPath);
-      } else {
-        history.push(targetLoc.fullPath);
+      isInternalNav = true;
+      try {
+        if (isReplace) {
+          history.replace(targetLoc.fullPath);
+        } else {
+          history.push(targetLoc.fullPath);
+        }
+      } finally {
+        isInternalNav = false;
       }
     }
 
     currentRoute.set(targetLoc);
+    navigation.set({ state: "idle" });
     activeSource = null;
     return true;
   }
 
   unlistenHistory = history.listen((loc) => {
-    void navigateTo(loc, false, true);
+    if (!isInternalNav && loc !== currentRoute().fullPath) {
+      void navigateTo(loc, false, true);
+    }
   });
 
   const router: Router = {
@@ -224,6 +310,18 @@ export function createRouter(options: RouterOptions): Router {
     },
     get currentRoute(): () => RouteLocation {
       return currentRoute;
+    },
+    get navigation(): () => NavigationState {
+      return navigation;
+    },
+    get loaderData(): () => Record<string, unknown> {
+      return loaderData;
+    },
+    get actionData(): () => unknown {
+      return actionData;
+    },
+    get revalidationKey(): () => number {
+      return revalidationKey;
     },
     push(to: string): Promise<boolean> {
       return navigateTo(to, false, false);
@@ -250,6 +348,63 @@ export function createRouter(options: RouterOptions): Router {
     resolve(to: string): RouteLocation {
       return parseLocation(to, routes);
     },
+    async submit(target: unknown, opts?: SubmitOptions): Promise<unknown> {
+      const gen = ++navGeneration;
+      const source = createCancellationSource(null);
+      activeSource = source;
+      const token = source.token;
+
+      const loc = currentRoute();
+      navigation.set({ state: "submitting", location: loc });
+
+      let actionRoute: RouteObject | null = null;
+      for (let i = loc.matched.length - 1; i >= 0; i--) {
+        const r = loc.matched[i]!.route;
+        if (r.lazy) {
+          await resolveRouteLazy(r);
+        }
+        if (r.action) {
+          actionRoute = r;
+          break;
+        }
+      }
+
+      if (!actionRoute || !actionRoute.action) {
+        navigation.set({ state: "idle" });
+        return undefined;
+      }
+
+      try {
+        const res = await actionRoute.action({
+          params: loc.params,
+          request: { url: loc.fullPath, method: opts?.method ?? "POST", body: target },
+          cancellationToken: token,
+        });
+        if (token.isCancelled || navGeneration !== gen) {
+          return undefined;
+        }
+        actionData.set(res);
+
+        // Revalidate loaders on submission
+        const reloaded = await runLoaders(loc, token);
+        if (reloaded && !token.isCancelled && navGeneration === gen) {
+          loaderData.set((prev) => ({ ...prev, ...reloaded }));
+          revalidationKey.set((k) => k + 1);
+          currentRoute.set({ ...loc });
+        }
+
+        navigation.set({ state: "idle" });
+        return res;
+      } catch (err) {
+        navigation.set({ state: "idle" });
+        throw err;
+      }
+    },
+    async prefetchRoute(to: string): Promise<void> {
+      const source = createCancellationSource(null);
+      const targetLoc = parseLocation(to, routes);
+      await runLoaders(targetLoc, source.token);
+    },
     destroy(): void {
       if (activeSource) {
         activeSource.cancel("MIX_ROUTER_DESTROYED");
@@ -267,40 +422,64 @@ export function createRouter(options: RouterOptions): Router {
 }
 
 export function createBrowserRouter(
-  routes: (RouteRecord | RouteObject)[],
+  routesOrOptions: (RouteRecord | RouteObject)[] | BrowserRouterOptions,
   options: BrowserRouterOptions = {}
 ): Router {
+  let routes: (RouteRecord | RouteObject)[] = [];
+  let opts: BrowserRouterOptions = options;
+  if (Array.isArray(routesOrOptions)) {
+    routes = routesOrOptions;
+  } else if (routesOrOptions && typeof routesOrOptions === "object") {
+    routes = routesOrOptions.routes ?? [];
+    opts = { ...routesOrOptions, ...options };
+  }
   const history = createBrowserHistory();
   return createRouter({
-    ...options,
+    ...opts,
     routes,
     history,
   });
 }
 
 export function createHashRouter(
-  routes: (RouteRecord | RouteObject)[],
+  routesOrOptions: (RouteRecord | RouteObject)[] | HashRouterOptions,
   options: HashRouterOptions = {}
 ): Router {
+  let routes: (RouteRecord | RouteObject)[] = [];
+  let opts: HashRouterOptions = options;
+  if (Array.isArray(routesOrOptions)) {
+    routes = routesOrOptions;
+  } else if (routesOrOptions && typeof routesOrOptions === "object") {
+    routes = routesOrOptions.routes ?? [];
+    opts = { ...routesOrOptions, ...options };
+  }
   const history = createHashHistory();
   return createRouter({
-    ...options,
+    ...opts,
     routes,
     history,
   });
 }
 
 export function createMemoryRouter(
-  routes: (RouteRecord | RouteObject)[],
+  routesOrOptions: (RouteRecord | RouteObject)[] | MemoryRouterOptions,
   options: MemoryRouterOptions = {}
 ): Router {
+  let routes: (RouteRecord | RouteObject)[] = [];
+  let opts: MemoryRouterOptions = options;
+  if (Array.isArray(routesOrOptions)) {
+    routes = routesOrOptions;
+  } else if (routesOrOptions && typeof routesOrOptions === "object") {
+    routes = routesOrOptions.routes ?? [];
+    opts = { ...routesOrOptions, ...options };
+  }
   const initialPath =
-    options.initialEntries && options.initialEntries.length > 0
-      ? options.initialEntries[options.initialIndex ?? 0]!
-      : options.initialPath ?? "/";
+    opts.initialEntries && opts.initialEntries.length > 0
+      ? opts.initialEntries[opts.initialIndex ?? 0]!
+      : opts.initialPath ?? "/";
   const history = createMemoryHistory(initialPath);
   return createRouter({
-    ...options,
+    ...opts,
     routes,
     history,
   });
@@ -471,3 +650,57 @@ export function useOutlet(): unknown {
     (childMatch as { component?: unknown }).component
   );
 }
+
+// ============================================================================
+// Phase 20 Data Router Hooks (D-123)
+// ============================================================================
+
+export function useLoaderData<T = unknown>(routeId?: string): T | undefined {
+  const router = useRouter();
+  const allData = router.loaderData();
+  if (routeId) {
+    return allData[routeId] as T | undefined;
+  }
+  const current = router.currentRoute();
+  const leaf = current.matched[current.matched.length - 1];
+  const key = leaf?.route?.id ?? leaf?.record?.id ?? leaf?.path ?? current.pathname;
+  return allData[key] as T | undefined;
+}
+
+export function useActionData<T = unknown>(): T | undefined {
+  const router = useRouter();
+  return router.actionData() as T | undefined;
+}
+
+export function useNavigation(): NavigationState {
+  const router = useRouter();
+  return router.navigation();
+}
+
+export function useSubmit(): (target: unknown, options?: SubmitOptions) => Promise<unknown> {
+  const router = useRouter();
+  return (target, options) => router.submit(target, options);
+}
+
+export function useHead(meta: { title?: string | undefined; meta?: Array<Record<string, string>> | undefined }): void {
+  if (typeof document === "undefined") return;
+  if (meta.title !== undefined) {
+    document.title = meta.title;
+  }
+  if (meta.meta) {
+    for (const item of meta.meta) {
+      if (item.name) {
+        let el = document.querySelector(`meta[name="${item.name}"]`) as HTMLMetaElement | null;
+        if (!el) {
+          el = document.createElement("meta");
+          el.name = item.name;
+          document.head.appendChild(el);
+        }
+        if (item.content !== undefined) {
+          el.content = item.content;
+        }
+      }
+    }
+  }
+}
+

@@ -252,8 +252,10 @@ export function Outlet(props: OutletProps = {}): Node {
   let currentRecord: unknown = null;
   let currentDisposer: (() => void) | null = null;
   let currentRenderedNodes: Node[] = [];
+  let lastReval = 0;
 
   createEffect(() => {
+    const reval = (router.revalidationKey ? router.revalidationKey() : 0) ?? 0;
     const matches = matchesContext
       ? matchesContext()
       : router.currentRoute().matched;
@@ -262,9 +264,10 @@ export function Outlet(props: OutletProps = {}): Node {
       ? ((matched as { record?: RouteRecord }).record ?? matched.route)
       : null;
 
-    if (nextRecord === currentRecord && currentRenderedNodes.length > 0) {
+    if (nextRecord === currentRecord && currentRenderedNodes.length > 0 && reval === lastReval) {
       return;
     }
+    lastReval = reval;
     currentRecord = nextRecord;
 
     if (currentDisposer) {
@@ -338,6 +341,7 @@ export interface LinkProps {
   className?: string | undefined;
   activeClass?: string | undefined;
   exact?: boolean | undefined;
+  prefetch?: "intent" | "render" | "none" | undefined;
   children?: unknown | undefined;
   [key: string]: unknown;
 }
@@ -397,6 +401,16 @@ export function Link(props: LinkProps): HTMLAnchorElement {
       void router.push(targetStr);
     }
   });
+
+  if (props.prefetch === "render") {
+    void router.prefetchRoute(targetStr);
+  } else if (props.prefetch === "intent") {
+    const onIntent = () => {
+      void router.prefetchRoute(targetStr);
+    };
+    el.addEventListener("mouseenter", onIntent, { once: true });
+    el.addEventListener("focus", onIntent, { once: true });
+  }
 
   if (props.children) {
     if (typeof props.children === "function") {
@@ -512,6 +526,16 @@ export function NavLink(props: NavLinkProps): HTMLAnchorElement {
       void router.push(targetStr);
     }
   });
+
+  if (props.prefetch === "render") {
+    void router.prefetchRoute(targetStr);
+  } else if (props.prefetch === "intent") {
+    const onIntent = () => {
+      void router.prefetchRoute(targetStr);
+    };
+    el.addEventListener("mouseenter", onIntent, { once: true });
+    el.addEventListener("focus", onIntent, { once: true });
+  }
 
   if (props.children) {
     if (typeof props.children === "function") {

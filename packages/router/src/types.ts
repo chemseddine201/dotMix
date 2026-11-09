@@ -29,6 +29,41 @@ export interface PathMatch {
   pattern: PathPattern;
 }
 
+export interface LoaderContext {
+  params: Record<string, string>;
+  request: Request | { url: string; method?: string | undefined };
+  cancellationToken: CancellationToken;
+}
+
+export interface ActionContext {
+  params: Record<string, string>;
+  request: Request | { url: string; method?: string | undefined; body?: unknown | undefined };
+  cancellationToken: CancellationToken;
+}
+
+export type LoaderFunction<T = unknown> = (ctx: LoaderContext) => Promise<T> | T;
+export type ActionFunction<T = unknown> = (ctx: ActionContext) => Promise<T> | T;
+
+export interface LazyRouteResult {
+  default?: RouteComponent | undefined;
+  Component?: RouteComponent | undefined;
+  loader?: LoaderFunction | undefined;
+  action?: ActionFunction | undefined;
+}
+
+export type LazyRouteFunction = () => Promise<LazyRouteResult>;
+
+export interface SubmitOptions {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined;
+  action?: string | undefined;
+  replace?: boolean | undefined;
+}
+
+export interface NavigationState {
+  state: "idle" | "loading" | "submitting";
+  location?: RouteLocation | undefined;
+}
+
 export interface RouteObject {
   path?: string | undefined;
   index?: boolean | undefined;
@@ -41,8 +76,9 @@ export interface RouteObject {
   children?: RouteObject[] | undefined;
   meta?: Record<string, unknown> | undefined;
   beforeEnter?: NavigationGuard | undefined;
-  loader?: unknown | undefined;
-  action?: unknown | undefined;
+  loader?: LoaderFunction | undefined;
+  action?: ActionFunction | undefined;
+  lazy?: LazyRouteFunction | undefined;
 }
 
 export type RouteRecord<TProps = unknown> = RouteObject & {
@@ -130,6 +166,10 @@ export interface Router {
   readonly routes: (RouteRecord | RouteObject)[];
   readonly history: RouterHistory;
   readonly currentRoute: () => RouteLocation;
+  readonly navigation: () => NavigationState;
+  readonly loaderData: () => Record<string, unknown>;
+  readonly actionData: () => unknown;
+  readonly revalidationKey?: () => number | undefined;
   push(to: string): Promise<boolean>;
   replace(to: string): Promise<boolean>;
   back(): void;
@@ -137,5 +177,7 @@ export interface Router {
   go(delta: number): void;
   beforeEach(guard: NavigationGuard): () => void;
   resolve(to: string): RouteLocation;
+  submit(target: unknown, options?: SubmitOptions): Promise<unknown>;
+  prefetchRoute(to: string): Promise<void>;
   destroy(): void;
 }
