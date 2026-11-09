@@ -1,0 +1,14 @@
+import "./Button.{{styleExt}}";
+
+export default function Button(props) {
+  const variant = props.variant ?? "primary";
+  return (
+    <button
+      class={`mix-btn mix-btn-${variant}`}
+      disabled={props.disabled ?? false}
+      @click={props.onClick}
+    >
+      {props.children}
+    </button>
+  );
+}

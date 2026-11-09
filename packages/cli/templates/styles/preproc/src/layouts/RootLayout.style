@@ -1,0 +1,50 @@
+.root-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+}
+.nav-links {
+  display: flex;
+  gap: 16px;
+}
+.nav-item {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  &:hover, &.active {
+    color: var(--color-text);
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+.content-body {
+  flex: 1;
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+.app-footer {
+  padding: 16px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}

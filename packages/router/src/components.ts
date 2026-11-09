@@ -92,10 +92,13 @@ export function RouterProvider(props: RouterProviderProps): unknown {
   provideContext(RouterContext, props.router);
   provideContext(RouteDepthContext, 0);
 
-  if (typeof props.children === "function") {
-    return (props.children as () => unknown)();
+  if (props.children !== undefined) {
+    if (typeof props.children === "function") {
+      return (props.children as () => unknown)();
+    }
+    return props.children;
   }
-  return props.children;
+  return Outlet({ fallback: props.fallbackElement });
 }
 
 export interface BrowserRouterProps extends BrowserRouterOptions {

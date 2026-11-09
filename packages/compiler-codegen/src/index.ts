@@ -737,6 +737,7 @@ export function generate(
   // 2. Separate and transpile <script> imports and body statements
   let userImportsCode = "";
   let userBodyCode = "";
+  let userPostambleCode = "";
 
   if (descriptor.ast.script) {
     const isTs =
@@ -752,6 +753,12 @@ export function generate(
         .replaceAll("'@mix/runtime'", JSON.stringify(runtimeImportPath));
     }
     userBodyCode = separated.bodyCode;
+    if (descriptor.ast.script.postamble) {
+      userPostambleCode = extractAndTranspileScript(
+        descriptor.ast.script.postamble,
+        isTs
+      ).bodyCode;
+    }
   }
 
   // 3. Build runtime import header (avoiding duplicate bindings already imported by user)
@@ -841,9 +848,12 @@ export function generate(
     indentLines(functionBodyLines.join("\n"), 4),
     `  });`,
     `}`,
-    `export default ${componentName};`,
-    ""
+    `export default ${componentName};`
   );
+  if (userPostambleCode.length > 0) {
+    moduleLines.push(userPostambleCode);
+  }
+  moduleLines.push("");
 
   const jsCode = moduleLines.join("\n");
 

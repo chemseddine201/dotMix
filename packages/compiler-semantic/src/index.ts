@@ -1487,6 +1487,59 @@ export function extractAndTranspileScript(
   };
 }
 
+/**
+ * Transpiles a standalone `.ts` or `.js` module to ES2023 JavaScript while normalizing
+ * relative `.tix`, `.mix`, and `.ts` import/export specifiers to `.js`.
+ */
+export function transpileSourceModule(
+  sourceCode: string,
+  isTypeScript: boolean
+): string {
+  const sf = ts.createSourceFile(
+    isTypeScript ? "module.ts" : "module.js",
+    sourceCode,
+    ts.ScriptTarget.ES2023,
+    true,
+    isTypeScript ? ts.ScriptKind.TS : ts.ScriptKind.JS
+  );
+  const replacements: Array<{ start: number; end: number; text: string }> = [];
+
+  for (const stmt of sf.statements) {
+    if (
+      (ts.isImportDeclaration(stmt) || ts.isExportDeclaration(stmt)) &&
+      stmt.moduleSpecifier &&
+      ts.isStringLiteral(stmt.moduleSpecifier)
+    ) {
+      const rawSpec = stmt.moduleSpecifier.text;
+      if (/\.(tix|mix|ts)$/i.test(rawSpec)) {
+        const normalized = rawSpec.replace(/\.(tix|mix|ts)$/i, ".js");
+        replacements.push({
+          start: stmt.moduleSpecifier.getStart(sf),
+          end: stmt.moduleSpecifier.getEnd(),
+          text: JSON.stringify(normalized)
+        });
+      }
+    }
+  }
+
+  let rewritten = sourceCode;
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const r = replacements[i]!;
+    rewritten = rewritten.slice(0, r.start) + r.text + rewritten.slice(r.end);
+  }
+
+  if (!isTypeScript) {
+    return rewritten;
+  }
+
+  return ts.transpileModule(rewritten, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2023,
+      module: ts.ModuleKind.ESNext
+    }
+  }).outputText;
+}
+
 function isESTreeNode(val: unknown): val is ESTreeNode {
   if (!val || typeof val !== "object" || Array.isArray(val)) return false;
   const rec = val as Record<string, unknown>;

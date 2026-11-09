@@ -300,7 +300,22 @@ function walkAndTransformCssAst(
   }
 
   if (node.type === "Declaration" && node.value && typeof node.value === "object") {
-    walkAndTransformCssAst(node.value as CssPlainNode, scopeAttr, scoped, inKeyframes, options);
+    const valNode = node.value as CssPlainNode;
+    if (typeof node.property === "string" && node.property.startsWith("--") && valNode.type === "Raw") {
+      return;
+    }
+    walkAndTransformCssAst(valNode, scopeAttr, scoped, inKeyframes, options);
+    return;
+  }
+
+  if (node.type === "Function" && (node.name === "var" || node.name === "env")) {
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        if (child.type !== "Raw") {
+          walkAndTransformCssAst(child, scopeAttr, scoped, inKeyframes, options);
+        }
+      }
+    }
     return;
   }
 

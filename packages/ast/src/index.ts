@@ -35,6 +35,7 @@ export interface ScriptBlockNode extends ASTNodeBase {
   readonly lang: "js" | "ts";
   readonly content: string;
   readonly contentSpan: SourceSpan;
+  readonly postamble?: string | undefined;
 }
 
 export interface StyleBlockNode extends ASTNodeBase {

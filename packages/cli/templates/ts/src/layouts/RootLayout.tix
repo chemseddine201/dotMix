@@ -1,0 +1,27 @@
+import "./RootLayout.{{styleExt}}";
+import { Outlet, NavLink } from "@mix/router";
+
+export default function RootLayout() {
+  return (
+    <div class="root-layout">
+      <header class="app-header">
+        <div class="brand">
+          <span class="logo">⚡</span>
+          <span class="title">Mix Framework App</span>
+        </div>
+        <nav class="nav-links">
+          <NavLink to="/" end={true} class="nav-item">Home</NavLink>
+          <NavLink to="/tasks" class="nav-item">Tasks (CRDT)</NavLink>
+          <NavLink to="/forms" class="nav-item">Forms</NavLink>
+          <NavLink to="/admin" class="nav-item">Admin</NavLink>
+        </nav>
+      </header>
+      <main class="content-body">
+        <Outlet />
+      </main>
+      <footer class="app-footer">
+        <p>Powered by Mix Framework · Zero Virtual DOM · Fine-Grained Reactivity</p>
+      </footer>
+    </div>
+  );
+}

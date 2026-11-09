@@ -1,0 +1,40 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero-section {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.hero-section h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #f8fafc;
+}
+
+.hero-section p {
+  font-size: 16px;
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto 24px;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+}
+
+.badge-guest {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}

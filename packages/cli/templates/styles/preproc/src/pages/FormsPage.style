@@ -1,0 +1,28 @@
+.forms-page {
+  max-width: 500px;
+  margin: 0 auto;
+}
+.form-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 16px;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.field-error {
+  color: var(--color-danger);
+  font-size: 12px;
+}
+.submitted-result {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--color-surface);
+  border-radius: 6px;
+  font-size: 13px;
+}

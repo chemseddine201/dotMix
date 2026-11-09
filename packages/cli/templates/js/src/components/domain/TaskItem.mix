@@ -1,0 +1,26 @@
+import "./TaskItem.{{styleExt}}";
+import { Can } from "@mix/runtime/permissions";
+
+export default function TaskItem(props) {
+  const task = props.task;
+  return (
+    <li class={`task-item ${task.completed ? "completed" : ""}`}>
+      <label class="task-checkbox-label">
+        <input
+          type="checkbox"
+          checked={task.completed}
+          @change={() => props.onToggle && props.onToggle(task.id)}
+        />
+        <span class="task-title">{task.title}</span>
+      </label>
+      <Can I="delete" this={task}>
+        <button
+          class="btn-delete"
+          @click={() => props.onDelete && props.onDelete(task.id)}
+        >
+          Delete
+        </button>
+      </Can>
+    </li>
+  );
+}

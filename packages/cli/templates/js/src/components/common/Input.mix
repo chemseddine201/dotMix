@@ -1,0 +1,22 @@
+import "./Input.{{styleExt}}";
+
+export default function Input(props) {
+  return (
+    <div class="input-field">
+      {if props.label}
+        <label class="input-label">{props.label}</label>
+      {endif}
+      <input
+        class="input-control"
+        type={props.type ?? "text"}
+        value={props.value ?? ""}
+        placeholder={props.placeholder ?? ""}
+        disabled={props.disabled ?? false}
+        @input={props.onInput}
+      />
+      {if props.error}
+        <span class="input-error">{props.error}</span>
+      {endif}
+    </div>
+  );
+}

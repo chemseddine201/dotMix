@@ -1,0 +1,66 @@
+import "./FormsPage.{{styleExt}}";
+import { createForm, validators } from "@mix/runtime";
+import Button from "../components/common/Button.tix";
+
+export interface ProfileFormValues {
+  username: string;
+  email: string;
+}
+
+export default function FormsPage() {
+  const submittedData = signal<ProfileFormValues | null>(null);
+
+  const form = createForm<ProfileFormValues>({
+    initialValues: {
+      username: "",
+      email: ""
+    },
+    validators: {
+      username: [validators.required("Username is required")],
+      email: [
+        validators.required("Email is required"),
+        validators.email("Must be a valid email format")
+      ]
+    },
+    onSubmit(values: ProfileFormValues) {
+      submittedData.set(values);
+    }
+  });
+
+  return (
+    <div class="forms-page">
+      <h2>Reactive Form Validation</h2>
+      <form class="form-box" @submit={(e: Event) => { e.preventDefault(); void form.handleSubmit(); }}>
+        <div class="field-row">
+          <label>Username</label>
+          <input
+            class="input-control"
+            value={form.fields.username.value()}
+            @input={(e: Event) => form.fields.username.setValue((e.target as HTMLInputElement).value)}
+          />
+          {if form.fields.username.error()}
+            <span class="field-error">{form.fields.username.error()}</span>
+          {endif}
+        </div>
+        <div class="field-row">
+          <label>Email</label>
+          <input
+            class="input-control"
+            value={form.fields.email.value()}
+            @input={(e: Event) => form.fields.email.setValue((e.target as HTMLInputElement).value)}
+          />
+          {if form.fields.email.error()}
+            <span class="field-error">{form.fields.email.error()}</span>
+          {endif}
+        </div>
+        <Button variant="primary">Submit Form</Button>
+      </form>
+      {if submittedData()}
+        <div class="submitted-result">
+          <h3>Submitted Values:</h3>
+          <pre>{JSON.stringify(submittedData(), null, 2)}</pre>
+        </div>
+      {endif}
+    </div>
+  );
+}

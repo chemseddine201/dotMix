@@ -1,0 +1,42 @@
+.mix-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &-primary {
+    background: var(--color-primary, #6366f1);
+    color: #ffffff;
+    &:hover:not(:disabled) {
+      background: var(--color-primary-hover, #4f46e5);
+    }
+  }
+
+  &-secondary {
+    background: #334155;
+    color: #f8fafc;
+    &:hover:not(:disabled) {
+      background: #475569;
+    }
+  }
+
+  &-danger {
+    background: var(--color-danger, #ef4444);
+    color: #ffffff;
+    &:hover:not(:disabled) {
+      background: var(--color-danger-hover, #dc2626);
+    }
+  }
+}

@@ -264,6 +264,7 @@ function tryExtractFunctionalComponent(
   // Build synthesized script content from preamble + optional props parameter + function body before `return`
   const preamble = currentText.slice(0, fnStart).trim();
   const bodyBeforeReturn = currentText.slice(bodyOpenBraceIdx + 1, returnKeywordIdx).trim();
+  const postamble = currentText.slice(fnCloseBraceIdx + 1).trim();
 
   let propStmt = "";
   if (rawParams.length > 0) {
@@ -330,8 +331,9 @@ function tryExtractFunctionalComponent(
   const scriptContent = scriptParts.join("\n");
   const lang: "js" | "ts" = isDefaultTs ? "ts" : "js";
 
-  if (scriptContent.trim().length > 0) {
-    parseScriptProgram(scriptContent, 0, lineMap);
+  const fullScriptForCheck = [scriptContent, postamble].filter((s) => s.length > 0).join("\n");
+  if (fullScriptForCheck.trim().length > 0) {
+    parseScriptProgram(fullScriptForCheck, 0, lineMap);
   }
 
   // Blank everything outside `[templateStart, templateEnd)` in `chars` so template offsets match original source
@@ -343,7 +345,8 @@ function tryExtractFunctionalComponent(
     lang,
     content: scriptContent,
     contentSpan: lineMap.span(0, returnKeywordIdx),
-    span: lineMap.span(0, fnCloseBraceIdx + 1)
+    span: lineMap.span(0, source.length),
+    ...(postamble.length > 0 ? { postamble } : {})
   });
 }
 

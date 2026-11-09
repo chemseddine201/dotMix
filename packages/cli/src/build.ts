@@ -5,8 +5,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "@mix/compiler-frontend";
-import { analyze, projectTypeScript } from "@mix/compiler-semantic";
+import { analyze, projectTypeScript, transpileSourceModule } from "@mix/compiler-semantic";
 import { generate } from "@mix/compiler-codegen";
+import { compileCss } from "@mix/compiler-css";
 
 export interface BuildOptions {
   inDir?: string | undefined;
@@ -19,44 +20,70 @@ export interface BuildResult {
   compiledFiles: string[];
 }
 
-function findMixFiles(dir: string): string[] {
-  const results: string[] = [];
-  if (!fs.existsSync(dir)) return results;
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+interface ScannedSources {
+  mixFiles: string[];
+  scriptFiles: string[];
+  styleFiles: string[];
+}
 
-  for (const entry of entries) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") {
-      continue;
-    }
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...findMixFiles(fullPath));
-    } else if (entry.isFile()) {
-      if (entry.name.endsWith(".mix") || entry.name.endsWith(".tix")) {
-        results.push(fullPath);
+const STYLE_FILE_REGEX = /\.(css|scss|sass|less|styl|stylus|pcss|postcss)$/i;
+
+function scanInputDirectory(dir: string): ScannedSources {
+  const mixFiles: string[] = [];
+  const scriptFiles: string[] = [];
+  const styleFiles: string[] = [];
+
+  if (!fs.existsSync(dir)) {
+    return { mixFiles, scriptFiles, styleFiles };
+  }
+
+  function walk(current: string): void {
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") {
+        continue;
+      }
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile()) {
+        if (entry.name.endsWith(".mix") || entry.name.endsWith(".tix")) {
+          mixFiles.push(fullPath);
+        } else if (
+          (entry.name.endsWith(".ts") || entry.name.endsWith(".js")) &&
+          !entry.name.endsWith(".d.ts")
+        ) {
+          scriptFiles.push(fullPath);
+        } else if (STYLE_FILE_REGEX.test(entry.name)) {
+          styleFiles.push(fullPath);
+        }
       }
     }
   }
 
-  return results;
+  walk(dir);
+  return { mixFiles, scriptFiles, styleFiles };
 }
 
 export function build(options: BuildOptions = {}): BuildResult {
   const inDir = path.resolve(options.inDir ?? "src");
   const outDir = path.resolve(options.outDir ?? "dist");
-  const files = findMixFiles(inDir);
+  const { mixFiles, scriptFiles, styleFiles } = scanInputDirectory(inDir);
 
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
   const compiledFiles: string[] = [];
+  const emittedCssPaths = new Set<string>();
 
-  for (const file of files) {
+  for (const file of mixFiles) {
     const filename = path.basename(file);
+    const relPath = path.relative(inDir, file);
+    const relBase = relPath.replace(/\.(mix|tix)$/i, "");
     const source = fs.readFileSync(file, "utf-8");
-    const readExternalStyle = (relPath: string): string => {
-      const resolved = path.resolve(path.dirname(file), relPath);
+    const readExternalStyle = (relStylePath: string): string => {
+      const resolved = path.resolve(path.dirname(file), relStylePath);
       return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
     };
     const ast = parse(source, { filename, readFile: readExternalStyle });
@@ -66,22 +93,59 @@ export function build(options: BuildOptions = {}): BuildResult {
       resolveStyle: (src: string) => readExternalStyle(src),
     });
 
-    const baseName = filename.replace(/\.(mix|tix)$/, "");
-    const jsPath = path.join(outDir, `${baseName}.js`);
-    fs.writeFileSync(jsPath, codegen.js, "utf-8");
+    // Normalize relative .tix.js / .mix.js specifiers to .js so output matches <relBase>.js
+    const normalizedJs = codegen.js.replace(/\.(tix|mix)\.js(["'])/g, ".js$2");
+
+    const jsPath = path.join(outDir, `${relBase}.js`);
+    fs.mkdirSync(path.dirname(jsPath), { recursive: true });
+    fs.writeFileSync(jsPath, normalizedJs, "utf-8");
     compiledFiles.push(jsPath);
 
     if (codegen.css) {
-      const cssPath = path.join(outDir, `${baseName}.css`);
+      const cssPath = path.join(outDir, `${relBase}.css`);
+      fs.mkdirSync(path.dirname(cssPath), { recursive: true });
       fs.writeFileSync(cssPath, codegen.css, "utf-8");
       compiledFiles.push(cssPath);
+      emittedCssPaths.add(path.resolve(cssPath));
     }
 
     if (filename.endsWith(".tix")) {
       const proj = projectTypeScript(desc.ast, source, filename);
-      const dtsPath = path.join(outDir, `${baseName}.d.ts`);
+      const dtsPath = path.join(outDir, `${relBase}.d.ts`);
+      fs.mkdirSync(path.dirname(dtsPath), { recursive: true });
       fs.writeFileSync(dtsPath, proj.code, "utf-8");
       compiledFiles.push(dtsPath);
+    }
+  }
+
+  for (const scriptFile of scriptFiles) {
+    const relPath = path.relative(inDir, scriptFile);
+    const relBase = relPath.replace(/\.(ts|js)$/i, "");
+    const source = fs.readFileSync(scriptFile, "utf-8");
+    const jsCode = transpileSourceModule(source, scriptFile.endsWith(".ts"));
+    const jsPath = path.join(outDir, `${relBase}.js`);
+    fs.mkdirSync(path.dirname(jsPath), { recursive: true });
+    fs.writeFileSync(jsPath, jsCode, "utf-8");
+    compiledFiles.push(jsPath);
+  }
+
+  for (const styleFile of styleFiles) {
+    const relPath = path.relative(inDir, styleFile);
+    const relBase = relPath.replace(STYLE_FILE_REGEX, "");
+    const cssPath = path.resolve(outDir, `${relBase}.css`);
+    if (emittedCssPaths.has(cssPath)) {
+      continue;
+    }
+    const rawCss = fs.readFileSync(styleFile, "utf-8");
+    if (rawCss.trim().length > 0) {
+      const compiled = compileCss(rawCss, {
+        filename: path.basename(styleFile),
+        scoped: false
+      });
+      fs.mkdirSync(path.dirname(cssPath), { recursive: true });
+      fs.writeFileSync(cssPath, compiled.code, "utf-8");
+      compiledFiles.push(cssPath);
+      emittedCssPaths.add(cssPath);
     }
   }
 

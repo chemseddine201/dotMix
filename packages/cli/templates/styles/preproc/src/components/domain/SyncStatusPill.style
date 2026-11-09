@@ -1,0 +1,24 @@
+.sync-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  &.synced {
+    background: #22c55e;
+  }
+  &.syncing {
+    background: #f59e0b;
+  }
+}
+.status-text {
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,11 @@
+import "./SyncStatusPill.{{styleExt}}";
+
+export default function SyncStatusPill(props) {
+  const pending = props.pendingCount ?? 0;
+  return (
+    <div class="sync-status-pill">
+      <span class={`status-dot ${pending > 0 ? "syncing" : "synced"}`}></span>
+      <span class="status-text">{pending > 0 ? `${pending} pending` : "Synced"}</span>
+    </div>
+  );
+}
