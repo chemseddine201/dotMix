@@ -10,7 +10,9 @@
     { "path": "packages/compiler-codegen" },
     { "path": "packages/runtime" },
     { "path": "packages/router" },
-    { "path": "packages/compiler-ssr" }
+    { "path": "packages/compiler-ssr" },
+    { "path": "packages/vite-plugin" },
+    { "path": "packages/cli" }
   ]
 }
 

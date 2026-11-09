@@ -1,0 +1,15 @@
+{
+  "name": "@mix/vite-plugin",
+  "version": "0.1.0",
+  "description": "Vite/Rollup plugin for Mix/Tix compiler with HMR and scoped CSS extraction",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@mix/compiler-frontend": "0.1.0",
+    "@mix/compiler-semantic": "0.1.0",
+    "@mix/compiler-codegen": "0.1.0",
+    "@mix/compiler-css": "0.1.0",
+    "@mix/diagnostics": "0.1.0"
+  }
+}
