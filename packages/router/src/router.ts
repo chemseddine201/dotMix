@@ -1,5 +1,5 @@
 /**
- * @mix/router — Production Router Implementation
+ * @mix/router — Production Router Implementation (React Router v6/v7 Parity)
  */
 
 import {
@@ -16,17 +16,31 @@ import type {
 import type {
   Router,
   RouterOptions,
+  BrowserRouterOptions,
+  HashRouterOptions,
+  MemoryRouterOptions,
   RouteRecord,
+  RouteObject,
   RouteLocation,
+  Location,
   NavigationGuard,
   MatchedRoute,
+  RouteMatch,
   RouterHistory,
+  NavigateFunction,
+  NavigateOptions,
+  To,
+  PathPattern,
+  PathMatch,
 } from "./types.js";
 import { RouteTrie, normalizePath } from "./trie.js";
-import { createMemoryHistory, createBrowserHistory } from "./history.js";
+import { createMemoryHistory, createBrowserHistory, createHashHistory } from "./history.js";
+import { matchRoutes, matchPath, resolvePath } from "./match.js";
 
 export const RouterContext = createContext<Router | null>(null);
 export const RouteDepthContext = createContext<number>(0);
+export const RouteMatchesContext = createContext<(() => RouteMatch[]) | null>(null);
+export const OutletContextData = createContext<unknown>(undefined);
 
 export function parseQuery(search: string): Record<string, string> {
   const query: Record<string, string> = {};
@@ -58,8 +72,10 @@ export function stringifyQuery(query: Record<string, string>): string {
   return `?${pairs.join("&")}`;
 }
 
-export function parseLocation(to: string, trie: RouteTrie): RouteLocation {
-  // Validate URL protocol safety (R-URL-01)
+export function parseLocation(
+  to: string,
+  routesOrTrie: RouteTrie | (RouteRecord | RouteObject)[]
+): RouteLocation {
   validateSafeUrl(to);
 
   const hashIdx = to.indexOf("#");
@@ -71,14 +87,37 @@ export function parseLocation(to: string, trie: RouteTrie): RouteLocation {
   const search = queryIdx === -1 ? "" : withoutHash.slice(queryIdx);
 
   const query = parseQuery(search);
-  const matchResult = trie.match(pathname);
 
-  const params: Record<string, string> = matchResult ? matchResult.params : {};
-  const matched: MatchedRoute[] = matchResult ? matchResult.matched : [];
+  let params: Record<string, string> = {};
+  const matched: MatchedRoute[] = [];
+
+  if (Array.isArray(routesOrTrie)) {
+    const matches = matchRoutes(routesOrTrie as RouteObject[], pathname);
+    if (matches) {
+      for (const m of matches) {
+        Object.assign(params, m.params);
+        matched.push({
+          record: m.route as RouteRecord,
+          route: m.route,
+          path: m.pathname,
+          pathname: m.pathname,
+          pathnameBase: m.pathnameBase,
+          params: m.params,
+          component: m.route.element ?? m.route.Component ?? m.route.component,
+        });
+      }
+    }
+  } else {
+    const matchResult = routesOrTrie.match(pathname);
+    if (matchResult) {
+      params = matchResult.params;
+      matched.push(...matchResult.matched);
+    }
+  }
 
   const meta: Record<string, unknown> = {};
   for (const m of matched) {
-    if (m.record.meta) {
+    if (m.record?.meta) {
       Object.assign(meta, m.record.meta);
     }
   }
@@ -100,8 +139,8 @@ export function createRouter(options: RouterOptions): Router {
     options.history ??
     (typeof window !== "undefined" ? createBrowserHistory() : createMemoryHistory(options.initialPath ?? "/"));
 
-  const trie = new RouteTrie(options.routes);
-  const initialLoc = parseLocation(history.location || options.initialPath || "/", trie);
+  const routes = options.routes || [];
+  const initialLoc = parseLocation(history.location || options.initialPath || "/", routes);
 
   const currentRoute = createSignal<RouteLocation>(initialLoc);
   const beforeEachGuards: NavigationGuard[] = [];
@@ -114,7 +153,6 @@ export function createRouter(options: RouterOptions): Router {
   let unlistenHistory: (() => void) | null = null;
 
   async function navigateTo(to: string, isReplace: boolean, fromHistory = false): Promise<boolean> {
-    // Increment generation and cancel previous in-flight navigation (D-104)
     if (activeSource) {
       activeSource.cancel("MIX_ROUTER_CANCELLED");
       activeSource = null;
@@ -125,13 +163,12 @@ export function createRouter(options: RouterOptions): Router {
     activeSource = source;
     const token = source.token;
 
-    const targetLoc = parseLocation(to, trie);
+    const targetLoc = parseLocation(to, routes);
     const fromLoc = currentRoute();
 
-    // Collect all guards: global beforeEach + route-level beforeEnter
     const allGuards: NavigationGuard[] = [...beforeEachGuards];
     for (const m of targetLoc.matched) {
-      if (m.record.beforeEnter) {
+      if (m.record?.beforeEnter) {
         allGuards.push(m.record.beforeEnter);
       }
     }
@@ -161,7 +198,6 @@ export function createRouter(options: RouterOptions): Router {
       return false;
     }
 
-    // Guards passed! Commit navigation
     if (!fromHistory) {
       if (isReplace) {
         history.replace(targetLoc.fullPath);
@@ -175,14 +211,13 @@ export function createRouter(options: RouterOptions): Router {
     return true;
   }
 
-  // Synchronize history popstate/hashchange events
   unlistenHistory = history.listen((loc) => {
     void navigateTo(loc, false, true);
   });
 
   const router: Router = {
-    get routes(): RouteRecord[] {
-      return options.routes;
+    get routes(): (RouteRecord | RouteObject)[] {
+      return routes;
     },
     get history(): RouterHistory {
       return history;
@@ -213,7 +248,7 @@ export function createRouter(options: RouterOptions): Router {
       };
     },
     resolve(to: string): RouteLocation {
-      return parseLocation(to, trie);
+      return parseLocation(to, routes);
     },
     destroy(): void {
       if (activeSource) {
@@ -231,6 +266,46 @@ export function createRouter(options: RouterOptions): Router {
   return router;
 }
 
+export function createBrowserRouter(
+  routes: (RouteRecord | RouteObject)[],
+  options: BrowserRouterOptions = {}
+): Router {
+  const history = createBrowserHistory();
+  return createRouter({
+    ...options,
+    routes,
+    history,
+  });
+}
+
+export function createHashRouter(
+  routes: (RouteRecord | RouteObject)[],
+  options: HashRouterOptions = {}
+): Router {
+  const history = createHashHistory();
+  return createRouter({
+    ...options,
+    routes,
+    history,
+  });
+}
+
+export function createMemoryRouter(
+  routes: (RouteRecord | RouteObject)[],
+  options: MemoryRouterOptions = {}
+): Router {
+  const initialPath =
+    options.initialEntries && options.initialEntries.length > 0
+      ? options.initialEntries[options.initialIndex ?? 0]!
+      : options.initialPath ?? "/";
+  const history = createMemoryHistory(initialPath);
+  return createRouter({
+    ...options,
+    routes,
+    history,
+  });
+}
+
 export function useRouter(): Router {
   const router = useContext(RouterContext);
   if (!router) {
@@ -244,32 +319,155 @@ export function useRoute(): () => RouteLocation {
   return router.currentRoute;
 }
 
-export function useParams<T extends Record<string, string> = Record<string, string>>(): () => T {
+export function useLocation(): (() => Location) & Location {
   const route = useRoute();
-  return createMemo(() => route().params as T);
+  const fn = (() => route()) as unknown as (() => Location) & Location;
+  Object.defineProperties(fn, {
+    pathname: { get: () => route().pathname, enumerable: true },
+    search: { get: () => route().search, enumerable: true },
+    hash: { get: () => route().hash, enumerable: true },
+    state: { get: () => route().state, enumerable: true },
+    key: { get: () => route().key, enumerable: true },
+  });
+  return fn;
 }
 
-export function useSearchParams(): [() => Record<string, string>, (params: Record<string, string>) => void] {
+export function useParams<T extends Record<string, string> = Record<string, string>>(): (() => T) & T {
+  const route = useRoute();
+  const memo = createMemo(() => route().params as T);
+  const fn = (() => memo()) as (() => T) & T;
+  const proxy = new Proxy(fn, {
+    apply(_target, _thisArg, _argList) {
+      return memo();
+    },
+    get(_target, prop, receiver) {
+      if (prop === "then" || typeof prop === "symbol") {
+        return Reflect.get(fn, prop, receiver);
+      }
+      const params = memo();
+      if (prop in params) {
+        return params[prop as string];
+      }
+      return Reflect.get(fn, prop, receiver);
+    },
+  });
+  return proxy as unknown as (() => T) & T;
+}
+
+export class MixSearchParams {
+  private _query: Record<string, string>;
+
+  constructor(query: Record<string, string>) {
+    this._query = query;
+    Object.assign(this, query);
+  }
+
+  get(name: string): string | null {
+    return this._query[name] ?? null;
+  }
+
+  has(name: string): boolean {
+    return name in this._query;
+  }
+
+  getAll(name: string): string[] {
+    return name in this._query ? [this._query[name]!] : [];
+  }
+
+  entries(): [string, string][] {
+    return Object.entries(this._query);
+  }
+
+  toString(): string {
+    return stringifyQuery(this._query);
+  }
+}
+
+export function useSearchParams(): [
+  (() => MixSearchParams & Record<string, string>) & MixSearchParams,
+  (params: Record<string, string>, options?: NavigateOptions) => void
+] {
   const router = useRouter();
   const route = router.currentRoute;
-  const searchParams = createMemo(() => route().query);
+  const memo = createMemo(() => new MixSearchParams(route().query) as MixSearchParams & Record<string, string>);
 
-  const setSearchParams = (newParams: Record<string, string>) => {
+  const fn = (() => memo()) as (() => MixSearchParams & Record<string, string>) & MixSearchParams;
+  const proxy = new Proxy(fn, {
+    apply(_target, _thisArg, _argList) {
+      return memo();
+    },
+    get(_target, prop, receiver) {
+      if (prop === "then" || typeof prop === "symbol") {
+        return Reflect.get(fn, prop, receiver);
+      }
+      const instance = memo();
+      if (prop in instance) {
+        return Reflect.get(instance, prop);
+      }
+      return Reflect.get(fn, prop, receiver);
+    },
+  });
+
+  const setSearchParams = (
+    newParams: Record<string, string>,
+    options?: NavigateOptions
+  ) => {
     const cur = route();
     const queryStr = stringifyQuery(newParams);
     const target = `${cur.pathname}${queryStr}${cur.hash}`;
-    void router.push(target);
+    if (options?.replace) {
+      void router.replace(target);
+    } else {
+      void router.push(target);
+    }
   };
 
-  return [searchParams, setSearchParams];
+  return [proxy as unknown as (() => MixSearchParams & Record<string, string>) & MixSearchParams, setSearchParams];
 }
 
-export function useNavigate(): (to: string, options?: { replace?: boolean }) => Promise<boolean> {
+export function useNavigate(): NavigateFunction {
   const router = useRouter();
-  return (to: string, options?: { replace?: boolean }) => {
-    if (options?.replace) {
-      return router.replace(to);
+  const navFn = (to: To | number, options?: NavigateOptions) => {
+    if (typeof to === "number") {
+      router.go(to);
+      return;
     }
-    return router.push(to);
+    const resolved = resolvePath(to, router.currentRoute().pathname);
+    const pathStr = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    if (options?.replace) {
+      return router.replace(pathStr);
+    }
+    return router.push(pathStr);
   };
+  return navFn as NavigateFunction;
+}
+
+export function useMatch(pattern: string | PathPattern): (() => PathMatch | null) & { readonly match: PathMatch | null } {
+  const route = useRoute();
+  const memo = createMemo(() => matchPath(pattern, route().pathname));
+  const fn = (() => memo()) as (() => PathMatch | null) & { readonly match: PathMatch | null };
+  Object.defineProperty(fn, "match", {
+    get: () => memo(),
+    enumerable: true,
+  });
+  return fn;
+}
+
+export function useOutletContext<T = unknown>(): T {
+  return useContext(OutletContextData) as T;
+}
+
+export function useOutlet(): unknown {
+  const router = useRouter();
+  const depth = useContext(RouteDepthContext);
+  const matchesFn = useContext(RouteMatchesContext);
+  const matches = matchesFn ? matchesFn() : router.currentRoute().matched;
+  const childMatch = matches[depth + 1];
+  if (!childMatch) return null;
+  return (
+    childMatch.route.element ??
+    childMatch.route.Component ??
+    childMatch.route.component ??
+    (childMatch as { component?: unknown }).component
+  );
 }

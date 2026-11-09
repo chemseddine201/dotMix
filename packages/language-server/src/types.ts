@@ -68,3 +68,4 @@ export interface Location {
   uri: string;
   range: Range;
 }
+

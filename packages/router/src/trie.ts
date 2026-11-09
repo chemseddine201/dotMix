@@ -69,7 +69,7 @@ export class RouteTrie {
   }
 
   private insertRoute(route: RouteRecord, parentPath: string, parentChain: RouteRecord[]): void {
-    const fullPath = joinPaths(parentPath, route.path);
+    const fullPath = joinPaths(parentPath, route.path || "");
     const currentChain = [...parentChain, route];
 
     const rawSegments = fullPath.split("/").filter(Boolean);
@@ -180,9 +180,12 @@ export class RouteTrie {
     for (const rec of chain) {
       matched.push({
         record: rec,
-        path: rec.path,
+        route: rec,
+        path: rec.path || "",
+        pathname: rec.path || "",
+        pathnameBase: rec.path || "",
         params: candidate.params,
-        component: rec.component,
+        component: rec.component ?? rec.element ?? rec.Component,
       });
     }
 

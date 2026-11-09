@@ -152,3 +152,4 @@ describe("Gate 15: Language Server Protocol & VS Code Extension (D-118)", () => 
     assert.ok(grammar.repository["style-tag"]);
   });
 });
+

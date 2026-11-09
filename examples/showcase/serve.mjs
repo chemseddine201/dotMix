@@ -6,6 +6,7 @@ import { buildShowcase } from "./build.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runtimeDistDir = path.resolve(__dirname, "../../packages/runtime/dist");
+const routerDistDir = path.resolve(__dirname, "../../packages/router/dist");
 const webOutDir = path.join(__dirname, "dist-web");
 const indexHtmlPath = path.join(__dirname, "index.html");
 
@@ -74,12 +75,21 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  if (pathname.startsWith("/router/")) {
+    const rel = pathname.slice("/router/".length);
+    const target = path.resolve(routerDistDir, rel);
+    if (target.startsWith(routerDistDir)) {
+      sendFile(res, target);
+      return;
+    }
+  }
+
   res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
   res.end("404 Not Found");
 });
 
-server.listen(PORT, "127.0.0.1", () => {
+server.listen(PORT, () => {
   globalThis.console.log(
-    `⚡ Mix/Tix Showcase Server running at http://localhost:${PORT} (${artifacts.size} components compiled)`
+    `⚡ Mix/Tix Showcase Server running at http://localhost:${PORT} (http://127.0.0.1:${PORT}) (${artifacts.size} components compiled)`
   );
 });

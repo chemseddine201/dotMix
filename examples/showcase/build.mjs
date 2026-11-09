@@ -70,6 +70,15 @@ export function buildShowcase(options = {}) {
     });
   }
 
+  // Copy plain JS modules (e.g. RouterDemo.js)
+  const plainJsFiles = fs
+    .readdirSync(srcDir)
+    .filter((f) => f.endsWith(".js"));
+  for (const f of plainJsFiles) {
+    fs.copyFileSync(path.join(srcDir, f), path.join(outDir, f));
+    compiledArtifacts.set(f, { file: f });
+  }
+
   return compiledArtifacts;
 }
 

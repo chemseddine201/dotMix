@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mix/Tix Framework — Live Stateful Showcase</title>
+  <title>Mix/Tix Framework — Live Stateful Showcase & Router Parity</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,11 +16,13 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .demo-topbar {
-      max-width: 880px;
+      max-width: 960px;
       margin: 0 auto 20px;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
       padding: 12px 18px;
       border-radius: 12px;
       background-color: #0f172a;
@@ -44,6 +46,7 @@
     }
     .demo-switcher {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
     .demo-switcher button {
@@ -55,11 +58,20 @@
       color: #cbd5e1;
       font-size: 13px;
       font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .demo-switcher button:hover {
+      background-color: #334155;
+      color: #ffffff;
     }
     .demo-switcher button.active {
       background-color: #2563eb;
       border-color: #3b82f6;
       color: #ffffff;
+    }
+    #app {
+      max-width: 960px;
+      margin: 0 auto;
     }
   </style>
 </head>
@@ -70,8 +82,9 @@
       <span class="demo-pill">Zero Virtual DOM · Surgical DOM</span>
     </div>
     <div class="demo-switcher">
-      <button id="btn-view-workspace" class="active">StatefulWorkspace.mix + MetricCard.tix</button>
+      <button id="btn-view-workspace" class="active">StatefulWorkspace.mix</button>
       <button id="btn-view-app">App.mix + TypeSafeCard.tix</button>
+      <button id="btn-view-router">@mix/router (React Router v6/v7 Parity)</button>
     </div>
   </div>
 
@@ -81,6 +94,7 @@
     import { mount, setSanitizerProvider } from "/runtime/index.js";
     import StatefulWorkspace from "/dist/StatefulWorkspace.mix.js";
     import App from "/dist/App.mix.js";
+    import RouterDemo from "/dist/RouterDemo.js";
 
     // Configure root HTML Sanitizer Authority (D-109 / HAA-03)
     setSanitizerProvider({
@@ -92,23 +106,41 @@
     const container = document.getElementById("app");
     const btnWorkspace = document.getElementById("btn-view-workspace");
     const btnApp = document.getElementById("btn-view-app");
+    const btnRouter = document.getElementById("btn-view-router");
 
     let currentHandle = mount(StatefulWorkspace, container);
 
+    function setActiveButton(activeBtn) {
+      [btnWorkspace, btnApp, btnRouter].forEach(b => b.classList.remove("active"));
+      activeBtn.classList.add("active");
+    }
+
     btnWorkspace.addEventListener("click", () => {
       if (currentHandle) currentHandle.unmount();
-      btnWorkspace.classList.add("active");
-      btnApp.classList.remove("active");
+      container.innerHTML = "";
+      setActiveButton(btnWorkspace);
       currentHandle = mount(StatefulWorkspace, container);
     });
 
     btnApp.addEventListener("click", () => {
       if (currentHandle) currentHandle.unmount();
-      btnApp.classList.add("active");
-      btnWorkspace.classList.remove("active");
+      container.innerHTML = "";
+      setActiveButton(btnApp);
       currentHandle = mount(App, container);
+    });
+
+    btnRouter.addEventListener("click", () => {
+      if (currentHandle) currentHandle.unmount();
+      container.innerHTML = "";
+      setActiveButton(btnRouter);
+      const demoEl = RouterDemo();
+      container.appendChild(demoEl);
+      currentHandle = {
+        unmount() {
+          if (demoEl.parentNode) demoEl.parentNode.removeChild(demoEl);
+        }
+      };
     });
   </script>
 </body>
 </html>
-

@@ -174,3 +174,4 @@ export function createHashHistory(): RouterHistory {
     },
   };
 }
+
