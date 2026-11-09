@@ -401,7 +401,15 @@ export function Link(props: LinkProps): HTMLAnchorElement {
   if (props.children) {
     if (typeof props.children === "function") {
       const child = (props.children as () => unknown)();
-      if (isDomNode(child)) {
+      if (Array.isArray(child)) {
+        for (const c of child) {
+          if (isDomNode(c)) {
+            el.appendChild(c);
+          } else if (typeof c === "string" || typeof c === "number") {
+            el.appendChild(document.createTextNode(String(c)));
+          }
+        }
+      } else if (isDomNode(child)) {
         el.appendChild(child);
       } else if (typeof child === "string" || typeof child === "number") {
         el.textContent = String(child);
@@ -514,7 +522,15 @@ export function NavLink(props: NavLinkProps): HTMLAnchorElement {
           isPending: false,
         });
         el.textContent = "";
-        if (isDomNode(child)) {
+        if (Array.isArray(child)) {
+          for (const c of child) {
+            if (isDomNode(c)) {
+              el.appendChild(c);
+            } else if (typeof c === "string" || typeof c === "number") {
+              el.appendChild(document.createTextNode(String(c)));
+            }
+          }
+        } else if (isDomNode(child)) {
           el.appendChild(child);
         } else if (typeof child === "string" || typeof child === "number") {
           el.textContent = String(child);

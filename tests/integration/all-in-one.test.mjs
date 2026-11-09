@@ -138,6 +138,13 @@ describe("All-In-One Modular Architecture Suite", () => {
     // 2. Navigation items exist in Sidebar
     const navLinks = root.querySelectorAll(".nav-link");
     assert.strictEqual(navLinks.length, 6);
+    assert.ok(navLinks[0].textContent.includes("Overview"), "Overview link must render label");
+    assert.ok(navLinks[0].classList.contains("active"), "Overview link is active at /");
+    assert.ok(navLinks[1].textContent.includes("Tasks"), "Tasks link must render label");
+    assert.ok(navLinks[2].textContent.includes("User Route"), "User link must render label");
+    assert.ok(navLinks[3].textContent.includes("File Splat"), "Reports link must render label");
+    assert.ok(navLinks[4].textContent.includes("Search Params"), "Analytics link must render label");
+    assert.ok(navLinks[5].textContent.includes("Async Block"), "Async link must render label");
 
     // 3. Switch to /tasks -> renders TasksPage while parent layout remains mounted (mounts=1)
     navLinks[1].click();

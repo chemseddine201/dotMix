@@ -356,7 +356,7 @@ function extractTopLevelSections(
   lineMap: LineMap,
   filename?: string
 ): ExtractedSections {
-  const chars = Array.from(source);
+  const chars = source.split("");
   let script: ScriptBlockNode | null = null;
   let style: StyleBlockNode | null = null;
 
