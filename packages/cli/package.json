@@ -14,6 +14,16 @@
     "@mix/compiler-codegen": "0.1.0",
     "@mix/compiler-css": "0.1.0",
     "@mix/diagnostics": "0.1.0"
+  },
+  "peerDependencies": {
+    "sass": "1.80.6",
+    "less": "4.2.1",
+    "postcss": "8.4.49"
+  },
+  "peerDependenciesMeta": {
+    "sass": { "optional": true },
+    "less": { "optional": true },
+    "postcss": { "optional": true }
   }
 }
 

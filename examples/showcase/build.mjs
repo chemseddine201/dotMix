@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse } from "../../packages/compiler-frontend/dist/index.js";
 import { analyze, typecheckTix } from "../../packages/compiler-semantic/dist/index.js";
 import { generate } from "../../packages/compiler-codegen/dist/index.js";
+import { preprocessCss, detectPreprocessorLang } from "../../packages/compiler-css/dist/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.join(__dirname, "src");
@@ -84,7 +85,8 @@ export function buildShowcase(options = {}) {
       filename: file,
       runtimeImportPath: options.runtimeImportPath ?? runtimeUrl,
       sourceMap: true,
-      resolveStyle: styleResolver
+      resolveStyle: styleResolver,
+      styleBaseDir: path.dirname(fullPath)
     });
 
     const jsFilename = `${file}.js`;
@@ -132,13 +134,29 @@ export function buildShowcase(options = {}) {
     compiledArtifacts.set(f, { file: f });
   }
 
-  // Also copy any standalone or extracted .css files
+  // Also compile/copy any standalone or extracted stylesheet files
   const plainCssFiles = scanCssFiles(srcDir);
   for (const f of plainCssFiles) {
+    if (path.basename(f).startsWith("_")) continue;
     const srcCss = path.join(srcDir, f);
     const outCss = path.join(outDir, f);
     fs.mkdirSync(path.dirname(outCss), { recursive: true });
-    fs.copyFileSync(srcCss, outCss);
+    const styleLang = detectPreprocessorLang(f);
+    if (styleLang !== "css") {
+      const rawStyle = fs.readFileSync(srcCss, "utf8");
+      const compiledCss = preprocessCss(rawStyle, {
+        filename: f,
+        lang: styleLang,
+        baseDir: path.dirname(srcCss),
+        readFile: (relPath, fromDir) => {
+          const abs = path.resolve(fromDir ?? path.dirname(srcCss), relPath);
+          return fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : "";
+        }
+      });
+      fs.writeFileSync(outCss, compiledCss, "utf8");
+    } else {
+      fs.copyFileSync(srcCss, outCss);
+    }
   }
 
   return compiledArtifacts;

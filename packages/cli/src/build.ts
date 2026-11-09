@@ -7,7 +7,7 @@ import path from "node:path";
 import { parse } from "@mix/compiler-frontend";
 import { analyze, projectTypeScript, transpileSourceModule } from "@mix/compiler-semantic";
 import { generate } from "@mix/compiler-codegen";
-import { compileCss } from "@mix/compiler-css";
+import { compileCss, preprocessCss } from "@mix/compiler-css";
 
 export interface BuildOptions {
   inDir?: string | undefined;
@@ -18,6 +18,7 @@ export interface BuildOptions {
 export interface BuildResult {
   success: boolean;
   compiledFiles: string[];
+  watchedFiles: string[];
 }
 
 interface ScannedSources {
@@ -75,23 +76,39 @@ export function build(options: BuildOptions = {}): BuildResult {
   }
 
   const compiledFiles: string[] = [];
+  const watchedFilesSet = new Set<string>();
   const emittedCssPaths = new Set<string>();
 
   for (const file of mixFiles) {
+    watchedFilesSet.add(file);
     const filename = path.basename(file);
     const relPath = path.relative(inDir, file);
     const relBase = relPath.replace(/\.(mix|tix)$/i, "");
     const source = fs.readFileSync(file, "utf-8");
-    const readExternalStyle = (relStylePath: string): string => {
-      const resolved = path.resolve(path.dirname(file), relStylePath);
-      return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
+    const readExternalStyle = (relStylePath: string, fromFile?: string): string => {
+      const baseDir = fromFile && path.isAbsolute(fromFile)
+        ? path.dirname(fromFile)
+        : fromFile
+          ? path.dirname(path.resolve(path.dirname(file), fromFile))
+          : path.dirname(file);
+      const resolved = path.resolve(baseDir, relStylePath);
+      if (fs.existsSync(resolved)) {
+        watchedFilesSet.add(resolved);
+        return fs.readFileSync(resolved, "utf-8");
+      }
+      return "";
     };
-    const ast = parse(source, { filename, readFile: readExternalStyle });
+    const ast = parse(source, { filename, readFile: (rel) => readExternalStyle(rel) });
     const desc = analyze(ast, { filename, source });
     const codegen = generate(desc, {
       filename,
-      resolveStyle: (src: string) => readExternalStyle(src),
+      resolveStyle: (src: string, fromFile: string) => readExternalStyle(src, fromFile),
     });
+    if (codegen.styleDependencies) {
+      for (const dep of codegen.styleDependencies) {
+        watchedFilesSet.add(dep);
+      }
+    }
 
     // Normalize relative .tix.js / .mix.js specifiers to .js so output matches <relBase>.js
     const normalizedJs = codegen.js.replace(/\.(tix|mix)\.js(["'])/g, ".js$2");
@@ -130,6 +147,7 @@ export function build(options: BuildOptions = {}): BuildResult {
   }
 
   for (const styleFile of styleFiles) {
+    watchedFilesSet.add(styleFile);
     const relPath = path.relative(inDir, styleFile);
     const relBase = relPath.replace(STYLE_FILE_REGEX, "");
     const cssPath = path.resolve(outDir, `${relBase}.css`);
@@ -138,7 +156,13 @@ export function build(options: BuildOptions = {}): BuildResult {
     }
     const rawCss = fs.readFileSync(styleFile, "utf-8");
     if (rawCss.trim().length > 0) {
-      const compiled = compileCss(rawCss, {
+      const pre = preprocessCss(rawCss, {
+        filename: styleFile
+      });
+      for (const dep of pre.dependencies) {
+        watchedFilesSet.add(dep);
+      }
+      const compiled = compileCss(pre.code, {
         filename: path.basename(styleFile),
         scoped: false
       });
@@ -152,5 +176,6 @@ export function build(options: BuildOptions = {}): BuildResult {
   return {
     success: true,
     compiledFiles,
+    watchedFiles: [...watchedFilesSet],
   };
 }

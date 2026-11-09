@@ -9,6 +9,8 @@ import { createSpan } from "@mix/ast";
 import type { SourceSpan } from "@mix/ast";
 import { MixDiagnosticError, DiagnosticCodes } from "@mix/diagnostics";
 
+export * from "./preprocess.js";
+
 export interface CssCompileOptions {
   scopeId?: string;
   scopeHash?: string;

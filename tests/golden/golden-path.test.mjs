@@ -115,7 +115,7 @@ function setupDomGlobals() {
   };
 }
 
-const PASSING_VARIANTS = new Set(["js-css"]);
+const PASSING_VARIANTS = new Set(["js-scss", "js-sass", "js-less", "js-pcss", "js-css"]);
 
 describe("Gate 27 Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
   for (const lang of LANGUAGES) {

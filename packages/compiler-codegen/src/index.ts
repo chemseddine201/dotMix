@@ -26,7 +26,7 @@ import {
   type SourceMapV3,
   type SpanEntry
 } from "@mix/compiler-semantic";
-import { compileCss } from "@mix/compiler-css";
+import { compileCss, preprocessCss } from "@mix/compiler-css";
 
 export interface CodegenOptions {
   filename?: string;
@@ -45,6 +45,7 @@ export interface CodegenResult {
   readonly scopeId?: string;
   readonly scopeAttribute?: string;
   readonly map?: SourceMapV3;
+  readonly styleDependencies?: readonly string[];
 }
 
 const SVG_TAGS = new Set([
@@ -698,13 +699,21 @@ export function generate(
 
   let rawCssToCompile = "";
   let isScoped = true;
+  const styleDependencies: string[] = [];
 
   if (descriptor.ast.style) {
     isScoped = descriptor.ast.style.scoped;
     if (descriptor.ast.style.content && descriptor.ast.style.content.trim().length > 0) {
       rawCssToCompile = descriptor.ast.style.content;
     } else if (descriptor.ast.style.src && options?.resolveStyle) {
-      rawCssToCompile = options.resolveStyle(descriptor.ast.style.src, filename);
+      const srcPath = descriptor.ast.style.src;
+      const content = options.resolveStyle(srcPath, filename);
+      const pre = preprocessCss(content, {
+        filename: srcPath,
+        readFile: (rel, from) => options.resolveStyle!(rel, from)
+      });
+      rawCssToCompile = pre.code;
+      styleDependencies.push(...pre.dependencies);
     }
   }
 
@@ -712,7 +721,14 @@ export function generate(
     const pieces: string[] = [];
     for (const cssFile of descriptor.cssImports) {
       const content = options.resolveStyle(cssFile, filename);
-      if (content) pieces.push(content);
+      if (content) {
+        const pre = preprocessCss(content, {
+          filename: cssFile,
+          readFile: (rel, from) => options.resolveStyle!(rel, from)
+        });
+        pieces.push(pre.code);
+        styleDependencies.push(...pre.dependencies);
+      }
     }
     if (pieces.length > 0) {
       rawCssToCompile = pieces.join("\n");
@@ -883,6 +899,7 @@ export function generate(
     ...(compiledCss !== undefined ? { css: compiledCss } : {}),
     ...(scopeId !== undefined ? { scopeId } : {}),
     ...(scopeAttribute !== undefined ? { scopeAttribute } : {}),
-    ...(map !== undefined ? { map } : {})
+    ...(map !== undefined ? { map } : {}),
+    ...(styleDependencies.length > 0 ? { styleDependencies: Object.freeze(styleDependencies) } : {})
   });
 }
