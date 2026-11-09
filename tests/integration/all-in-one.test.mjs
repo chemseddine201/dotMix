@@ -138,7 +138,7 @@ describe("All-In-One Modular Architecture Suite", () => {
 
     // 2. Navigation items exist in Sidebar
     const navLinks = root.querySelectorAll(".nav-link");
-    assert.strictEqual(navLinks.length, 6);
+    assert.strictEqual(navLinks.length, 8);
     assert.ok(navLinks[0].textContent.includes("Overview"), "Overview link must render label");
     assert.ok(navLinks[0].classList.contains("active"), "Overview link is active at /");
     assert.ok(navLinks[1].textContent.includes("Tasks"), "Tasks link must render label");
@@ -146,6 +146,8 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.ok(navLinks[3].textContent.includes("File Splat"), "Reports link must render label");
     assert.ok(navLinks[4].textContent.includes("Search Params"), "Analytics link must render label");
     assert.ok(navLinks[5].textContent.includes("Async Block"), "Async link must render label");
+    assert.ok(navLinks[6].textContent.includes("Forms"), "Forms link must render label");
+    assert.ok(navLinks[7].textContent.includes("Sync"), "Sync link must render label");
 
     // 3. Switch to /tasks -> renders TasksPage while parent layout remains mounted (mounts=1)
     navLinks[1].click();
@@ -170,5 +172,15 @@ describe("All-In-One Modular Architecture Suite", () => {
     btnBack.click();
     const returnedParam = root.querySelector(".param-code");
     assert.ok(returnedParam.textContent.includes("lead-architect"));
+
+    // 7. Switch to /forms -> renders FormsPage with reactive validation engine (Gate 21 / D-124)
+    navLinks[6].click();
+    assert.strictEqual(mountCounter.textContent, "1");
+    assert.ok(root.querySelector(".forms-page"), "FormsPage rendered in outlet");
+
+    // 8. Switch to /sync -> renders SyncPage with CRDT offline store (Gate 16 & 22 / D-119 & D-125)
+    navLinks[7].click();
+    assert.strictEqual(mountCounter.textContent, "1");
+    assert.ok(root.querySelector(".sync-page"), "SyncPage rendered in outlet");
   });
 });

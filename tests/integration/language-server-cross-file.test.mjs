@@ -194,3 +194,4 @@ describe("Gate 24: Cross-File Component Intelligence & External CSS Completions 
     assert.strictEqual(service.getFileContent(docUri), null);
   });
 });
+

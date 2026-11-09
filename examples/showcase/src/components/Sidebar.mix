@@ -23,6 +23,12 @@ export default function Sidebar() {
       <NavLink to="/async" class="nav-link">
         ⏳ Async Block
       </NavLink>
+      <NavLink to="/forms" class="nav-link">
+        📝 Forms & Validation
+      </NavLink>
+      <NavLink to="/sync" class="nav-link">
+        ⚡ Offline Sync (CRDT)
+      </NavLink>
     </nav>
   );
 }

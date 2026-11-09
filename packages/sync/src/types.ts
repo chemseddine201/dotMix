@@ -67,6 +67,9 @@ export interface SyncCollection<T> {
   readonly status: () => SyncStatus;
   readonly isPending: () => boolean;
   readonly pendingCount: () => number;
+  readonly pendingMutations?: () => Mutation<unknown>[];
+  readonly engine?: unknown;
+  compact(ackWatermarkClock?: number): number;
   insert(item: T, targetIndex?: number): Promise<Mutation<T>>;
   update(id: string, partial: Partial<T>): Promise<Mutation<Partial<T>>>;
   delete(id: string): Promise<Mutation<string>>;

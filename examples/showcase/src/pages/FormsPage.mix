@@ -1,0 +1,244 @@
+import { createForm, validators } from "@mix/runtime";
+import "./FormsPage.css";
+
+export default function FormsPage() {
+  const submittedSummary = signal(null);
+
+  const form = createForm({
+    initialValues: {
+      username: "",
+      email: "",
+      role: "developer",
+      bio: "",
+      terms: false
+    },
+    validators: {
+      username: [
+        validators.required("Username is required"),
+        validators.minLength(3, "Username must be at least 3 characters"),
+        validators.pattern(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores allowed")
+      ],
+      email: [
+        validators.required("Email address is required"),
+        validators.email("Please provide a valid email format (name@domain.com)")
+      ],
+      bio: [
+        validators.maxLength(120, "Bio cannot exceed 120 characters")
+      ],
+      terms: [
+        (val) => (!val ? "You must accept the terms of service" : null)
+      ]
+    },
+    onSubmit(values) {
+      submittedSummary.set({
+        values,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    }
+  });
+
+  function onUsernameInput(e) {
+    form.fields.username.setValue(e.target.value);
+  }
+
+  function onEmailInput(e) {
+    form.fields.email.setValue(e.target.value);
+  }
+
+  function onRoleChange(e) {
+    form.fields.role.setValue(e.target.value);
+  }
+
+  function onBioInput(e) {
+    form.fields.bio.setValue(e.target.value);
+  }
+
+  function onTermsChange(e) {
+    form.fields.terms.setValue(e.target.checked);
+  }
+
+  function onUsernameBlur() {
+    form.fields.username.blur();
+  }
+
+  function onEmailBlur() {
+    form.fields.email.blur();
+  }
+
+  function onBioBlur() {
+    form.fields.bio.blur();
+  }
+
+  function handleSubmitForm(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    form.handleSubmit();
+  }
+
+  function handleResetForm() {
+    form.reset();
+    submittedSummary.set(null);
+  }
+
+  return (
+    <div class="forms-page">
+      <div class="forms-hero">
+        <h2 class="hero-title">📝 Reactive Typed Forms & Validation Engine (Gate 21 / D-124)</h2>
+        <p class="hero-subtitle">
+          Fine-grained signal-driven form validation with automatic dirty/touched tracking, composable validators, and zero re-renders.
+        </p>
+      </div>
+
+      <div class="forms-grid">
+        <form class="forms-card" onSubmit={handleSubmitForm}>
+          <h3>User Registration Form</h3>
+
+          <div class="form-group">
+            <label class="form-label">
+              Username <span class="req">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-input"
+              value={form.fields.username.value()}
+              onInput={onUsernameInput}
+              onBlur={onUsernameBlur}
+              placeholder="e.g. alex_dev"
+            />
+            {#if form.fields.username.touched() && form.fields.username.error()}
+              <div class="field-error">⚠️ {form.fields.username.error()}</div>
+            {/if}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              Email Address <span class="req">*</span>
+            </label>
+            <input
+              type="email"
+              class="form-input"
+              value={form.fields.email.value()}
+              onInput={onEmailInput}
+              onBlur={onEmailBlur}
+              placeholder="alex@enterprise.org"
+            />
+            {#if form.fields.email.touched() && form.fields.email.error()}
+              <div class="field-error">⚠️ {form.fields.email.error()}</div>
+            {/if}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Architectural Role</label>
+            <select class="form-select" value={form.fields.role.value()} onChange={onRoleChange}>
+              <option value="developer">Lead Software Engineer</option>
+              <option value="architect">Systems Architect</option>
+              <option value="devops">Cloud Infrastructure Specialist</option>
+              <option value="security">Security & Governance Officer</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Developer Bio (Max 120 chars)</label>
+            <textarea
+              class="form-textarea"
+              value={form.fields.bio.value()}
+              onInput={onBioInput}
+              onBlur={onBioBlur}
+              placeholder="Tell us about your mission..."
+              rows={3}
+            ></textarea>
+            {#if form.fields.bio.error()}
+              <div class="field-error">⚠️ {form.fields.bio.error()}</div>
+            {/if}
+            <div class="char-count">{form.fields.bio.value().length} / 120 characters</div>
+          </div>
+
+          <div class="form-checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                checked={form.fields.terms.value()}
+                onChange={onTermsChange}
+              />
+              <span>I accept the zero-dependency enterprise governance policy</span>
+            </label>
+            {#if form.fields.terms.touched() && form.fields.terms.error()}
+              <div class="field-error">⚠️ {form.fields.terms.error()}</div>
+            {/if}
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn-submit"
+              disabled={!form.isValid()}
+            >
+              🚀 Submit Validated Form
+            </button>
+            <button
+              type="button"
+              class="btn-reset"
+              onClick={handleResetForm}
+            >
+              ↺ Reset
+            </button>
+          </div>
+        </form>
+
+        <div class="state-inspector-card">
+          <h3>🔍 Live Form State Signals</h3>
+          <div class="inspector-item">
+            <span class="inspect-label">Form Valid:</span>
+            <span class={"badge " + (form.isValid() ? "badge-success" : "badge-warn")}>
+              {form.isValid() ? "VALID" : "INVALID"}
+            </span>
+          </div>
+
+          <div class="inspector-item">
+            <span class="inspect-label">Form Dirty:</span>
+            <span class={"badge " + (form.isDirty() ? "badge-info" : "badge-muted")}>
+              {form.isDirty() ? "DIRTY (Modified)" : "PRISTINE"}
+            </span>
+          </div>
+
+          <div class="inspector-item">
+            <span class="inspect-label">Submitting:</span>
+            <span class="badge badge-muted">{form.isSubmitting() ? "YES" : "NO"}</span>
+          </div>
+
+          <h4>Per-Field Validation Status:</h4>
+          <ul class="fields-list">
+            <li>
+              <code>username</code>:
+              <span class="field-val">"{form.fields.username.value()}"</span>
+              {form.fields.username.error() ? " ❌ (" + form.fields.username.error() + ")" : " ✅"}
+            </li>
+            <li>
+              <code>email</code>:
+              <span class="field-val">"{form.fields.email.value()}"</span>
+              {form.fields.email.error() ? " ❌ (" + form.fields.email.error() + ")" : " ✅"}
+            </li>
+            <li>
+              <code>role</code>:
+              <span class="field-val">"{form.fields.role.value()}"</span> ✅
+            </li>
+            <li>
+              <code>terms</code>:
+              <span class="field-val">{form.fields.terms.value() ? "true" : "false"}</span>
+              {form.fields.terms.error() ? " ❌" : " ✅"}
+            </li>
+          </ul>
+
+          {#if submittedSummary()}
+            <div class="submission-banner">
+              <h4>✅ Submission Committed!</h4>
+              <p>Timestamp: <strong>{submittedSummary().timestamp}</strong></p>
+              <pre><code>{JSON.stringify(submittedSummary().values, null, 2)}</code></pre>
+            </div>
+          {/if}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+<style src="./FormsPage.css"></style>

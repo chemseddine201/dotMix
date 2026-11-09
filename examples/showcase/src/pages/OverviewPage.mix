@@ -1,5 +1,6 @@
 import MetricCard from "../components/MetricCard.tix";
 import { useOutletContext } from "@mix/router";
+import { Teleport, KeepAlive } from "@mix/runtime";
 import "./OverviewPage.css";
 
 export default function OverviewPage() {
@@ -7,6 +8,10 @@ export default function OverviewPage() {
   const left = computed(() => count() * 2);
   const right = computed(() => count() + 10);
   const sum = computed(() => left() + right());
+
+  const showModal = signal(false);
+  const activeTab = signal("calculator");
+  const notesText = signal("These notes persist across tab switches via KeepAlive!");
 
   const ctx = useOutletContext();
 
@@ -26,6 +31,22 @@ export default function OverviewPage() {
     }
   }
 
+  function openModal() {
+    showModal.set(true);
+  }
+
+  function closeModal() {
+    showModal.set(false);
+  }
+
+  function setTab(tab) {
+    activeTab.set(tab);
+  }
+
+  function onNotesInput(e) {
+    notesText.set(e.target.value);
+  }
+
   return (
     <div class="page-overview">
       <div class="overview-hero">
@@ -42,15 +63,81 @@ export default function OverviewPage() {
         <MetricCard label="Reactivity Latency" value={1} unit="ms" trend="up" />
       </div>
 
-      <div class="diamond-box">
-        <h3>Push-Pull Diamond Reactivity (Gate 4)</h3>
-        <p class="diamond-formula">
-          Count: <strong>{count()}</strong> | Left (×2): <strong>{left()}</strong> | Right (+10): <strong>{right()}</strong> ⇒ Sum: <strong>{sum()}</strong>
-        </p>
-        <div class="diamond-buttons">
-          <button class="btn-action btn-inc" onClick={increment}>+ Increment Count</button>
-          <button class="btn-action btn-dec" onClick={decrement}>- Decrement Count</button>
+      <div class="portal-cta-box">
+        <div class="portal-cta-text">
+          <h3>🚀 Built-in Visual Primitives: Teleport (createPortal — D-122)</h3>
+          <p>Mount UI anywhere in the DOM tree while retaining reactive context and parent Owner lifecycle.</p>
         </div>
+        <button class="btn-action btn-portal" onClick={openModal}>
+          ✨ Open Teleport Modal (document.body)
+        </button>
+      </div>
+
+      {#if showModal()}
+        <Teleport to="body">
+          <div class="modal-backdrop" onClick={closeModal}>
+            <div class="modal-dialog" onClick={(e) => e.stopPropagation()}>
+              <div class="modal-header">
+                <h4>🚀 Teleport (createPortal — Gate 19)</h4>
+                <button class="btn-close" onClick={closeModal}>×</button>
+              </div>
+              <div class="modal-body">
+                <p>This modal is surgically mounted into <code>document.body</code> outside the app root container!</p>
+                <p>It maintains full reactive context inheritance with parent signals: <strong>Count = {count()}</strong></p>
+                <div class="modal-actions">
+                  <button class="btn-action btn-inc" onClick={increment}>+ Increment Count from Modal</button>
+                  <button class="btn-action" onClick={closeModal}>Close Modal</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+      {/if}
+
+      <div class="keepalive-box">
+        <div class="keepalive-header">
+          <h3>💾 KeepAlive Offscreen DOM Preservation (Gate 19 / D-122)</h3>
+          <div class="tab-buttons">
+            <button
+              class={"tab-btn " + (activeTab() === "calculator" ? "active" : "")}
+              onClick={() => setTab("calculator")}
+            >
+              🧮 Live Calculator Tab
+            </button>
+            <button
+              class={"tab-btn " + (activeTab() === "notes" ? "active" : "")}
+              onClick={() => setTab("notes")}
+            >
+              📝 Persistent Notes Tab
+            </button>
+          </div>
+        </div>
+
+        <KeepAlive activeKey={activeTab()} max={5}>
+          {#if activeTab() === "calculator"}
+            <div class="tab-pane">
+              <p class="pane-desc">Push-Pull Diamond Reactivity (Gate 4) — recalculates sum with zero glitching.</p>
+              <p class="diamond-formula">
+                Count: <strong>{count()}</strong> | Left (×2): <strong>{left()}</strong> | Right (+10): <strong>{right()}</strong> ⇒ Sum: <strong>{sum()}</strong>
+              </p>
+              <div class="diamond-buttons">
+                <button class="btn-action btn-inc" onClick={increment}>+ Increment Count</button>
+                <button class="btn-action btn-dec" onClick={decrement}>- Decrement Count</button>
+              </div>
+            </div>
+          {:else}
+            <div class="tab-pane">
+              <p class="pane-desc">Type below, switch back to the Calculator tab, then return here. The DOM subtree and text remain preserved offscreen without re-render!</p>
+              <textarea
+                class="notes-area"
+                value={notesText()}
+                onInput={onNotesInput}
+                rows={3}
+                placeholder="Type some persistent notes..."
+              ></textarea>
+            </div>
+          {/if}
+        </KeepAlive>
       </div>
     </div>
   );

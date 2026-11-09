@@ -134,6 +134,8 @@ export function syncCollection<T>(
     status: () => engine.status(),
     isPending: () => pendingCountSig() > 0,
     pendingCount: () => pendingCountSig(),
+    pendingMutations: () => engine.queue,
+    engine,
 
     async insert(item: T, targetIndex?: number): Promise<Mutation<T>> {
       const id = resolveItemId(item, options.idField);
@@ -270,6 +272,14 @@ export function syncCollection<T>(
       pendingCountSig.set(0);
       await driver.removeItem(key);
       itemsSig.set([]);
+    },
+
+    compact(ackWatermarkClock?: number): number {
+      const clock = ackWatermarkClock ?? engine.clock.currentTime;
+      const purged = crdtArray.compact(clock);
+      updateItems();
+      saveSnapshot();
+      return purged;
     },
   };
 }

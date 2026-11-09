@@ -134,7 +134,8 @@ export function createPortal(
 export interface KeepAliveProps {
   activeKey: string | (() => string);
   max?: number | undefined;
-  render: (key: string) => Node | readonly Node[] | unknown;
+  render?: ((key: string) => Node | readonly Node[] | unknown) | undefined;
+  children?: ((key?: string) => unknown) | Node | readonly Node[] | unknown;
 }
 
 interface KeepAliveCacheEntry {
@@ -193,7 +194,11 @@ export function KeepAlive(props: KeepAliveProps, parent?: Node | null, anchor?: 
     createRoot((dispose) => {
       entryDisposer = dispose;
       entryOwner = getCurrentOwner();
-      const res = props.render(key);
+      const res = props.render
+        ? props.render(key)
+        : typeof props.children === "function"
+        ? (props.children as (k?: string) => unknown)(key)
+        : props.children;
       renderedNodes = normalizeToNodeArray(res as Node | readonly Node[] | null | undefined);
     }, parentOwner);
 

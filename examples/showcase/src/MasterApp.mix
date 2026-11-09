@@ -3,6 +3,8 @@ import { setSanitizerProvider } from "@mix/runtime";
 import DashboardLayout from "./DashboardLayout.mix";
 import OverviewPage from "./pages/OverviewPage.mix";
 import TasksPage from "./pages/TasksPage.mix";
+import FormsPage from "./pages/FormsPage.mix";
+import SyncPage from "./pages/SyncPage.mix";
 import UserPage from "./pages/UserPage.mix";
 import ReportsPage from "./pages/ReportsPage.mix";
 import AnalyticsPage from "./pages/AnalyticsPage.mix";
@@ -25,6 +27,14 @@ export default function MasterApp() {
     {
       path: "/tasks",
       element: TasksPage,
+    },
+    {
+      path: "/forms",
+      element: FormsPage,
+    },
+    {
+      path: "/sync",
+      element: SyncPage,
     },
     {
       path: "/users/:id",

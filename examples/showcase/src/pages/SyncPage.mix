@@ -1,0 +1,147 @@
+import { syncCollection, MemoryDriver } from "@mix/sync";
+import "./SyncPage.css";
+
+export default function SyncPage() {
+  const isOnline = signal(true);
+  const newTodoText = signal("");
+  const driver = new MemoryDriver();
+
+  const store = syncCollection("showcase_todos", {
+    driver,
+    autoFlush: true,
+    transport: {
+      send(mutations) {
+        // Mock remote transport
+        return Promise.resolve(mutations.map((m) => m.id));
+      }
+    }
+  });
+
+  // Seed with initial items if empty
+  if (store.items().length === 0) {
+    store.insert({ id: "t1", title: "Verify compiler AOT surgical DOM pipeline", completed: true });
+    store.insert({ id: "t2", title: "Test offline CRDT conflict convergence", completed: false });
+    store.insert({ id: "t3", title: "Audit zero external dependencies rule", completed: false });
+  }
+
+  function toggleNetwork() {
+    isOnline.set(!isOnline());
+    store.engine.setOnline(isOnline());
+  }
+
+  function onInput(e) {
+    newTodoText.set(e.target.value);
+  }
+
+  function addTodo(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const txt = newTodoText().trim();
+    if (!txt) return;
+    const id = "t_" + Date.now().toString(36);
+    store.insert({ id, title: txt, completed: false });
+    newTodoText.set("");
+  }
+
+  function toggleComplete(id, current) {
+    store.update(id, { completed: !current });
+  }
+
+  function deleteTodo(id) {
+    store.delete(id);
+  }
+
+  function runCompaction() {
+    // Purges tombstones up to current clock
+    const clock = store.engine.clock;
+    store.compact(clock);
+  }
+
+  return (
+    <div class="sync-page">
+      <div class="sync-hero">
+        <h2 class="hero-title">⚡ Local-First Offline Sync State & CRDTs (Gates 16 & 22 / D-119 & D-125)</h2>
+        <p class="hero-subtitle">
+          Conflict-Free Replicated Data Types with zero-latency local mutations, fractional indexing, offline queueing, and tombstone epoch compaction.
+        </p>
+      </div>
+
+      <div class="sync-controls-bar">
+        <div class="network-toggle-box">
+          <button
+            class={"btn-network " + (isOnline() ? "online" : "offline")}
+            onClick={toggleNetwork}
+          >
+            {isOnline() ? "🟢 Simulated Network: ONLINE" : "🔴 Simulated Network: OFFLINE"}
+          </button>
+          <span class="network-desc">
+            {isOnline()
+              ? "Mutations immediately flush to transport"
+              : "Mutations queue locally; 0ms UI latency preserved"}
+          </span>
+        </div>
+
+        <div class="sync-stats">
+          <span class="stat-pill">Pending Queue: <strong>{store.pendingMutations().length}</strong></span>
+          <span class="stat-pill">Lamport Clock: <strong>{store.engine.clock}</strong></span>
+          <button class="btn-compact" onClick={runCompaction}>🧹 Compact Tombstones (GC)</button>
+        </div>
+      </div>
+
+      <div class="sync-content-grid">
+        <div class="todo-panel">
+          <form class="add-box" onSubmit={addTodo}>
+            <input
+              type="text"
+              class="add-input"
+              value={newTodoText()}
+              onInput={onInput}
+              placeholder="Add offline-first task..."
+            />
+            <button type="submit" class="btn-add">+ Add Task</button>
+          </form>
+
+          <ul class="sync-list">
+            {#each store.items() as todo (todo.id)}
+              <li class={"sync-item " + (todo.completed ? "completed" : "")}>
+                <label class="item-check">
+                  <input
+                    type="checkbox"
+                    checked={todo.completed}
+                    onChange={() => toggleComplete(todo.id, todo.completed)}
+                  />
+                  <span class="item-text">{todo.title}</span>
+                </label>
+                <div class="item-actions">
+                  <span class="item-key">{todo.id}</span>
+                  <button class="btn-del" onClick={() => deleteTodo(todo.id)}>✕</button>
+                </div>
+              </li>
+            {/each}
+          </ul>
+        </div>
+
+        <div class="crdt-inspector">
+          <h3>📊 CRDT State Visualizer</h3>
+          <p class="inspector-desc">
+            Notice that clicking checkboxes or adding tasks updates the UI with 0ms microsecond latency even while OFFLINE.
+          </p>
+
+          <div class="crdt-metric">
+            <span class="metric-name">Active Replicable Items:</span>
+            <span class="metric-val">{store.items().length}</span>
+          </div>
+
+          <div class="crdt-metric">
+            <span class="metric-name">Storage Driver:</span>
+            <span class="metric-val">MemoryDriver (OPFS/IndexedDB Ready)</span>
+          </div>
+
+          <h4>Internal Fractional Array State:</h4>
+          <pre class="state-json"><code>{JSON.stringify(store.items(), null, 2)}</code></pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+<style src="./SyncPage.css"></style>

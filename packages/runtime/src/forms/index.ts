@@ -44,6 +44,7 @@ export interface FormConfig<T extends Record<string, unknown>> {
 
 export interface FormController<T extends Record<string, unknown>> {
   field<K extends keyof T>(name: K): FieldController<T[K]>;
+  readonly fields: { readonly [K in keyof T]: FieldController<T[K]> };
   readonly values: () => T;
   readonly errors: () => Record<keyof T, string | null>;
   readonly isValid: () => boolean;
@@ -299,9 +300,21 @@ export function createForm<T extends Record<string, unknown>>(
     });
   }
 
+  const fieldsProxy = new Proxy({} as { [K in keyof T]: FieldController<T[K]> }, {
+    get(_target, prop: string | symbol) {
+      if (typeof prop === "string") {
+        return getField(prop as keyof T);
+      }
+      return undefined;
+    }
+  });
+
   return {
     field<K extends keyof T>(name: K): FieldController<T[K]> {
       return getField(name);
+    },
+    get fields(): { readonly [K in keyof T]: FieldController<T[K]> } {
+      return fieldsProxy;
     },
     get values(): () => T {
       return valuesMemo;
@@ -387,3 +400,4 @@ export function createForm<T extends Record<string, unknown>>(
     }
   };
 }
+

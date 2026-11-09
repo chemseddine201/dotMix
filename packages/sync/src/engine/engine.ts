@@ -49,6 +49,10 @@ export class SyncEngine {
     }
   }
 
+  get queue(): Mutation<unknown>[] {
+    return [...this.pendingQueue];
+  }
+
   setChannel(channel: SyncChannel): void {
     if (this.unlistenChannel) {
       this.unlistenChannel();
