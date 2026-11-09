@@ -14,6 +14,7 @@
     "build": "tsc -b",
     "lint": "eslint .",
     "test": "node --test tests/**/*.test.mjs",
+    "test:golden": "node --test tests/golden/golden-path.test.mjs",
     "serve": "node examples/showcase/serve.mjs"
   },
   "devDependencies": {

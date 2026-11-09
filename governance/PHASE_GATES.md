@@ -389,4 +389,57 @@ Acceptance:
 - Preprocessor formats and file extensions accurately match requested options;
 - Unmocked integration tests verify project scaffolding across TypeScript and JavaScript variants.
 
+## Gate 27 — Golden Path (P0 Production Hardening)
+
+Scope:
+- `T-27.1`: Golden-path E2E harness (`tests/golden/golden-path.test.mjs`, `npm run test:golden`) exercising all 10 scaffold variants (`{TS, JS} × {scss, sass, less, pcss, css}`) via the real CLI binary (`mix create`, `mix check src`, `mix build src dist`, specifier audit, `happy-dom` execution smoke test, and `css-tree` strict CSS validity check);
+- `T-27.2`: Scaffold template corrections (`RouterProvider`, removal of unimplemented `--watch` in `dev`, strict TypeScript typing in generated `.tix` files, externalized template directory `packages/cli/templates/{ts,js}/`);
+- `T-27.3` (requires D-130): Build-time CSS preprocessor stage (`preprocess` before `compileCss`) for `.scss`, `.sass`, `.less`, and `.pcss`/`.postcss` with `MIX_ERR_PREPROCESSOR_MISSING` diagnostics;
+- `T-27.4` (requires D-131): `typecheckTix` module resolution against real package `.d.ts` files and on-demand relative `.tix`/`.mix`/`.ts` resolution.
+
+Acceptance:
+- `npm run test:golden` is 100% green across all 10 variants with zero `todo` markers remaining;
+- All emitted `.js` specifiers are valid and free of `file:///` paths;
+- All emitted `.css` files parse cleanly under `css-tree` with no residual preprocessor tokens;
+- Built output mounts and navigates cleanly across `/`, `/tasks`, and `/forms` in `happy-dom`.
+
+## Gate 28 — Correctness and Security Hardening (P1)
+
+Scope:
+- `T-28.1`: Reactive `<Can>` DOM conditional mounting and disposal via `createConditional`;
+- `T-28.2`: Router permission guard enforcement on initial load, `popstate`, and reactive ability changes;
+- `T-28.3`: Permissions engine hardening (`isSignal` brand check, sync `can()` error on async rules, `constructor.name` warning/strict mode, memoized `useAbility()`);
+- `T-28.4` (requires D-132, D-133): Element and fragment expressions inside `{...}` attribute values across parser, semantic, codegen, SSR, and LSP;
+- `T-28.5`: Production sanitizer adapter package (`@mix/sanitizer-dompurify`) and XSS vector verification;
+- `T-28.6`: Strengthened DOM/typecheck assertions in integration tests.
+
+Acceptance:
+- All audit contradictions C2, C3, C5, C7, C8, and C9 closed with reproducing tests;
+- `npm test` and `npm run test:golden` 100% green.
+
+## Gate 29 — Production Toolchain (P2)
+
+Scope:
+- `T-29.1`: `mix dev` server built on `@mix/vite-plugin` with HMR, module resolution, and SPA fallback;
+- `T-29.2`: `mix build` bundler integration with route code-splitting, minification, hashed assets, and bundle-size report;
+- `T-29.3`: Formatted CLI diagnostics with source code frames, `file:line:col`, and error codes;
+- `T-29.4`: Node SSR server adapter (`@mix/server-node`) with streaming HTML, error boundaries, and CSP nonce support.
+
+Acceptance:
+- Automated HMR and dev server tests pass;
+- Production bundle passes specifier and size audits;
+- Streaming SSR hydrates cleanly with CSP nonce enforcement.
+
+## Gate 30 — Prove and Publish (P3)
+
+Scope:
+- `T-30.1`: Real-browser Playwright verification matrix (Chromium, Firefox, WebKit) across Showcase and Golden-Path scaffold;
+- `T-30.2`: Automated benchmark suite and CI bundle-size budget enforcement;
+- `T-30.3`: Documentation site, semver/release policy, changelog, and clean registry package verification.
+
+Acceptance:
+- Playwright test matrix green across Chromium, Firefox, and WebKit;
+- Benchmarks and size budgets verified and recorded transparently.
+
+
 

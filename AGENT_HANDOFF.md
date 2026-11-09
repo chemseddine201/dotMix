@@ -2,16 +2,9 @@
 
 ## Current Active Assignment
 
-Execute **Phase Gates 2 through 9: Complete Mix/Tix Framework Implementation, Verification & Showcase** per `agent/GATE_2_TO_9_FULL_BUILD_TASK.md` and `governance/PHASE_GATES.md`.
+Execute **Phase Gate 27: Golden Path (Production Hardening)** per `agent/GATE_27_30_PRODUCTION_HARDENING_TASK.md` and `governance/PHASE_GATES.md`.
 
 ## Authorized Scope
 
-- **Gate 1 Audit Remediation (`G1-F-01`..`G1-F-06`)**
-- **Gate 2:** Minimal Language Frontend (`@mix/ast`, `@mix/compiler-frontend`)
-- **Gate 3:** Semantic Analysis & `.tix` TypeScript Projection (`@mix/compiler-semantic`)
-- **Gate 4:** Reactive Runtime Core & Cancellation (`@mix/runtime/core`, `@mix/runtime/platform`)
-- **Gate 5:** Direct DOM Codegen & Unmocked Vertical Slice (`@mix/compiler-codegen`, `@mix/runtime/dom`)
-- **Gate 6:** Scoped CSS & Security Boundaries (`@mix/compiler-css`, `@mix/runtime/security`)
-- **Gate 7:** Keyed Reconciliation with Atomic Duplicate Rejection (`@mix/runtime/dom`)
-- **Gate 8:** Full `.tix` TypeScript Compiler API Verification & HMR (`@mix/compiler-semantic`, `@mix/runtime`)
-- **Gate 9:** Hardening, Real Compiler Showcase (`examples/showcase/`), Full Test Suite, and Example Usage Guide
+- **Gate 27 (Approved):** Golden Path E2E Harness & Scaffold/Compiler Hardening (`T-27.1`, `T-27.2`, and upon HAA decision ratification of `D-130`/`D-131`: `T-27.3`, `T-27.4`)
+- **Gates 28–30:** Defined in `agent/GATE_27_30_PRODUCTION_HARDENING_TASK.md` and `governance/PHASE_GATES.md`; require explicit per-gate written approval from Human Architecture Authority (`"Gate 28 is approved"`, etc.) before execution.
