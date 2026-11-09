@@ -8,4 +8,5 @@ export * from "./dom/index.js";
 export * from "./platform/index.js";
 export * from "./security/index.js";
 export * from "./typecheck/index.js";
+export * from "./forms/index.js";
 
