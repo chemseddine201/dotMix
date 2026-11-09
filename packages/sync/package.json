@@ -1,0 +1,14 @@
+{
+  "name": "@mix/sync",
+  "version": "0.1.0",
+  "description": "Local-First Offline-First Reactive CRDT State Sync Engine for Mix/Tix",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@mix/runtime": "0.1.0"
+  },
+  "devDependencies": {
+    "@mix/diagnostics": "0.1.0"
+  }
+}

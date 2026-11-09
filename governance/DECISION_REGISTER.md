@@ -22,6 +22,9 @@ This register records constraints known to be accepted in the project's current 
 | D-116 | Gate 13: Server-Side Rendering (`@mix/compiler-ssr`) and Surgical Client Hydration (`hydrate()`). | Verify renderToString/renderToStream, hydration comment markers, existing DOM node reference preservation, and XSS escaping. |
 | D-117 | Gate 14: Bundler Integration (`@mix/vite-plugin`) and CLI Tooling (`mix check`, `mix build`, `mix dev`). | Verify Vite dev/build with HMR (D-111) and CLI typechecking/code-frame output. |
 | D-118 | Gate 15: Language Server Protocol (`@mix/language-server`) and VS Code Extension (`editors/vscode-mix`). | Verify LSP hover, diagnostics, go-to-definition, and autocomplete mapped through SourceMapSpanTable (R-SP-01..05). |
+| D-119 | Gate 16: Local-First Offline Sync State Engine (`@mix/sync`) with CRDT stores (`syncSignal`, `syncCollection`), OPFS/IndexedDB durable logging, Lamport clocks, optimistic mutations, and rollback. | Verify synchronous local updates, offline survival, deterministic conflict convergence, and transactional rollback. |
+| D-120 | Gate 17: Universal Polyglot Component ABI (`@mix/interop`) with TC39 Signals bridge, React 19 / Vue 3.5 / Angular wrappers, and Light-DOM custom elements. | Verify bi-directional reactive updates, zero VDOM overhead, prop/context forwarding, and style inheritance. |
+| D-121 | Gate 18: Resilient Streaming & Progressive Hydration (`@mix/ssr`, `@mix/stream`) with chunk manifests, packet loss auto-retry, and surgical zero-VDOM hydration. | Verify island-level resumption, packet dropout simulation, and sub-island error containment. |
 
 ---
 

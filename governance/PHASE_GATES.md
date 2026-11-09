@@ -222,3 +222,49 @@ Scope:
 Acceptance:
 - automated LSP protocol tests for `.mix` and `.tix` files;
 - accurate source mapping of diagnostics and completions.
+
+## Gate 16 — Local-First Offline Sync Engine (`@mix/sync`) (D-119)
+
+Scope:
+- Reactive CRDT State Primitives: `syncSignal<T>` and `syncCollection<T>`;
+- Durable Client Persistence: pluggable drivers (`MemoryDriver`, `IndexedDbDriver`, `OpfsDriver`);
+- Vector Clocks, Lamport timestamps, and monotonic sequence mutation tracking;
+- Deterministic Conflict-Free Replicated Data Types: LWW-Register and Replicable Array CRDT with fractional indexing;
+- Optimistic mutation execution with transactional rollback on server rejection;
+- Transport-agnostic synchronization protocol and client sync manager (`SyncEngine`).
+
+Acceptance:
+- Zero external dependencies in `@mix/sync` (depends only on `@mix/runtime`);
+- Mutations applied synchronously to local signal/DOM (0ms perceived latency);
+- Mutations persist to storage log and survive page reload;
+- Concurrent modifications on divergent nodes converge to identical deterministic state (LWW & fractional index order);
+- Rejected mutations roll back local signal state and surgical DOM without full-page re-mount;
+- 100% type safety and unmocked integration tests covering offline, sync, conflict, and recovery.
+
+## Gate 17 — Universal Polyglot Component ABI (`@mix/interop`) (D-120)
+
+Scope:
+- ECMAScript TC39 Signals Standard interoperability bridge (`SignalRef<T>`);
+- Direct DOM surgical component projection without VDOM wrapping;
+- React 19 / Next.js adapter (`useMixComponent`, `asReactComponent`);
+- Vue 3.5 / Angular 18+ signal adapters;
+- Light-DOM Custom Element generator with complex object property reflection and context inheritance.
+
+Acceptance:
+- Bi-directional reactivity binding between Mix signals and foreign framework state;
+- Seamless prop/callback/context forwarding across framework boundaries;
+- Zero VDOM overhead during Mix component execution inside React/Vue trees;
+- Full typography and style inheritance in Light-DOM custom elements.
+
+## Gate 18 — Resilient Resumable Streaming & Progressive Hydration (`@mix/ssr`, `@mix/stream`) (D-121)
+
+Scope:
+- Streaming HTML generator with signed island chunk manifests;
+- Progressive surgical DOM hydration without VDOM replay;
+- Autonomous packet loss & microservice dropout chunk recovery protocol;
+- Sub-island error boundary containment.
+
+Acceptance:
+- Dropped chunk simulation recovers seamlessly via background chunk retry without aborting sibling islands;
+- Client attaches event listeners and signal bindings in a single O(N) pass;
+- Zero full-tree re-renders on streaming recovery.
