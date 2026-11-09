@@ -653,7 +653,7 @@ export function injectStylesheet(id: string, cssText: string): HTMLStyleElement 
   return styleEl;
 }
 
-function normalizeToNodeArray(rendered: Node | readonly Node[] | null | undefined): Node[] {
+export function normalizeToNodeArray(rendered: Node | readonly Node[] | null | undefined): Node[] {
   if (!rendered) return [];
   if (Array.isArray(rendered)) {
     return [...(rendered as readonly Node[])];
@@ -1273,3 +1273,10 @@ export function applyHmrUpdate(
 
   return true;
 }
+
+// ============================================================================
+// 6. DOM Lifecycle & Visual Primitives (Phase 19 / D-122)
+// ============================================================================
+
+export * from "./lifecycle.js";
+
