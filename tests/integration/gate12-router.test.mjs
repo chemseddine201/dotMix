@@ -11,6 +11,8 @@
  * 7. Zero external runtime dependencies in @mix/router
  */
 
+/* global setTimeout, document */
+
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -169,7 +171,7 @@ describe("Gate 12: Production Client Router (@mix/router — D-115)", () => {
         { path: "/fast" },
         {
           path: "/admin",
-          beforeEnter: (to, from) => {
+          beforeEnter: (to) => {
             if (!to.query.token) {
               return "/login"; // Redirect
             }

@@ -23,7 +23,8 @@ export const DiagnosticCodes = {
   MIX_SEC_HTML_CONTEXT: "MIX_SEC_HTML_CONTEXT",
   MIX_SEC_CSS_PROPERTY: "MIX_SEC_CSS_PROPERTY",
   MIX_SEC_UNSAFE_URL: "MIX_SEC_UNSAFE_URL",
-  MIX_WARN_HMR_STALE_CLOSURE: "MIX_WARN_HMR_STALE_CLOSURE"
+  MIX_WARN_HMR_STALE_CLOSURE: "MIX_WARN_HMR_STALE_CLOSURE",
+  MIX_SSR_HYDRATION_MISMATCH: "MIX_SSR_HYDRATION_MISMATCH"
 } as const satisfies Record<string, IDiagnosticCode>;
 
 export type DiagnosticCode = (typeof DiagnosticCodes)[keyof typeof DiagnosticCodes];

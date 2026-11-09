@@ -32,6 +32,137 @@ import {
 // 1. Surgical DOM Creation & Mutation Primitives
 // ============================================================================
 
+export interface HydrationMismatch {
+  expected: string;
+  actual: string;
+  node: Node;
+}
+
+export interface HydrateOptions {
+  onMismatch?: (mismatch: HydrationMismatch) => void;
+}
+
+class HydrationWalker {
+  public current: Node | null;
+  public readonly container: Element;
+  public readonly options?: HydrateOptions | undefined;
+
+  constructor(container: Element, options?: HydrateOptions | undefined) {
+    this.container = container;
+    this.current = container.firstChild;
+    this.options = options;
+  }
+
+  private advanceNext(node: Node): Node | null {
+    if (node.firstChild) {
+      return node.firstChild;
+    }
+    let p: Node | null = node;
+    while (p && p !== this.container) {
+      if (p.nextSibling) {
+        return p.nextSibling;
+      }
+      p = p.parentNode;
+    }
+    return null;
+  }
+
+  public claimElement(tag: string): Element | null {
+    while (this.current) {
+      if (this.current.nodeType === 8) { // Comment
+        this.current = this.advanceNext(this.current);
+        continue;
+      }
+      if (this.current.nodeType === 3) { // Text
+        if (!this.current.textContent || !this.current.textContent.trim()) {
+          this.current = this.advanceNext(this.current);
+          continue;
+        }
+      }
+      if (this.current.nodeType === 1) { // Element
+        const el = this.current as Element;
+        if (el.tagName.toLowerCase() === tag.toLowerCase()) {
+          this.current = this.advanceNext(el);
+          return el;
+        } else {
+          // Mismatch
+          const mismatch: HydrationMismatch = {
+            expected: tag.toLowerCase(),
+            actual: el.tagName.toLowerCase(),
+            node: el,
+          };
+          this.options?.onMismatch?.(mismatch);
+          return null;
+        }
+      }
+      this.current = this.advanceNext(this.current);
+    }
+    return null;
+  }
+
+  public claimText(): Text | null {
+    while (this.current) {
+      if (this.current.nodeType === 8) { // Comment
+        this.current = this.advanceNext(this.current);
+        continue;
+      }
+      if (this.current.nodeType === 3) { // Text
+        const textNode = this.current as Text;
+        this.current = this.advanceNext(textNode);
+        return textNode;
+      }
+      break;
+    }
+    return null;
+  }
+
+  public claimComment(dataPrefix?: string): Comment | null {
+    while (this.current) {
+      if (this.current.nodeType === 8) { // Comment
+        const commentNode = this.current as Comment;
+        if (!dataPrefix || commentNode.data.startsWith(dataPrefix)) {
+          this.current = this.advanceNext(commentNode);
+          return commentNode;
+        }
+      }
+      this.current = this.advanceNext(this.current);
+    }
+    return null;
+  }
+}
+
+let activeHydrationContext: HydrationWalker | null = null;
+
+export function getHydrationContext(): HydrationWalker | null {
+  return activeHydrationContext;
+}
+
+export function hydrate(
+  component: (props?: Record<string, unknown>) => unknown,
+  container: HTMLElement,
+  options?: HydrateOptions
+): () => void {
+  const walker = new HydrationWalker(container, options);
+  activeHydrationContext = walker;
+
+  let rootDisposer: (() => void) | null = null;
+  try {
+    createRoot((dispose) => {
+      rootDisposer = dispose;
+      component();
+    });
+  } finally {
+    activeHydrationContext = null;
+  }
+
+  return () => {
+    if (rootDisposer) {
+      rootDisposer();
+      rootDisposer = null;
+    }
+  };
+}
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "xlink:href", "poster"]);
@@ -54,6 +185,15 @@ const BOOLEAN_ATTRIBUTES = new Set([
 ]);
 
 export function createElement(tag: string, scopeAttr?: string): HTMLElement {
+  if (activeHydrationContext) {
+    const claimed = activeHydrationContext.claimElement(tag);
+    if (claimed) {
+      if (scopeAttr && !claimed.hasAttribute(scopeAttr)) {
+        claimed.setAttribute(scopeAttr, "");
+      }
+      return claimed as HTMLElement;
+    }
+  }
   const el = document.createElement(tag);
   if (scopeAttr) {
     el.setAttribute(scopeAttr, "");
@@ -62,6 +202,15 @@ export function createElement(tag: string, scopeAttr?: string): HTMLElement {
 }
 
 export function createSvgElement(tag: string, scopeAttr?: string): SVGElement {
+  if (activeHydrationContext) {
+    const claimed = activeHydrationContext.claimElement(tag);
+    if (claimed) {
+      if (scopeAttr && !claimed.hasAttribute(scopeAttr)) {
+        claimed.setAttribute(scopeAttr, "");
+      }
+      return claimed as SVGElement;
+    }
+  }
   const el = document.createElementNS(SVG_NS, tag);
   if (scopeAttr) {
     el.setAttribute(scopeAttr, "");
@@ -70,10 +219,22 @@ export function createSvgElement(tag: string, scopeAttr?: string): SVGElement {
 }
 
 export function createTextNode(text: string | number = ""): Text {
+  if (activeHydrationContext) {
+    const claimed = activeHydrationContext.claimText();
+    if (claimed) {
+      return claimed;
+    }
+  }
   return document.createTextNode(String(text));
 }
 
 export function createComment(data: string = ""): Comment {
+  if (activeHydrationContext) {
+    const claimed = activeHydrationContext.claimComment(data);
+    if (claimed) {
+      return claimed;
+    }
+  }
   return document.createComment(data);
 }
 
@@ -460,6 +621,11 @@ export function bindRef<T extends Element>(
 }
 
 export function insertNode(parent: Node, node: Node, anchor?: Node | null): void {
+  if (activeHydrationContext) {
+    if (node.parentNode === parent) {
+      return;
+    }
+  }
   parent.insertBefore(node, anchor ?? null);
 }
 

@@ -1,0 +1,14 @@
+{
+  "name": "@mix/compiler-ssr",
+  "version": "0.1.0",
+  "description": "Ahead-of-Time Server-Side Rendering Compiler for Mix/Tix",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@mix/ast": "0.1.0",
+    "@mix/compiler-semantic": "0.1.0",
+    "@mix/compiler-css": "0.1.0",
+    "@mix/diagnostics": "0.1.0"
+  }
+}

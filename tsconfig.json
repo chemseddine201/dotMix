@@ -9,7 +9,8 @@
     { "path": "packages/compiler-css" },
     { "path": "packages/compiler-codegen" },
     { "path": "packages/runtime" },
-    { "path": "packages/router" }
+    { "path": "packages/router" },
+    { "path": "packages/compiler-ssr" }
   ]
 }
 
