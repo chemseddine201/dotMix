@@ -268,3 +268,90 @@ Acceptance:
 - Dropped chunk simulation recovers seamlessly via background chunk retry without aborting sibling islands;
 - Client attaches event listeners and signal bindings in a single O(N) pass;
 - Zero full-tree re-renders on streaming recovery.
+
+## Gate 19 — Built-In DOM Visual & Lifecycle Primitives (`@mix/runtime/dom`) (D-122)
+
+Scope:
+- `Teleport` (`createPortal`): Mounts children into arbitrary target container with logical parent `Context` inheritance, active `disabled` dynamic toggle, and cleanup on unmount;
+- `KeepAlive` (`createKeepAlive`): Caches offscreen `DocumentFragment` DOM subtrees and preserves live signals, input state, and event listeners across view switches with LRU cache eviction;
+- `Transition` (`createTransition`): FLIP/CSS enter/leave lifecycle classes (`{name}-enter-from`, `{name}-enter-active`, `{name}-enter-to`, `{name}-leave-from`, `{name}-leave-active`, `{name}-leave-to`), duration delays, and hooks.
+
+Acceptance:
+- Automated integration test suite covering Teleport context inheritance and in-place toggle;
+- KeepAlive LRU cache eviction and signal preservation across key changes;
+- Transition CSS lifecycle class application and duration timing;
+- Zero external runtime dependencies in `@mix/runtime`.
+
+## Gate 20 — Data Router Loaders, Actions, Lazy Splitting & Prefetching (`@mix/router`) (D-123)
+
+Scope:
+- Async Route Loaders: Declarative data loading with `useLoaderData<T>()`;
+- Stale Navigation Cancellation: `CancellationToken` aborts superseded loader runs during rapid navigation;
+- Route Actions: Mutation execution with `useActionData<T>()`, `useSubmit()`, and automatic loader revalidation;
+- Lazy Route Splitting: Dynamic route chunking (`lazy: () => import(...)`);
+- Link Prefetching: `<Link prefetch="intent">` pre-warms route loaders on pointer hover/focus;
+- Reactive Head Management: `useHead({ title, meta })` for dynamic document metadata.
+
+Acceptance:
+- Unmocked integration tests covering loaders, stale cancellation, action submissions, and automatic revalidation;
+- Lazy route modules load and mount on-demand with 0ms microtask fast-path for non-async routes;
+- Link prefetching preloads data before navigation occurs;
+- Zero external dependencies in `@mix/router` (depends only on `@mix/runtime`).
+
+## Gate 21 — Reactive Typed Forms & Validation Engine (`@mix/runtime/forms`) (D-124)
+
+Scope:
+- `createForm<T>(config)`: Per-field signals (`value`, `error`, `touched`, `dirty`, `validating`) and form-level signals (`values`, `errors`, `isValid`, `isDirty`, `isSubmitting`);
+- Composable Sync Validators: `validators.required`, `validators.minLength`, `validators.maxLength`, `validators.pattern`, `validators.email`;
+- Cancellable Async Validators: Integrated generation-tracked `CancellationToken` aborts superseded keystrokes automatically;
+- Submission Lifecycle: `handleSubmit(onValid, onInvalid)` and `reset()`.
+
+Acceptance:
+- Two-way field binding synchronizes values and marks dirty/touched state;
+- Sync and async validation pipelines report field and form-level errors;
+- Fast keystrokes cleanly cancel stale async validation requests;
+- Form reset restores initial state and clears all errors;
+- Zero external dependencies in `@mix/runtime`.
+
+## Gate 22 — CRDT Epoch Compaction & Live Network Transports (`@mix/sync`) (D-125)
+
+Scope:
+- CRDT Epoch Compaction: `compact(ackWatermarkClock)` in `ReplicableArray` purges deleted tombstones while preserving sequence integrity;
+- Storage Log Pruning: `pruneMutations(predicate)` in `SyncDriver` and `SyncEngine.compact()`;
+- `HttpBatchSyncTransport`: Auto-flushing batched HTTP POST mutation synchronization;
+- `WebSocketSyncTransport`: Auto-reconnecting WebSocket transport with offline packet queueing.
+
+Acceptance:
+- Compaction purges tombstones without shifting visible fractional indices;
+- Committed mutation log entries are pruned from persistent storage;
+- HTTP batch transport coalesces rapid mutations into a single network payload;
+- WebSocket transport queues mutations during disconnection and flushes on reconnect;
+- Zero external dependencies in `@mix/sync`.
+
+## Gate 23 — Scope-Aware Signal Auto-Invocation in SSR (`@mix/compiler-ssr`) (D-126)
+
+Scope:
+- Ahead-of-Time Expression AST Rewriting: Transforms bare signals (`count` -> `count()`) in interpolations, conditionals, iterations, and dynamic attributes;
+- Scope Binding Detection: Integrates with `ComponentDescriptor.signals` and `computeds` from `@mix/compiler-semantic`;
+- AST Walker: Safely avoids double invocation for explicit calls (`count()`), member properties (`obj.count`), and shadowed loop variables;
+- SSR Runtime Defensive Unwrapping: `__escapeHtml` and `__escapeAttr` safely unwrap signal functions passed dynamically via props.
+
+Acceptance:
+- SSR and CSR HTML parity for bare signal expressions;
+- Keyed `{#each}` and `{#if}` conditional branches evaluate signal values accurately;
+- Zero double-invocations (`count()()` is never emitted);
+- 100% test pass rate in integration suite.
+
+## Gate 24 — Cross-File Component Intelligence & External CSS Completions (`@mix/language-server`) (D-127)
+
+Scope:
+- Multi-File Workspace Indexing: `setWorkspaceFiles`, `getFileContent`, and cross-file URI resolution;
+- Cross-File Go-To-Definition (`doDefinition`): Jumps from `<Component />` calls and import clauses directly to target `.tix`/`.mix` source files;
+- Nested Scope Completions: Contextual completions suggest loop variables (`item`, `idx`) inside `{#each}` blocks and resolved data (`profile`, `error`) inside `{#await}` branches;
+- External CSS Class Completions: Extracts class selectors from linked `<style src="./styles.css" />`, embedded `<style>`, and script CSS imports.
+
+Acceptance:
+- Definition lookup navigates from component tag to target file URI;
+- Completions provide accurate block-scoped variables only within their lexical AST boundaries;
+- CSS class completions suggest all selectors from linked stylesheets with `Property` kind;
+- Unmocked automated tests verify LSP methods across multi-file scenarios.
