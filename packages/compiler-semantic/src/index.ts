@@ -99,6 +99,7 @@ export interface AnalyzeOptions {
 
 export interface TypecheckOptions {
   filename?: string;
+  baseDir?: string;
   virtualFiles?: Readonly<Record<string, string>>;
   throwOnError?: boolean;
 }
@@ -892,7 +893,9 @@ export function projectTypeScript(
           firstProp = false;
           // Emit attribute name verbatim so misspelled prop names map directly to the attribute span!
           appendVerbatim(attr.name, attr.span.start.offset);
-          appendOrigin(`: ${JSON.stringify(attr.value)}`, attr.span);
+          const isBooleanShorthand =
+            attr.value === "" && attr.span.end.offset - attr.span.start.offset === attr.name.length;
+          appendOrigin(`: ${isBooleanShorthand ? "true" : JSON.stringify(attr.value)}`, attr.span);
         } else if (attr.type === "DynamicAttribute") {
           if (!firstProp) appendInternal(", ");
           firstProp = false;
@@ -900,6 +903,14 @@ export function projectTypeScript(
           appendInternal(": (");
           const exprStart = attr.expression.start ?? attr.span.start.offset;
           appendVerbatim(attr.rawExpression, exprStart);
+          appendInternal(")");
+        } else if (attr.type === "EventBinding") {
+          if (!firstProp) appendInternal(", ");
+          firstProp = false;
+          const propName = "on" + attr.name[0]!.toUpperCase() + attr.name.slice(1);
+          appendOrigin(`${propName}: (`, attr.span);
+          const exprStart = attr.handler.start ?? attr.span.start.offset;
+          appendVerbatim(attr.rawHandler, exprStart);
           appendInternal(")");
         }
       }
@@ -933,7 +944,7 @@ export function projectTypeScript(
         appendInternal("  void (");
         appendVerbatim(attr.rawExpression, exprStart);
         appendInternal(");\n");
-      } else if (attr.type === "EventBinding") {
+      } else if (attr.type === "EventBinding" && ownerNode.type !== "ComponentCall") {
         const exprStart = attr.handler.start ?? attr.span.start.offset;
         appendInternal("  void (");
         appendVerbatim(attr.rawHandler, exprStart);
@@ -998,16 +1009,16 @@ export function projectTypeScript(
         case "EachBlock": {
           const colStart = node.collection.start ?? node.span.start.offset;
           const keyStart = node.keyExpression.start ?? node.span.start.offset;
-          appendInternal("  for (const [");
-          appendOrigin(`${node.indexIdentifier ?? "__idx"}, ${node.itemIdentifier}`, node.span);
-          appendInternal("] of Array.from(");
+          const idxName = node.indexIdentifier ?? "__idx";
+          appendInternal(`  {\n    const ${idxName}: number = 0;\n    void ${idxName};\n    for (const `);
+          appendOrigin(node.itemIdentifier, node.span);
+          appendInternal(" of (");
           appendVerbatim(node.rawCollection, colStart);
-          appendInternal(").entries()) {\n    void ");
-          appendInternal(`${node.indexIdentifier ?? "__idx"};\n    void (`);
+          appendInternal(")) {\n      void (");
           appendVerbatim(node.rawKeyExpression, keyStart);
           appendInternal(");\n");
           emitTemplateChecks(node.children, inSvg);
-          appendInternal("  }\n");
+          appendInternal("    }\n  }\n");
           break;
         }
         case "Text":
@@ -1045,6 +1056,18 @@ export function projectTypeScript(
 
   emitTemplateChecks(ast.template, false);
   appendInternal("}\n");
+
+  // Emit default export for the projected component so sibling .tix imports resolve its props contract
+  const scriptAnalysis = analyzeScriptForComponentExport(ast.script?.content ?? "");
+  if (!scriptAnalysis.hasDefaultExport) {
+    if (scriptAnalysis.propsVarName) {
+      appendInternal(
+        `export default null as unknown as (_props: typeof ${scriptAnalysis.propsVarName}) => unknown;\n`
+      );
+    } else {
+      appendInternal(`export default null as unknown as (_props?: Record<string, unknown>) => unknown;\n`);
+    }
+  }
 
   const code = chunks.join("");
   const virtualFilename = filename.endsWith(".ts") ? filename : `${filename}.ts`;
@@ -1118,30 +1141,210 @@ export function mapProjectedSpanToSource(
   };
 }
 
+function analyzeScriptForComponentExport(scriptCode: string): {
+  hasDefaultExport: boolean;
+  propsVarName: string | null;
+} {
+  if (!scriptCode.trim()) {
+    return { hasDefaultExport: false, propsVarName: null };
+  }
+  const sf = ts.createSourceFile("script.ts", scriptCode, ts.ScriptTarget.ES2023, true, ts.ScriptKind.TS);
+  let hasDefaultExport = false;
+  let propsVarName: string | null = null;
+
+  for (const stmt of sf.statements) {
+    if (ts.isExportAssignment(stmt)) {
+      hasDefaultExport = true;
+    } else if (ts.canHaveModifiers(stmt)) {
+      const mods = ts.getModifiers(stmt);
+      if (
+        mods &&
+        mods.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) &&
+        mods.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)
+      ) {
+        hasDefaultExport = true;
+      }
+    }
+
+    if (ts.isVariableStatement(stmt)) {
+      for (const decl of stmt.declarationList.declarations) {
+        if (
+          ts.isIdentifier(decl.name) &&
+          decl.initializer &&
+          ts.isCallExpression(decl.initializer) &&
+          ts.isIdentifier(decl.initializer.expression) &&
+          decl.initializer.expression.text === "defineProps"
+        ) {
+          propsVarName = decl.name.text;
+        }
+      }
+    }
+  }
+
+  return { hasDefaultExport, propsVarName };
+}
+
+function extractTixModuleSurface(rawSrc: string): string {
+  const scriptOpenIdx = rawSrc.indexOf("<script");
+  const scriptCloseIdx = rawSrc.lastIndexOf("</script>");
+  if (scriptOpenIdx !== -1 && scriptCloseIdx !== -1 && scriptCloseIdx > scriptOpenIdx) {
+    const openTagEnd = rawSrc.indexOf(">", scriptOpenIdx);
+    if (openTagEnd !== -1 && openTagEnd < scriptCloseIdx) {
+      const scriptBody = rawSrc.slice(openTagEnd + 1, scriptCloseIdx);
+      const analysis = analyzeScriptForComponentExport(scriptBody);
+      let exportLine = "";
+      if (!analysis.hasDefaultExport) {
+        exportLine = analysis.propsVarName
+          ? `\nexport default null as unknown as (_props: typeof ${analysis.propsVarName}) => unknown;\n`
+          : `\nexport default null as unknown as (_props?: Record<string, unknown>) => unknown;\n`;
+      }
+      return `${scriptBody}\n${exportLine}`;
+    }
+  }
+
+  // Functional component syntax: use TypeScript's lexical scanner to locate `export default function ... (...) {`
+  const scanner = ts.createScanner(ts.ScriptTarget.ES2023, true, ts.LanguageVariant.Standard, rawSrc);
+  let tok = scanner.scan();
+  while (tok !== ts.SyntaxKind.EndOfFileToken) {
+    if (tok === ts.SyntaxKind.ExportKeyword) {
+      tok = scanner.scan();
+      if (tok === ts.SyntaxKind.DefaultKeyword) {
+        tok = scanner.scan();
+        if (tok === ts.SyntaxKind.AsyncKeyword) {
+          tok = scanner.scan();
+        }
+        if (tok === ts.SyntaxKind.FunctionKeyword) {
+          tok = scanner.scan();
+          if (tok === ts.SyntaxKind.Identifier) {
+            tok = scanner.scan();
+          }
+          // Skip optional type parameters `<...>`
+          if (tok === ts.SyntaxKind.LessThanToken) {
+            let angleDepth = 1;
+            tok = scanner.scan();
+            while (tok !== ts.SyntaxKind.EndOfFileToken && angleDepth > 0) {
+              if (tok === ts.SyntaxKind.LessThanToken) angleDepth++;
+              else if (tok === ts.SyntaxKind.GreaterThanToken) angleDepth--;
+              tok = scanner.scan();
+            }
+          }
+          if (tok === ts.SyntaxKind.OpenParenToken) {
+            const openParenStart = scanner.getTokenPos();
+            let parenDepth = 1;
+            tok = scanner.scan();
+            while (tok !== ts.SyntaxKind.EndOfFileToken && parenDepth > 0) {
+              if (tok === ts.SyntaxKind.OpenParenToken) parenDepth++;
+              else if (tok === ts.SyntaxKind.CloseParenToken) parenDepth--;
+              if (parenDepth === 0) break;
+              tok = scanner.scan();
+            }
+            const closeParenEnd = scanner.getTextPos();
+            const rawParams = rawSrc.slice(openParenStart + 1, closeParenEnd - 1).trim();
+            while (tok !== ts.SyntaxKind.EndOfFileToken && tok !== ts.SyntaxKind.OpenBraceToken) {
+              tok = scanner.scan();
+            }
+            if (tok === ts.SyntaxKind.OpenBraceToken) {
+              const beforeParams = rawSrc.slice(0, openParenStart);
+              const normalizedParams =
+                rawParams.length === 0
+                  ? "_props?: Record<string, unknown>"
+                  : rawParams.includes(":")
+                    ? rawParams
+                    : `${rawParams}?: Record<string, unknown>`;
+              return `${beforeParams}(${normalizedParams}): unknown { return null; }\n`;
+            }
+          }
+        }
+      }
+      continue;
+    }
+    tok = scanner.scan();
+  }
+
+  return `${rawSrc}\nexport default null as unknown as (props?: Record<string, unknown>) => unknown;\n`;
+}
+
+function posixDirname(p: string): string {
+  const norm = p.replace(/\\/g, "/");
+  const idx = norm.lastIndexOf("/");
+  if (idx === -1) return ".";
+  if (idx === 0) return "/";
+  return norm.slice(0, idx);
+}
+
+const IMMUTABLE_DTS_SOURCE_FILE_CACHE = new Map<string, ts.SourceFile>();
+const MIX_PACKAGE_DTS_CACHE = new Map<string, string>();
+
+function resolveMixPackageDts(
+  modName: string,
+  containingFile: string,
+  baseDir?: string
+): string | undefined {
+  if (!modName.startsWith("@mix/")) return undefined;
+  const cached = MIX_PACKAGE_DTS_CACHE.get(modName);
+  if (cached && ts.sys.fileExists(cached)) {
+    return cached;
+  }
+
+  const parts = modName.split("/");
+  if (parts.length < 2) return undefined;
+  const pkgShort = parts[1]!;
+  const subpath = parts.length > 2 ? `./${parts.slice(2).join("/")}` : ".";
+
+  const searchStarts = [
+    baseDir,
+    posixDirname(containingFile),
+    ts.sys.getCurrentDirectory(),
+    posixDirname(ts.sys.getExecutingFilePath())
+  ].filter((s): s is string => Boolean(s && s !== "."));
+
+  for (const startDir of searchStarts) {
+    let curr = ts.sys.resolvePath(startDir).replace(/\\/g, "/");
+    for (let depth = 0; depth < 10; depth++) {
+      const candidatePkgPaths = [
+        `${curr}/packages/${pkgShort}/package.json`,
+        `${curr}/node_modules/@mix/${pkgShort}/package.json`
+      ];
+      for (const pkgJsonPath of candidatePkgPaths) {
+        if (ts.sys.fileExists(pkgJsonPath)) {
+          const rawJson = ts.sys.readFile(pkgJsonPath);
+          if (rawJson) {
+            try {
+              const pkgJson = JSON.parse(rawJson) as {
+                types?: string;
+                exports?: Record<string, string | { types?: string; default?: string }>;
+              };
+              const pkgDir = posixDirname(pkgJsonPath);
+              let relTypes: string | undefined;
+              const expEntry = pkgJson.exports?.[subpath];
+              if (expEntry && typeof expEntry === "object" && expEntry.types) {
+                relTypes = expEntry.types;
+              } else if (subpath === "." && pkgJson.types) {
+                relTypes = pkgJson.types;
+              }
+              if (relTypes) {
+                const resolvedDts = ts.sys.resolvePath(`${pkgDir}/${relTypes}`).replace(/\\/g, "/");
+                if (ts.sys.fileExists(resolvedDts)) {
+                  MIX_PACKAGE_DTS_CACHE.set(modName, resolvedDts);
+                  return resolvedDts;
+                }
+              }
+            } catch {
+              // Ignore malformed package.json
+            }
+          }
+        }
+      }
+      const parent = posixDirname(curr);
+      if (parent === curr) break;
+      curr = parent;
+    }
+  }
+
+  return undefined;
+}
+
 const VIRTUAL_AMBIENT_RUNTIME_DTS = `
-declare module "@mix/runtime/typecheck" {
-  export interface RefTarget<T> { current: T | null; }
-  export type ComponentFactory<P = Record<string, unknown>, R = unknown> = (props: P, children?: unknown) => R;
-  export function VerifyRef<T>(ref: RefTarget<T>, element: NoInfer<T>): void;
-  export function VerifyProps<P>(comp: ComponentFactory<P, any> | ((props: P) => any), props: NoInfer<P>): void;
-  export function ElementOf<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K];
-  export function SvgElementOf<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K];
-  export function AnyElement(): Element;
-}
-
-declare module "@mix/runtime" {
-  export interface Signal<T> { (): T; set(next: T | ((prev: T) => T)): T; }
-  export interface Computed<T> { (): T; }
-  export interface RefTarget<T> { current: T | null; }
-  export type ComponentFactory<P = Record<string, unknown>, R = unknown> = (props: P, children?: unknown) => R;
-  export function signal<T>(initialValue: T): Signal<T>;
-  export function computed<T>(fn: () => T): Computed<T>;
-  export function createEffect(fn: () => void | (() => void)): void;
-  export function createRef<T = Element>(initial?: T | null): RefTarget<T>;
-  export function defineProps<P>(defaults?: Partial<P>): P;
-  export function createTrustedHtml(dirtyHtml: string): object;
-}
-
 declare module "*.css" {
   const css: string;
   export default css;
@@ -1182,50 +1385,8 @@ declare module "*.postcss" {
   export default css;
 }
 
-interface HTMLElementTagNameMap {
-  div: HTMLDivElement;
-  span: HTMLSpanElement;
-  p: HTMLParagraphElement;
-  button: HTMLButtonElement;
-  input: HTMLInputElement;
-  a: HTMLAnchorElement;
-  img: HTMLImageElement;
-  ul: HTMLUListElement;
-  li: HTMLLIElement;
-  h1: HTMLHeadingElement;
-  h2: HTMLHeadingElement;
-  h3: HTMLHeadingElement;
-  section: HTMLElement;
-  article: HTMLElement;
-  strong: HTMLElement;
-  em: HTMLElement;
-  main: HTMLElement;
-  header: HTMLElement;
-  footer: HTMLElement;
-  form: HTMLFormElement;
-}
-interface SVGElementTagNameMap {
-  svg: SVGSVGElement;
-  path: SVGElement;
-}
-interface Element { readonly tagName: string; }
-interface HTMLElement extends Element { style: Record<string, string>; }
-interface HTMLDivElement extends HTMLElement { readonly __tag: "div"; }
-interface HTMLSpanElement extends HTMLElement { readonly __tag: "span"; }
-interface HTMLParagraphElement extends HTMLElement { readonly __tag: "p"; }
-interface HTMLButtonElement extends HTMLElement { disabled: boolean; readonly __tag: "button"; }
-interface HTMLInputElement extends HTMLElement { value: string; checked: boolean; readonly __tag: "input"; }
-interface HTMLAnchorElement extends HTMLElement { href: string; readonly __tag: "a"; }
-interface HTMLImageElement extends HTMLElement { src: string; srcset: string; readonly __tag: "img"; }
-interface HTMLUListElement extends HTMLElement { readonly __tag: "ul"; }
-interface HTMLLIElement extends HTMLElement { readonly __tag: "li"; }
-interface HTMLHeadingElement extends HTMLElement { readonly __tag: "h"; }
-interface HTMLFormElement extends HTMLElement { action: string; readonly __tag: "form"; }
-interface SVGElement extends Element { readonly __svg: true; }
-interface SVGSVGElement extends SVGElement { readonly __tag: "svg"; }
-
-declare function signal<T>(initialValue: T): { (): T; set(next: T | ((prev: T) => T)): T };
-declare function computed<T>(fn: () => T): () => T;
+declare function signal<T>(initialValue: T): { (): T; set(next: T | ((prev: T) => T)): T; peek(): T };
+declare function computed<T>(fn: () => T): { (): T; peek(): T };
 declare function createEffect(fn: () => void | (() => void)): void;
 declare function createRef<T = Element>(initial?: T | null): { current: T | null };
 declare function defineProps<P>(defaults?: Partial<P>): P;
@@ -1236,7 +1397,7 @@ declare function provideContext<T>(ctx: Context<T>, value: T): void;
 `;
 
 /**
- * Verifies a `.tix` ComponentNode or ComponentDescriptor using the official TypeScript 6.0.3 Compiler API (D-106).
+ * Verifies a `.tix` ComponentNode or ComponentDescriptor using the official TypeScript 6.0.3 Compiler API (D-106, D-131).
  */
 export function typecheckTix(
   astOrDesc: ComponentNode | ComponentDescriptor,
@@ -1249,6 +1410,12 @@ export function typecheckTix(
     ("filename" in astOrDesc ? astOrDesc.filename : undefined) ??
     ast.span.file ??
     "Component.tix";
+  const baseDir =
+    options?.baseDir ??
+    (filename.includes("/") || filename.includes("\\")
+      ? posixDirname(ts.sys.resolvePath(filename))
+      : ts.sys.getCurrentDirectory().replace(/\\/g, "/"));
+
   const semanticDesc = analyze(ast, {
     filename,
     source: originalSource,
@@ -1267,21 +1434,26 @@ export function typecheckTix(
     skipLibCheck: true
   };
 
-  const defaultLibPath = ts.getDefaultLibFilePath(compilerOptions);
+  const defaultHost = ts.createCompilerHost(compilerOptions, true);
+  const defaultLibPath = defaultHost.getDefaultLibFileName(compilerOptions).replace(/\\/g, "/");
+  const normalizedVirtualFilename = projection.virtualFilename.replace(/\\/g, "/");
+
   const virtualFileMap = new Map<string, string>();
   virtualFileMap.set(projection.virtualFilename, projection.code);
+  virtualFileMap.set(normalizedVirtualFilename, projection.code);
   virtualFileMap.set("/__mix_ambient.d.ts", VIRTUAL_AMBIENT_RUNTIME_DTS);
 
   if (options?.virtualFiles) {
     for (const [vPath, vContent] of Object.entries(options.virtualFiles)) {
+      const normVPath = vPath.replace(/\\/g, "/");
       virtualFileMap.set(vPath, vContent);
-      if (vPath.endsWith(".tix")) {
-        virtualFileMap.set(`${vPath}.ts`, vContent);
+      virtualFileMap.set(normVPath, vContent);
+      if (normVPath.endsWith(".tix") || normVPath.endsWith(".mix")) {
+        virtualFileMap.set(`${normVPath}.ts`, vContent);
       }
     }
   }
 
-  const defaultHost = ts.createCompilerHost(compilerOptions, true);
   const customHost: ts.CompilerHost = {
     ...defaultHost,
     fileExists(fileName: string): boolean {
@@ -1302,26 +1474,54 @@ export function typecheckTix(
       return defaultHost.readFile(fileName);
     },
     getSourceFile(fileName: string, languageVersion: ts.ScriptTarget, onError?: (message: string) => void) {
-      const content = this.readFile(fileName);
-      if (content !== undefined) {
+      const normalized = fileName.replace(/\\/g, "/");
+      if (virtualFileMap.has(fileName) || virtualFileMap.has(normalized)) {
+        const content = virtualFileMap.get(normalized) ?? virtualFileMap.get(fileName)!;
         return ts.createSourceFile(fileName, content, languageVersion, true);
+      }
+      for (const [key, val] of virtualFileMap.entries()) {
+        if (normalized.endsWith(`/${key.replace(/^\.\//, "")}`)) {
+          return ts.createSourceFile(fileName, val, languageVersion, true);
+        }
+      }
+      if (normalized.endsWith(".d.ts")) {
+        const cachedSf = IMMUTABLE_DTS_SOURCE_FILE_CACHE.get(normalized);
+        if (cachedSf) {
+          return cachedSf;
+        }
+        const sf = defaultHost.getSourceFile(fileName, languageVersion, onError);
+        if (sf) {
+          IMMUTABLE_DTS_SOURCE_FILE_CACHE.set(normalized, sf);
+        }
+        return sf;
       }
       return defaultHost.getSourceFile(fileName, languageVersion, onError);
     },
     resolveModuleNames(moduleNames: string[], containingFile: string): (ts.ResolvedModule | undefined)[] {
-      return moduleNames.map(modName => {
-        if (modName === "@mix/runtime" || modName === "@mix/runtime/typecheck" || STYLE_EXTENSION_REGEX.test(modName)) {
+      const normContaining = containingFile.replace(/\\/g, "/");
+      const containingDir =
+        normContaining === normalizedVirtualFilename ||
+        normContaining.endsWith(`/${normalizedVirtualFilename}`)
+          ? baseDir.replace(/\\/g, "/")
+          : posixDirname(normContaining);
+
+      return moduleNames.map((modName) => {
+        if (STYLE_EXTENSION_REGEX.test(modName)) {
           return {
             resolvedFileName: "/__mix_ambient.d.ts",
+            extension: ts.Extension.Dts,
             isExternalLibraryImport: true
           };
         }
-        const candidates = [
+
+        // 1. Check virtualFiles first (for unit tests supplying virtual files)
+        const vCandidates = [
           modName,
           `${modName}.ts`,
-          modName.replace(/^\.\//, "")
+          modName.replace(/^\.\//, ""),
+          `${modName.replace(/^\.\//, "")}.ts`
         ];
-        for (const cand of candidates) {
+        for (const cand of vCandidates) {
           if (virtualFileMap.has(cand)) {
             return {
               resolvedFileName: cand,
@@ -1329,15 +1529,89 @@ export function typecheckTix(
             };
           }
         }
+
+        // 2. Resolve @mix/* packages to their real emitted .d.ts files on disk (D-131)
+        if (modName.startsWith("@mix/")) {
+          const dtsPath = resolveMixPackageDts(modName, normContaining, baseDir);
+          if (dtsPath) {
+            return {
+              resolvedFileName: dtsPath,
+              extension: ts.Extension.Dts,
+              isExternalLibraryImport: true
+            };
+          }
+        }
+
+        // 3. Resolve relative imports (.tix, .mix, .js -> .d.ts/.ts, .ts) on disk
+        if (modName.startsWith("./") || modName.startsWith("../")) {
+          const absTarget = ts.sys.resolvePath(`${containingDir}/${modName}`).replace(/\\/g, "/");
+
+          if (modName.endsWith(".tix") || modName.endsWith(".mix")) {
+            const vKey = `${absTarget}.ts`;
+            if (virtualFileMap.has(vKey)) {
+              return {
+                resolvedFileName: vKey,
+                extension: ts.Extension.Ts
+              };
+            }
+            if (ts.sys.fileExists(absTarget)) {
+              const rawComp = ts.sys.readFile(absTarget) ?? "";
+              const surfaceTs = extractTixModuleSurface(rawComp);
+              virtualFileMap.set(vKey, surfaceTs);
+              return {
+                resolvedFileName: vKey,
+                extension: ts.Extension.Ts
+              };
+            }
+          } else if (modName.endsWith(".js") || modName.endsWith(".mjs")) {
+            const dtsCand = absTarget.replace(/\.(m)?js$/, ".d.ts");
+            if (ts.sys.fileExists(dtsCand)) {
+              return {
+                resolvedFileName: dtsCand,
+                extension: ts.Extension.Dts
+              };
+            }
+            const tsCand = absTarget.replace(/\.(m)?js$/, ".ts");
+            if (ts.sys.fileExists(tsCand)) {
+              return {
+                resolvedFileName: tsCand,
+                extension: ts.Extension.Ts
+              };
+            }
+            if (ts.sys.fileExists(absTarget)) {
+              return {
+                resolvedFileName: absTarget,
+                extension: ts.Extension.Js
+              };
+            }
+          } else if (modName.endsWith(".ts")) {
+            if (ts.sys.fileExists(absTarget)) {
+              return {
+                resolvedFileName: absTarget,
+                extension: ts.Extension.Ts
+              };
+            }
+          } else if (modName.endsWith(".d.ts")) {
+            if (ts.sys.fileExists(absTarget)) {
+              return {
+                resolvedFileName: absTarget,
+                extension: ts.Extension.Dts
+              };
+            }
+          }
+        }
+
         const resolved = ts.resolveModuleName(modName, containingFile, compilerOptions, defaultHost);
         return resolved.resolvedModule;
       });
     }
   };
 
-  const rootNames = [defaultLibPath, "/__mix_ambient.d.ts", projection.virtualFilename];
+  const rootNames = [defaultLibPath, "/__mix_ambient.d.ts", normalizedVirtualFilename];
   const program = ts.createProgram(rootNames, compilerOptions, customHost);
-  const projectedSf = program.getSourceFile(projection.virtualFilename);
+  const projectedSf =
+    program.getSourceFile(normalizedVirtualFilename) ??
+    program.getSourceFile(projection.virtualFilename);
   const tsDiagnostics = projectedSf ? program.getSemanticDiagnostics(projectedSf) : [];
 
   for (const tsDiag of tsDiagnostics) {
@@ -1470,7 +1744,7 @@ export function extractAndTranspileScript(
     compilerOptions: {
       target: ts.ScriptTarget.ES2023,
       module: ts.ModuleKind.ESNext,
-      verbatimModuleSyntax: false
+      verbatimModuleSyntax: true
     }
   }).outputText.trim();
 

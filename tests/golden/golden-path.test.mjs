@@ -14,11 +14,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../..");
 const cliBin = path.join(repoRoot, "packages/cli/dist/bin.js");
 
-const isStrictGolden =
-  process.env.npm_lifecycle_event === "test:golden" ||
-  process.env.MIX_GOLDEN_STRICT === "1" ||
-  process.argv.includes("--strict");
-
 const LANGUAGES = [
   { name: "ts", flag: "--ts", typescript: true },
   { name: "js", flag: "--js", typescript: false },
@@ -115,18 +110,12 @@ function setupDomGlobals() {
   };
 }
 
-const PASSING_VARIANTS = new Set(["js-scss", "js-sass", "js-less", "js-pcss", "js-css"]);
-
 describe("Gate 27 Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
   for (const lang of LANGUAGES) {
     for (const style of STYLES) {
       const variantId = `${lang.name}-${style}`;
-      const testOptions =
-        isStrictGolden || PASSING_VARIANTS.has(variantId)
-          ? {}
-          : { todo: `Gate 27 golden path pending full T-27.3..T-27.4 completion (${variantId})` };
 
-      test(`Golden Path [${variantId}]: create -> check -> build -> specifier audit -> css validity -> happy-dom smoke`, testOptions, async () => {
+      test(`Golden Path [${variantId}]: create -> check -> build -> specifier audit -> css validity -> happy-dom smoke`, async () => {
         const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), `mix-golden-${variantId}-`));
         const projectDir = path.join(tmpRoot, `app-${variantId}`);
 

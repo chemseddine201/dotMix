@@ -66,7 +66,11 @@ export function check(options: CheckOptions = {}): CheckResult {
       }
 
       if (filename.endsWith(".tix")) {
-        const typecheckResult = typecheckTix(desc, source, { filename, throwOnError: false });
+        const typecheckResult = typecheckTix(desc, source, {
+          filename,
+          baseDir: path.dirname(filePath),
+          throwOnError: false
+        });
         if (typecheckResult.diagnostics && typecheckResult.diagnostics.length > 0) {
           allDiagnostics.push(...typecheckResult.diagnostics);
         }

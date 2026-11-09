@@ -43,3 +43,4 @@
 .mix-btn-danger:hover:not(:disabled) {
   background: var(--color-danger-hover, #dc2626);
 }
+

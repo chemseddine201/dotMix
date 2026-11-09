@@ -33,3 +33,4 @@ export function defineAppAbility(user: UserSession | null) {
     cannot("delete", "Task");
   });
 }
+

@@ -14,3 +14,4 @@ export function setRole(role: string) {
 export function logout() {
   activeUser.set(null);
 }
+

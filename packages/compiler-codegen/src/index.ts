@@ -470,7 +470,9 @@ class CodegenContext {
     const propEntries: string[] = [];
     for (const attr of node.attributes) {
       if (attr.type === "StaticAttribute") {
-        const val = JSON.stringify(attr.value);
+        const isBooleanShorthand =
+          attr.value === "" && attr.span.end.offset - attr.span.start.offset === attr.name.length;
+        const val = isBooleanShorthand ? "true" : JSON.stringify(attr.value);
         propEntries.push(`${JSON.stringify(attr.name)}: ${val}`);
       } else if (attr.type === "DynamicAttribute") {
         const jsExpr = this.emitExpr(

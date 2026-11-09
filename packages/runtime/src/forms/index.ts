@@ -31,7 +31,7 @@ export interface FieldController<T = unknown> {
   reset(): void;
 }
 
-export interface FormConfig<T extends Record<string, unknown>> {
+export interface FormConfig<T extends object = Record<string, unknown>> {
   initialValues: T;
   validators?: {
     [K in keyof T]?: ValidatorFn<T[K]> | Array<ValidatorFn<T[K]>>;
@@ -42,7 +42,7 @@ export interface FormConfig<T extends Record<string, unknown>> {
   onSubmit?: (values: T) => Promise<void> | void;
 }
 
-export interface FormController<T extends Record<string, unknown>> {
+export interface FormController<T extends object = Record<string, unknown>> {
   field<K extends keyof T>(name: K): FieldController<T[K]>;
   readonly fields: { readonly [K in keyof T]: FieldController<T[K]> };
   readonly values: () => T;
@@ -112,7 +112,7 @@ export const validators = {
   }
 };
 
-export function createForm<T extends Record<string, unknown>>(
+export function createForm<T extends object = Record<string, unknown>>(
   config: FormConfig<T>
 ): FormController<T> {
   const initialValues = { ...config.initialValues };

@@ -24,3 +24,4 @@ describe("Application Permission Capabilities", () => {
     assert.strictEqual(ability.can("delete", "Task"), true);
   });
 });
+

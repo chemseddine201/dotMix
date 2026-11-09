@@ -5,3 +5,4 @@ export interface TaskSubject {
   ownerId: number | (() => number);
   isLocked?: boolean | (() => boolean) | undefined;
 }
+
