@@ -14,7 +14,9 @@
     { "path": "packages/vite-plugin" },
     { "path": "packages/cli" },
     { "path": "packages/language-server" },
-    { "path": "packages/sync" }
+    { "path": "packages/sync" },
+    { "path": "packages/interop" },
+    { "path": "packages/stream" }
   ]
 }
 
