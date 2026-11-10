@@ -12,6 +12,7 @@
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
+import { Window } from "happy-dom";
 import {
   signal,
   createMemo,
@@ -98,52 +99,88 @@ describe("Gate 25: Native Fine-Grained Permissions Engine (@mix/runtime/permissi
   });
 
   test("3. Declarative <Can> component with fine-grained DOM gating (Gap 1)", () => {
-    createRoot(() => {
-      const user = signal({ role: "viewer" });
+    const win = new Window({ url: "http://localhost:3000/" });
+    const prevDoc = globalThis.document;
+    const prevNode = globalThis.Node;
+    globalThis.document = win.document;
+    globalThis.Node = win.Node;
 
-      // Ability updates reactively based on user role
-      const ability = createMemo(() => {
-        return defineAbility((can) => {
-          if (user().role === "admin") {
-            can("manage", "all");
-          } else if (user().role === "editor") {
-            can("read", "Post");
-            can("create", "Post");
-            can("update", "Post");
-          } else {
-            can("read", "Post");
+    try {
+      const container = win.document.createElement("div");
+      win.document.body.appendChild(container);
+
+      createRoot(() => {
+        const user = signal({ role: "viewer" });
+
+        // Ability updates reactively based on user role
+        const ability = createMemo(() => {
+          return defineAbility((can) => {
+            if (user().role === "admin") {
+              can("manage", "all");
+            } else if (user().role === "editor") {
+              can("read", "Post");
+              can("create", "Post");
+              can("update", "Post");
+            } else {
+              can("read", "Post");
+            }
+          });
+        });
+
+        // Wrap in PermissionProvider and mount <Can> into live DOM
+        PermissionProvider({
+          ability,
+          children: () => {
+            const appAbility = useAbility();
+
+            const editGate = Can({
+              I: "update",
+              a: "Post",
+              fallback: () => {
+                const span = win.document.createElement("span");
+                span.setAttribute("data-state", "denied");
+                span.textContent = "READ_ONLY";
+                return span;
+              },
+              children: () => {
+                const btn = win.document.createElement("button");
+                btn.setAttribute("data-state", "allowed");
+                btn.textContent = "EDIT_ALLOWED";
+                return btn;
+              }
+            });
+
+            container.appendChild(editGate);
+
+            // Initially viewer -> fallback mounted in live DOM
+            assert.strictEqual(container.textContent, "READ_ONLY");
+            assert.ok(container.querySelector('[data-state="denied"]'));
+            assert.strictEqual(container.querySelector('[data-state="allowed"]'), null);
+
+            // Elevate to editor -> DOM updates in place to allowed branch
+            user.set({ role: "editor" });
+            assert.strictEqual(appAbility.can("update", "Post"), true);
+            assert.strictEqual(appAbility.can("delete", "Post"), false);
+            assert.strictEqual(container.textContent, "EDIT_ALLOWED");
+            assert.ok(container.querySelector('[data-state="allowed"]'));
+            assert.strictEqual(container.querySelector('[data-state="denied"]'), null);
+
+            // Elevate to admin -> still allowed
+            user.set({ role: "admin" });
+            assert.strictEqual(appAbility.can("delete", "Post"), true);
+            assert.strictEqual(container.textContent, "EDIT_ALLOWED");
+
+            // Downgrade back to viewer -> DOM swaps back to fallback
+            user.set({ role: "viewer" });
+            assert.strictEqual(container.textContent, "READ_ONLY");
+            assert.ok(container.querySelector('[data-state="denied"]'));
           }
         });
       });
-
-      // Wrap in PermissionProvider
-      PermissionProvider({
-        ability,
-        children: () => {
-          const appAbility = useAbility();
-
-          // Gate UI with <Can>
-          const editGate = Can({
-            I: "update",
-            a: "Post",
-            fallback: "READ_ONLY",
-            children: "EDIT_ALLOWED"
-          });
-
-          // Initially viewer -> fallback
-          assert.strictEqual(editGate, "READ_ONLY");
-
-          // Elevate to editor
-          user.set({ role: "editor" });
-          assert.strictEqual(appAbility.can("update", "Post"), true);
-          assert.strictEqual(appAbility.can("delete", "Post"), false);
-
-          // Elevate to admin
-          user.set({ role: "admin" });
-          assert.strictEqual(appAbility.can("delete", "Post"), true);
-        }
-      });
-    });
+    } finally {
+      globalThis.document = prevDoc;
+      globalThis.Node = prevNode;
+    }
   });
 
   test("4. Granular field-level permissions (Gap 5)", () => {

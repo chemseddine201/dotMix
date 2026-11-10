@@ -15,7 +15,7 @@ import path from "node:path";
 import os from "node:os";
 import { create } from "../../packages/cli/dist/index.js";
 import { parse } from "../../packages/compiler-frontend/dist/index.js";
-import { analyze } from "../../packages/compiler-semantic/dist/index.js";
+import { analyze, typecheckTix } from "../../packages/compiler-semantic/dist/index.js";
 
 describe("Gate 26: Project Scaffolding Architecture (D-129)", () => {
   test("1. Scaffolds TypeScript (.tix) + SCSS project with full React-inspired modular hierarchy", () => {
@@ -170,6 +170,55 @@ describe("Gate 26: Project Scaffolding Architecture (D-129)", () => {
           desc.diagnostics.length,
           0,
           `Component ${relComp} must have 0 diagnostics, got: ${JSON.stringify(desc.diagnostics)}`
+        );
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test("4. Scaffolded TypeScript (.tix) components parse, analyze, and pass typecheckTix with 0 diagnostics", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-scaffold-typecheck-"));
+    const appDir = path.join(tmpDir, "ts-check-app");
+
+    try {
+      create({
+        projectName: "ts-check-app",
+        targetDir: appDir,
+        typescript: true,
+        styleFormat: "scss"
+      });
+
+      const tixComponents = [
+        "src/layouts/RootLayout.tix",
+        "src/components/common/Button.tix",
+        "src/components/common/Input.tix",
+        "src/components/domain/TaskItem.tix",
+        "src/components/domain/SyncStatusPill.tix",
+        "src/pages/HomePage.tix",
+        "src/pages/TasksPage.tix",
+        "src/pages/FormsPage.tix",
+        "src/pages/UnauthorizedPage.tix",
+        "src/pages/NotFoundPage.tix"
+      ];
+
+      for (const relComp of tixComponents) {
+        const fullPath = path.join(appDir, relComp);
+        assert.ok(fs.existsSync(fullPath), `${relComp} must exist`);
+        const source = fs.readFileSync(fullPath, "utf-8");
+        const ast = parse(source, { filename: fullPath });
+        const desc = analyze(ast, { filename: fullPath, source });
+        assert.strictEqual(
+          desc.diagnostics.length,
+          0,
+          `Component ${relComp} must have 0 semantic diagnostics, got: ${JSON.stringify(desc.diagnostics)}`
+        );
+
+        const tsResult = typecheckTix(ast, desc, { filename: fullPath });
+        assert.strictEqual(
+          tsResult.diagnostics.length,
+          0,
+          `Component ${relComp} must have 0 TypeScript typecheckTix diagnostics, got: ${JSON.stringify(tsResult.diagnostics)}`
         );
       }
     } finally {
