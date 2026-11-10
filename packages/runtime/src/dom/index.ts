@@ -137,11 +137,16 @@ export function getHydrationContext(): HydrationWalker | null {
   return activeHydrationContext;
 }
 
+export interface HydrateHandle {
+  (): void;
+  unmount(): void;
+}
+
 export function hydrate(
   component: (props?: Record<string, unknown>) => unknown,
   container: HTMLElement,
   options?: HydrateOptions
-): () => void {
+): HydrateHandle {
   const walker = new HydrationWalker(container, options);
   activeHydrationContext = walker;
 
@@ -155,12 +160,14 @@ export function hydrate(
     activeHydrationContext = null;
   }
 
-  return () => {
+  const unmount = (): void => {
     if (rootDisposer) {
       rootDisposer();
       rootDisposer = null;
     }
   };
+  unmount.unmount = unmount;
+  return unmount;
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -622,7 +629,7 @@ export function bindRef<T extends Element>(
 
 export function insertNode(parent: Node, node: Node, anchor?: Node | null): void {
   if (activeHydrationContext) {
-    if (node.parentNode === parent) {
+    if (node.parentNode === parent || (parent.nodeType === 11 && node.parentNode !== null)) {
       return;
     }
   }
@@ -635,12 +642,36 @@ export function removeNode(node: Node): void {
   }
 }
 
-export function injectStylesheet(id: string, cssText: string): HTMLStyleElement | null {
+let activeCspNonce: string | null = null;
+
+export function setCspNonce(nonce: string | null): void {
+  activeCspNonce = nonce;
+}
+
+export function getCspNonce(): string | null {
+  return activeCspNonce;
+}
+
+export function injectStylesheet(
+  id: string,
+  cssText: string,
+  options?: { nonce?: string | undefined }
+): HTMLStyleElement | null {
   if (typeof document === "undefined" || !document.head) {
     return null;
   }
+  const metaNonce =
+    typeof document.querySelector === "function"
+      ? document
+          .querySelector('meta[property="csp-nonce"], meta[name="csp-nonce"]')
+          ?.getAttribute("content") ?? null
+      : null;
+  const resolvedNonce = options?.nonce ?? activeCspNonce ?? metaNonce;
   const existing = document.head.querySelector(`style[data-mix-style="${id}"]`) as HTMLStyleElement | null;
   if (existing) {
+    if (resolvedNonce) {
+      existing.setAttribute("nonce", resolvedNonce);
+    }
     if (existing.textContent !== cssText) {
       existing.textContent = cssText;
     }
@@ -648,6 +679,9 @@ export function injectStylesheet(id: string, cssText: string): HTMLStyleElement 
   }
   const styleEl = document.createElement("style");
   styleEl.setAttribute("data-mix-style", id);
+  if (resolvedNonce) {
+    styleEl.setAttribute("nonce", resolvedNonce);
+  }
   styleEl.textContent = cssText;
   document.head.appendChild(styleEl);
   return styleEl;

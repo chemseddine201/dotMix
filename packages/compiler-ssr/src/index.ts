@@ -606,7 +606,12 @@ ${parts.join("")}
 
 export function renderToStream(__props = {}, onChunk) {
   const html = renderToString(__props);
-  onChunk(html);
+  if (typeof onChunk === "function") {
+    onChunk(html);
+  }
+  return (async function* () {
+    yield html;
+  })();
 }
 
 export const css = ${JSON.stringify(css)};

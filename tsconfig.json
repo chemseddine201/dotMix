@@ -17,7 +17,8 @@
     { "path": "packages/sync" },
     { "path": "packages/interop" },
     { "path": "packages/stream" },
-    { "path": "packages/sanitizer-dompurify" }
+    { "path": "packages/sanitizer-dompurify" },
+    { "path": "packages/server-node" }
   ]
 }
 

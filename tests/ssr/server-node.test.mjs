@@ -32,10 +32,11 @@ describe("Gate 29 (T-29.4): @mix/server-node Streaming SSR, Error-Recovery Bound
     const ssrOut = compileToSsr(desc, { includeHydrationMarkers: true });
     const csrOut = generate(desc, { filename: "CounterCard.mix" });
 
-    // Evaluate SSR renderToString
+    // Evaluate SSR renderToString & renderToStream
     const ssrExec = ssrOut.code
       .replace(/import\s+[^\n]+\n/g, "")
-      .replace(/export\s+function\s+/g, "function ");
+      .replace(/export\s+(async\s+)?function/g, "$1function")
+      .replace(/export\s+const\s+/g, "const ");
     const ssrFactory = new Function(
       "signal",
       "computed",
@@ -93,7 +94,7 @@ describe("Gate 29 (T-29.4): @mix/server-node Streaming SSR, Error-Recovery Bound
       );
 
       // Load streamed HTML into happy-dom and hydrate CounterCard without mismatch
-      win.document.write(html);
+      win.document.documentElement.innerHTML = html.replace(/^<!DOCTYPE html>\s*/i, "");
       const appContainer = win.document.getElementById("app");
       assert.ok(appContainer, "#app container must exist in streamed HTML");
 

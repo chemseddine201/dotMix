@@ -1,0 +1,19 @@
+{
+  "name": "@mix/server-node",
+  "version": "0.1.0",
+  "description": "Node.js HTTP streaming SSR adapter with error-recovery boundaries and CSP nonce support",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@mix/runtime": "0.1.0",
+    "@mix/stream": "0.1.0"
+  }
+}
