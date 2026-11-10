@@ -375,11 +375,51 @@ export function compileToSsr(
         if (includeMarkers) {
           parts.push(`__html += "<!--mix:c:${id}-->";\n`);
         }
+
+        const propEntries: string[] = [];
+        for (const attr of call.attributes) {
+          if (attr.type === "StaticAttribute") {
+            const isBooleanShorthand =
+              attr.value === "" && attr.span.end.offset - attr.span.start.offset === attr.name.length;
+            const val = isBooleanShorthand ? "true" : JSON.stringify(attr.value);
+            propEntries.push(`${JSON.stringify(attr.name)}: ${val}`);
+          } else if (attr.type === "DynamicAttribute") {
+            if (attr.templateValue) {
+              const savedLength = parts.length;
+              for (const tmplChild of attr.templateValue) {
+                generateNode(tmplChild, shadowed);
+              }
+              const subBody = parts.splice(savedLength).join("");
+              propEntries.push(
+                `${JSON.stringify(attr.name)}: () => {\n  let __html = "";\n${subBody}  return __html;\n}`
+              );
+            } else {
+              const expr = transformExpr(attr.rawExpression, attr.expression, shadowed);
+              propEntries.push(`get ${JSON.stringify(attr.name)}() { return (${expr}); }`);
+            }
+          }
+        }
+
+        if (call.children.length > 0) {
+          const savedLength = parts.length;
+          for (const child of call.children) {
+            generateNode(child, shadowed);
+          }
+          const childBody = parts.splice(savedLength).join("");
+          const childFn = `() => {\n  let __html = "";\n${childBody}  return __html;\n}`;
+          propEntries.push(`children: ${childFn}`);
+          propEntries.push(`slots: { default: ${childFn} }`);
+        }
+
+        const propsLiteral = `{ ...props${propEntries.length > 0 ? ", " + propEntries.join(", ") : ""} }`;
+
         parts.push(`if (typeof ${call.name} === "function") {\n`);
+        parts.push(`  const __compProps = ${propsLiteral};\n`);
         parts.push(`  if (${call.name}.renderToString) {\n`);
-        parts.push(`    __html += ${call.name}.renderToString({ ...props });\n`);
+        parts.push(`    __html += ${call.name}.renderToString(__compProps);\n`);
         parts.push(`  } else {\n`);
-        parts.push(`    __html += ${call.name}({ ...props });\n`);
+        parts.push(`    const __compRes = ${call.name}(__compProps);\n`);
+        parts.push(`    if (typeof __compRes === "string") __html += __compRes;\n`);
         parts.push(`  }\n`);
         parts.push(`}\n`);
         if (includeMarkers) {

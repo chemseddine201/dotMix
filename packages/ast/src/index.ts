@@ -57,6 +57,7 @@ export interface DynamicAttributeNode extends ASTNodeBase {
   readonly name: string;
   readonly expression: ESTreeNode;
   readonly rawExpression: string;
+  readonly templateValue?: readonly TemplateNode[] | undefined;
 }
 
 export interface EventBindingNode extends ASTNodeBase {
@@ -144,6 +145,7 @@ export interface EachBlockNode extends ASTNodeBase {
   readonly keyExpression: ESTreeNode;
   readonly rawKeyExpression: string;
   readonly children: readonly TemplateNode[];
+  readonly legacySyntax?: boolean | undefined;
 }
 
 export interface IfBlockNode extends ASTNodeBase {
@@ -152,6 +154,7 @@ export interface IfBlockNode extends ASTNodeBase {
   readonly rawCondition: string;
   readonly consequent: readonly TemplateNode[];
   readonly alternate: readonly TemplateNode[] | IfBlockNode | null;
+  readonly legacySyntax?: boolean | undefined;
 }
 
 export interface SlotOutletNode extends ASTNodeBase {
@@ -170,6 +173,7 @@ export interface AwaitBlockNode extends ASTNodeBase {
   readonly thenBranch: readonly TemplateNode[];
   readonly catchIdentifier: string | null;
   readonly catchBranch: readonly TemplateNode[];
+  readonly legacySyntax?: boolean | undefined;
 }
 
 export type TemplateNode =
@@ -345,6 +349,7 @@ export function createAwaitBlockNode(params: {
   thenBranch?: readonly TemplateNode[];
   catchIdentifier?: string | null;
   catchBranch?: readonly TemplateNode[];
+  legacySyntax?: boolean;
 }): AwaitBlockNode {
   validateSpan(params.span);
   return deepFreeze({
@@ -356,7 +361,8 @@ export function createAwaitBlockNode(params: {
     thenIdentifier: params.thenIdentifier ?? null,
     thenBranch: params.thenBranch ? [...params.thenBranch] : [],
     catchIdentifier: params.catchIdentifier ?? null,
-    catchBranch: params.catchBranch ? [...params.catchBranch] : []
+    catchBranch: params.catchBranch ? [...params.catchBranch] : [],
+    ...(params.legacySyntax ? { legacySyntax: true } : {})
   });
 }
 
@@ -377,7 +383,14 @@ export function walk(root: ASTNode, visitor: ASTVisitor): void {
       node.type === "ComponentCall" ||
       node.type === "DynamicElement"
     ) {
-      for (const attr of node.attributes) visit(attr, node);
+      for (const attr of node.attributes) {
+        visit(attr, node);
+        if (attr.type === "DynamicAttribute" && attr.templateValue) {
+          for (const tmplChild of attr.templateValue) {
+            visit(tmplChild, attr);
+          }
+        }
+      }
       for (const child of node.children) visit(child, node);
     } else if (node.type === "EachBlock") {
       for (const child of node.children) visit(child, node);

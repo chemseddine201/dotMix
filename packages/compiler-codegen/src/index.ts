@@ -475,14 +475,27 @@ class CodegenContext {
         const val = isBooleanShorthand ? "true" : JSON.stringify(attr.value);
         propEntries.push(`${JSON.stringify(attr.name)}: ${val}`);
       } else if (attr.type === "DynamicAttribute") {
-        const jsExpr = this.emitExpr(
-          attr.rawExpression,
-          attr.expression,
-          loopGetters
-        );
-        propEntries.push(
-          `get ${JSON.stringify(attr.name)}() { return (${jsExpr}); }`
-        );
+        if (attr.templateValue) {
+          const safeName = attr.name.replace(/[^A-Za-z0-9_$]/g, "_");
+          const attrFrag = this.nextId(`attr_${safeName}`);
+          const attrLines = [
+            `const ${attrFrag} = document.createDocumentFragment();`,
+            ...this.emitTemplateNodes(attr.templateValue, attrFrag, loopGetters),
+            `return [...${attrFrag}.childNodes];`
+          ];
+          propEntries.push(
+            `${JSON.stringify(attr.name)}: () => {\n${indentLines(attrLines.join("\n"), 2)}\n}`
+          );
+        } else {
+          const jsExpr = this.emitExpr(
+            attr.rawExpression,
+            attr.expression,
+            loopGetters
+          );
+          propEntries.push(
+            `get ${JSON.stringify(attr.name)}() { return (${jsExpr}); }`
+          );
+        }
       } else if (attr.type === "RefBinding") {
         const jsExpr = this.emitExpr(
           attr.rawTarget,

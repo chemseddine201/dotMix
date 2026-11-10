@@ -103,3 +103,44 @@ export function Can(props: CanProps): unknown {
     ? (props.fallback as () => unknown)()
     : (props.fallback ?? null);
 }
+
+Can.renderToString = function renderCanToString(props: CanProps): string {
+  const contextAbility = useAbility();
+  const rawAbility = props.ability ?? contextAbility;
+  const activeAbility =
+    typeof rawAbility === "function" ? (rawAbility as () => Ability)() : rawAbility;
+  let target: unknown = props.this ?? props.a ?? props.an ?? "all";
+  if (typeof target === "function") {
+    target = (target as () => unknown)();
+  }
+  const hasPermission = activeAbility.can(props.I, (target ?? "all") as object, props.field);
+  const allowed = props.not ? !hasPermission : hasPermission;
+
+  const isRenderProp =
+    typeof props.children === "function" &&
+    props.children.length >= 1 &&
+    props.slots?.default !== props.children;
+
+  let branchContent: unknown;
+  if (isRenderProp) {
+    branchContent = (props.children as (a: boolean) => unknown)(allowed);
+  } else if (allowed) {
+    branchContent =
+      typeof props.children === "function"
+        ? (props.children as () => unknown)()
+        : props.children;
+  } else {
+    branchContent =
+      typeof props.fallback === "function"
+        ? (props.fallback as () => unknown)()
+        : props.fallback;
+  }
+
+  if (branchContent === null || branchContent === undefined || typeof branchContent === "boolean") {
+    return "";
+  }
+  if (Array.isArray(branchContent)) {
+    return branchContent.map((x) => (x === null || x === undefined ? "" : String(x))).join("");
+  }
+  return String(branchContent);
+};

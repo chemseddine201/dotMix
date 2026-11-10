@@ -6,6 +6,8 @@ import {
   createContext,
   setContext,
   getContext,
+  getCurrentOwner,
+  createRoot,
   type Context,
   type Signal
 } from "../core/index.js";
@@ -85,9 +87,25 @@ export interface PermissionProviderProps {
  * Context Provider for application permissions.
  */
 export function PermissionProvider(props: PermissionProviderProps): unknown {
-  setContext(PermissionContext, props.ability);
-  if (typeof props.children === "function") {
-    return (props.children as () => unknown)();
+  const run = (): unknown => {
+    setContext(PermissionContext, props.ability);
+    if (typeof props.children === "function") {
+      return (props.children as () => unknown)();
+    }
+    return props.children;
+  };
+
+  if (!getCurrentOwner()) {
+    let result: unknown;
+    createRoot((dispose) => {
+      try {
+        result = run();
+      } finally {
+        dispose();
+      }
+    });
+    return result;
   }
-  return props.children;
+
+  return run();
 }

@@ -89,12 +89,14 @@ export interface ComponentDescriptor {
   readonly imports: ReadonlyMap<string, string>;
   readonly cssImports?: readonly string[];
   readonly diagnostics: readonly Diagnostic[];
+  readonly warnings?: readonly Diagnostic[];
 }
 
 export interface AnalyzeOptions {
   filename?: string;
   source?: string;
   throwOnError?: boolean;
+  warnLegacyControlFlow?: boolean;
 }
 
 export interface TypecheckOptions {
@@ -571,6 +573,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
   const filename = options?.filename ?? ast.span.file ?? "Component.mix";
   const lineMap = options?.source !== undefined ? new InternalLineMap(options.source, filename) : null;
   const diagnostics: Diagnostic[] = [];
+  const warnings: Diagnostic[] = [];
 
   const { bindings, signals, computeds, props, refs, functions, imports, cssImports } = analyzeScriptBlock(
     ast,
@@ -582,6 +585,19 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
     parent: null,
     bindings
   };
+
+  function emitLegacyWarning(message: string, span: SourceSpan): void {
+    const warnDiag: Diagnostic = {
+      code: DiagnosticCodes.MIX_WARN_LEGACY_CONTROL_FLOW,
+      message,
+      severity: "warning",
+      span
+    };
+    warnings.push(warnDiag);
+    if (options?.warnLegacyControlFlow) {
+      diagnostics.push(warnDiag);
+    }
+  }
 
   function analyzeTemplateNodes(nodes: readonly TemplateNode[], currentScope: Scope): void {
     for (const node of nodes) {
@@ -603,7 +619,13 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
             verifyExpressionIdentifiers(node.tagExpression, currentScope, diagnostics, node.span);
           }
           for (const attr of node.attributes) {
-            if (attr.type === "DynamicAttribute" || attr.type === "DirectiveAttribute") {
+            if (attr.type === "DynamicAttribute") {
+              if (attr.templateValue) {
+                analyzeTemplateNodes(attr.templateValue, currentScope);
+              } else {
+                verifyExpressionIdentifiers(attr.expression, currentScope, diagnostics, attr.span);
+              }
+            } else if (attr.type === "DirectiveAttribute") {
               verifyExpressionIdentifiers(attr.expression, currentScope, diagnostics, attr.span);
             } else if (attr.type === "EventBinding") {
               verifyExpressionIdentifiers(attr.handler, currentScope, diagnostics, attr.span);
@@ -619,6 +641,12 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
           break;
         }
         case "IfBlock": {
+          if (node.legacySyntax) {
+            emitLegacyWarning(
+              "Legacy '{#if}...{/if}' control-flow syntax is deprecated. Use '{if ...}...{endif}' instead (D-133).",
+              node.span
+            );
+          }
           verifyExpressionIdentifiers(node.condition, currentScope, diagnostics, node.span);
           analyzeTemplateNodes(node.consequent, currentScope);
           if (node.alternate) {
@@ -631,6 +659,12 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
           break;
         }
         case "EachBlock": {
+          if (node.legacySyntax) {
+            emitLegacyWarning(
+              "Legacy '{#each}...{/each}' control-flow syntax is deprecated. Use '{each (item, idx) in list}...{endeach}' instead (D-133).",
+              node.span
+            );
+          }
           verifyExpressionIdentifiers(node.collection, currentScope, diagnostics, node.span);
           const loopBindings = new Map<string, SymbolBinding>();
           loopBindings.set(node.itemIdentifier, {
@@ -661,6 +695,12 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
           break;
         }
         case "AwaitBlock": {
+          if (node.legacySyntax) {
+            emitLegacyWarning(
+              "Legacy '{#await}...{/await}' control-flow syntax is deprecated. Use '{await ...}...{endawait}' instead (D-133).",
+              node.span
+            );
+          }
           verifyExpressionIdentifiers(node.expression, currentScope, diagnostics, node.span);
           analyzeTemplateNodes(node.pending, currentScope);
           if (node.thenIdentifier) {
@@ -701,8 +741,9 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
 
   analyzeTemplateNodes(ast.template, rootScope);
 
-  if ((options?.throwOnError ?? true) && diagnostics.length > 0) {
-    throw new MixDiagnosticError(diagnostics[0]!);
+  const firstError = diagnostics.find((d) => d.severity === "error");
+  if ((options?.throwOnError ?? true) && firstError) {
+    throw new MixDiagnosticError(firstError);
   }
 
   return deepFreeze({
@@ -716,7 +757,8 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
     functions,
     imports,
     cssImports,
-    diagnostics
+    diagnostics,
+    warnings
   });
 }
 
@@ -900,10 +942,16 @@ export function projectTypeScript(
           if (!firstProp) appendInternal(", ");
           firstProp = false;
           appendVerbatim(attr.name, attr.span.start.offset);
-          appendInternal(": (");
-          const exprStart = attr.expression.start ?? attr.span.start.offset;
-          appendVerbatim(attr.rawExpression, exprStart);
-          appendInternal(")");
+          if (attr.templateValue) {
+            appendInternal(": (() => {\n");
+            emitTemplateChecks(attr.templateValue, inSvg);
+            appendInternal("  }) as any");
+          } else {
+            appendInternal(": (");
+            const exprStart = attr.expression.start ?? attr.span.start.offset;
+            appendVerbatim(attr.rawExpression, exprStart);
+            appendInternal(")");
+          }
         } else if (attr.type === "EventBinding") {
           if (!firstProp) appendInternal(", ");
           firstProp = false;
@@ -935,10 +983,14 @@ export function projectTypeScript(
           appendOrigin(`, AnyElement());\n`, attr.span);
         }
       } else if (attr.type === "DynamicAttribute" && ownerNode.type !== "ComponentCall") {
-        const exprStart = attr.expression.start ?? attr.span.start.offset;
-        appendInternal("  void (");
-        appendVerbatim(attr.rawExpression, exprStart);
-        appendInternal(");\n");
+        if (attr.templateValue) {
+          emitTemplateChecks(attr.templateValue, inSvg);
+        } else {
+          const exprStart = attr.expression.start ?? attr.span.start.offset;
+          appendInternal("  void (");
+          appendVerbatim(attr.rawExpression, exprStart);
+          appendInternal(");\n");
+        }
       } else if (attr.type === "DirectiveAttribute") {
         const exprStart = attr.expression.start ?? attr.span.start.offset;
         appendInternal("  void (");

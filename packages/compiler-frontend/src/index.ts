@@ -957,6 +957,80 @@ class TemplateParser {
       }
 
       if (valChar === 123 /* { */) {
+        const isSpecialBinding =
+          rawName.startsWith("@") ||
+          rawName.startsWith("on:") ||
+          /^on[A-Z][A-Za-z]+$/.test(rawName) ||
+          rawName === "ref" ||
+          rawName === "mix-html" ||
+          rawName.startsWith("bind:");
+
+        if (!isSpecialBinding) {
+          const innerStart = skipJsWhitespaceAndComments(this.source, this.pos + 1, this.lineMap);
+          if (
+            innerStart < this.source.length &&
+            this.source.charCodeAt(innerStart) === 60 /* < */ &&
+            (isTagNameStart(this.source.charCodeAt(innerStart + 1)) ||
+              this.source.startsWith("<$", innerStart) ||
+              this.source.startsWith("<>", innerStart))
+          ) {
+            this.pos = innerStart;
+            let templateNodes: TemplateNode[];
+            if (this.source.startsWith("<>", this.pos)) {
+              const fragStart = this.pos;
+              this.pos += 2;
+              templateNodes = this.parseChildren(() => this.source.startsWith("</>", this.pos));
+              if (!this.source.startsWith("</>", this.pos)) {
+                failSyntax(
+                  DiagnosticCodes.MIX_ERR_UNCLOSED_TAG,
+                  "Unclosed fragment '<>' inside attribute expression: missing '</>'.",
+                  this.lineMap,
+                  fragStart,
+                  this.pos
+                );
+              }
+              this.pos += 3;
+            } else if (this.source.startsWith("<$", this.pos)) {
+              templateNodes = [this.parseDollarDynamicElement()];
+            } else {
+              templateNodes = [this.parseElementOrComponent()];
+            }
+
+            const innerEnd = this.pos;
+            this.pos = skipJsWhitespaceAndComments(this.source, this.pos, this.lineMap);
+            if (this.pos >= this.source.length || this.source.charCodeAt(this.pos) !== 125 /* } */) {
+              failSyntax(
+                DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+                `Expected closing '}' after attribute element expression for '${rawName}'.`,
+                this.lineMap,
+                this.pos,
+                Math.min(this.source.length, this.pos + 1)
+              );
+            }
+            this.pos++; // skip '}'
+            const attrSpan = this.lineMap.span(attrStart, this.pos);
+            const rawExpression = this.source.slice(innerStart, innerEnd);
+            const exprSpan = this.lineMap.span(innerStart, innerEnd);
+            attributes.push(
+              deepFreeze({
+                type: "DynamicAttribute",
+                name: rawName,
+                expression: deepFreeze({
+                  type: "TemplateAttributeExpression",
+                  start: innerStart,
+                  end: innerEnd,
+                  range: [innerStart, innerEnd] as const,
+                  loc: exprSpan
+                }),
+                rawExpression,
+                templateValue: deepFreeze(templateNodes),
+                span: attrSpan
+              })
+            );
+            continue;
+          }
+        }
+
         const parsed = parseEmbeddedExpression(this.source, this.pos + 1, "}", this.lineMap);
         this.pos = parsed.afterDelimiterOffset;
         const attrSpan = this.lineMap.span(attrStart, this.pos);
@@ -1424,6 +1498,7 @@ class TemplateParser {
 
   private parseIfBlock(): IfBlockNode {
     const start = this.pos; // at '{if' or '{#if'
+    const isLegacyHashIf = this.source.startsWith("{#if", start);
     const openLen = this.isIfOpenAt(start);
     this.pos += openLen > 0 ? openLen : 3;
     const condResult = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
@@ -1450,7 +1525,8 @@ class TemplateParser {
           rawCondition: condResult.rawExpression,
           consequent,
           alternate,
-          span: this.lineMap.span(start, this.pos)
+          span: this.lineMap.span(start, this.pos),
+          ...(isLegacyHashIf ? { legacySyntax: true } : {})
         });
       }
 
@@ -1487,7 +1563,8 @@ class TemplateParser {
       rawCondition: condResult.rawExpression,
       consequent,
       alternate,
-      span: this.lineMap.span(start, this.pos)
+      span: this.lineMap.span(start, this.pos),
+      ...(isLegacyHashIf ? { legacySyntax: true } : {})
     });
   }
 
@@ -1835,12 +1912,14 @@ class TemplateParser {
       keyExpression,
       rawKeyExpression,
       children,
-      span: this.lineMap.span(start, this.pos)
+      span: this.lineMap.span(start, this.pos),
+      ...(isLegacyHashEach ? { legacySyntax: true } : {})
     });
   }
 
   private parseAwaitBlock(): AwaitBlockNode {
     const start = this.pos; // at '{await' or '{#await'
+    const isLegacyHashAwait = this.source.startsWith("{#await", start);
     const openLen = this.isAwaitOpenAt(start);
     this.pos += openLen > 0 ? openLen : 6;
     const exprResult = parseEmbeddedExpression(this.source, this.pos, "}", this.lineMap);
@@ -1893,7 +1972,8 @@ class TemplateParser {
       thenIdentifier,
       thenBranch,
       catchIdentifier,
-      catchBranch
+      catchBranch,
+      ...(isLegacyHashAwait ? { legacySyntax: true } : {})
     });
   }
 }

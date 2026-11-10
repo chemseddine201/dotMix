@@ -139,21 +139,21 @@ export default function PermissionsPage() {
           
           <div class="action-row">
             <span>Can Edit Article (ABAC):</span>
-            <Can I="update" this={trackedArticle} ability={ability()} fallback="DENIED">
+            <Can I="update" this={trackedArticle} ability={ability()} fallback={<span class="badge badge-denied">DENIED</span>}>
               <span class="badge badge-allowed">ALLOWED</span>
             </Can>
           </div>
 
           <div class="action-row">
             <span>Can Edit Status (Field-level):</span>
-            <Can I="update" this={trackedArticle} field="status" ability={ability()} fallback="DENIED">
+            <Can I="update" this={trackedArticle} field="status" ability={ability()} fallback={<span class="badge badge-denied">DENIED</span>}>
               <span class="badge badge-allowed">ALLOWED</span>
             </Can>
           </div>
 
           <div class="action-row">
             <span>Can Delete Article:</span>
-            <Can I="delete" this={trackedArticle} ability={ability()} fallback="DENIED">
+            <Can I="delete" this={trackedArticle} ability={ability()} fallback={<span class="badge badge-denied">DENIED</span>}>
               <span class="badge badge-allowed">ALLOWED</span>
             </Can>
           </div>
@@ -164,7 +164,7 @@ export default function PermissionsPage() {
               I="update"
               this={trackedArticle}
               ability={ability()}
-              fallback="Editing Disabled"
+              fallback={<span class="badge badge-denied">Editing Disabled</span>}
             >
               <button class="btn-sm" style="background: #2563eb; color: white;">Edit Content</button>
             </Can>
@@ -173,7 +173,7 @@ export default function PermissionsPage() {
               I="delete"
               this={trackedArticle}
               ability={ability()}
-              fallback="Delete Forbidden"
+              fallback={<span class="badge badge-denied">Delete Forbidden</span>}
             >
               <button class="btn-sm" style="background: #dc2626; color: white;">Delete Post</button>
             </Can>

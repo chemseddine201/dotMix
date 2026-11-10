@@ -10,7 +10,7 @@ export default function HomePage() {
         <p>Built with fine-grained reactive signals, isomorphic permissions, and offline CRDT sync.</p>
         <div class="hero-actions">
           <Button variant="primary">Get Started</Button>
-          <Can I="manage" a="AdminPanel" fallback="Guest Mode">
+          <Can I="manage" a="AdminPanel" fallback={<span class="badge-guest">Guest Mode</span>}>
             <Button variant="secondary">Admin Settings</Button>
           </Can>
         </div>

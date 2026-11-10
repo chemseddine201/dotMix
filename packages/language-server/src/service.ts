@@ -141,6 +141,14 @@ function findEnclosingTemplateNodes(nodes: readonly TemplateNode[], offset: numb
   for (const node of nodes) {
     if (node.span && offset >= node.span.start.offset && offset <= node.span.end.offset) {
       result.push(node);
+      if ("attributes" in node && Array.isArray((node as unknown as { attributes?: unknown }).attributes)) {
+        const attrs = (node as unknown as { attributes: readonly { type?: string; templateValue?: readonly TemplateNode[] }[] }).attributes;
+        for (const attr of attrs) {
+          if (attr.type === "DynamicAttribute" && attr.templateValue) {
+            result.push(...findEnclosingTemplateNodes(attr.templateValue, offset));
+          }
+        }
+      }
       if ("children" in node && Array.isArray((node as unknown as { children?: unknown }).children)) {
         result.push(
           ...findEnclosingTemplateNodes(
@@ -237,7 +245,12 @@ export class MixLanguageService {
 
     try {
       const ast = parse(text, { filename });
-      const desc = analyze(ast, { filename, source: text, throwOnError: false });
+      const desc = analyze(ast, {
+        filename,
+        source: text,
+        throwOnError: false,
+        warnLegacyControlFlow: true,
+      });
 
       for (const diag of desc.diagnostics) {
         results.push(this.toLspDiagnostic(diag));
@@ -274,7 +287,12 @@ export class MixLanguageService {
 
     try {
       const ast = parse(text, { filename });
-      const desc = analyze(ast, { filename, source: text, throwOnError: false });
+      const desc = analyze(ast, {
+        filename,
+        source: text,
+        throwOnError: false,
+        warnLegacyControlFlow: true,
+      });
 
       const binding = desc.rootScope.bindings.get(wordInfo.word);
       if (binding) {
@@ -315,7 +333,12 @@ export class MixLanguageService {
 
     try {
       const ast = parse(text, { filename });
-      const desc = analyze(ast, { filename, source: text, throwOnError: false });
+      const desc = analyze(ast, {
+        filename,
+        source: text,
+        throwOnError: false,
+        warnLegacyControlFlow: true,
+      });
 
       // 1. Suggest variables in root scope
       for (const [name, binding] of desc.rootScope.bindings) {
@@ -436,7 +459,12 @@ export class MixLanguageService {
 
     try {
       const ast = parse(text, { filename });
-      const desc = analyze(ast, { filename, source: text, throwOnError: false });
+      const desc = analyze(ast, {
+        filename,
+        source: text,
+        throwOnError: false,
+        warnLegacyControlFlow: true,
+      });
 
       // 1. Check if word is an imported component or module in <script>
       const importSource = desc.imports.get(wordInfo.word);

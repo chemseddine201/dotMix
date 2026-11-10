@@ -101,15 +101,17 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
   it("3. Compiles attribute element expression to a lazily-mounted render function in CSR DOM and SSR renderToString", () => {
     const win = setupDom();
     try {
+      const canEdit = MixRuntime.signal(false);
+      const badgeText = MixRuntime.signal("Guest Mode");
+
       const src = `<script>
-  import { signal } from "@mix/runtime";
+  import { computed, defineProps } from "@mix/runtime";
   import { defineAbility, PermissionProvider, Can } from "@mix/runtime/permissions";
 
-  export const canEdit = signal(false);
-  export const badgeText = signal("Guest Mode");
+  const props = defineProps();
   const ability = computed(() =>
     defineAbility((can, cannot) => {
-      if (canEdit()) {
+      if (props.canEdit()) {
         can("update", "Article");
       } else {
         cannot("update", "Article");
@@ -119,7 +121,7 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
 </script>
 <PermissionProvider ability={ability}>
   <div class="host">
-    <Can I="update" a="Article" fallback={<span class="badge-guest">{badgeText()}</span>}>
+    <Can I="update" a="Article" fallback={<span class="badge-guest">{props.badgeText()}</span>}>
       <button class="btn-edit">Edit Article</button>
     </Can>
   </div>
@@ -146,14 +148,13 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
           return `const { ${bindings} } = __MixRuntime;`;
         })
         .replace(/export\s+default\s+[A-Za-z0-9_$]+;?/g, "")
-        .replace(/export\s+function\s+([A-Za-z0-9_$]+)/g, "function $1")
-        .replace(/export\s+const\s+/g, "const ");
+        .replace(/export\s+function\s+([A-Za-z0-9_$]+)/g, "function $1");
 
       const factory = new Function(
         "__MixRuntime",
-        `${execCode}\nreturn { CsrAttrElement, canEdit, badgeText };`
+        `${execCode}\nreturn { CsrAttrElement };`
       );
-      const { CsrAttrElement, canEdit, badgeText } = factory(MixRuntime);
+      const { CsrAttrElement } = factory(MixRuntime);
 
       const container = document.createElement("div");
       document.body.appendChild(container);
@@ -161,7 +162,7 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
       let disposeRoot;
       MixRuntime.createRoot((dispose) => {
         disposeRoot = dispose;
-        const nodes = CsrAttrElement({});
+        const nodes = CsrAttrElement({ canEdit, badgeText });
         for (const n of Array.isArray(nodes) ? nodes : [nodes]) {
           container.appendChild(n);
         }
@@ -186,6 +187,8 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
       disposeRoot();
 
       // Also verify SSR compileToSsr parity
+      canEdit.set(false);
+      badgeText.set("Guest Mode");
       const ssr = compileToSsr(desc, undefined, { includeHydrationMarkers: false });
       const ssrExec = ssr.code
         .replace(/import\s+\{([^}]+)\}\s+from\s+["']@mix\/runtime["'];?/g, (_, list) => {
@@ -204,12 +207,11 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
         })
         .replace(/export\s+function\s+renderToString/g, "function renderToString")
         .replace(/export\s+function\s+renderToStream/g, "function renderToStream")
-        .replace(/export\s+const\s+css/g, "const css")
-        .replace(/export\s+const\s+/g, "const ");
+        .replace(/export\s+const\s+css/g, "const css");
 
       const ssrFactory = new Function("__MixRuntime", `${ssrExec}\nreturn { renderToString };`);
       const { renderToString } = ssrFactory(MixRuntime);
-      const html = renderToString({});
+      const html = renderToString({ canEdit, badgeText });
       assert.ok(
         html.includes('<span class="badge-guest">Guest Mode</span>'),
         `Expected SSR HTML to contain fallback element, got: ${html}`
