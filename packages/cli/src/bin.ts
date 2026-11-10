@@ -89,6 +89,7 @@ switch (command) {
     const outDir = args[2] || "dist";
     const res = build({ inDir, outDir });
     console.log(`\n✓ Mix build completed successfully. (${res.compiledFiles.length} files compiled)`);
+    console.log(`\n${res.bundleReport.reportText}\n`);
     break;
   }
 
