@@ -56,6 +56,7 @@ export function disposeOwner(owner: Owner): void {
   for (const comp of [...owner.computations]) {
     comp.state = ComputationState.DISPOSED;
     if (comp.kind === "Effect") {
+      coreState.suspendedEffects.delete(comp);
       comp.pendingRerun = false;
       comp.pendingState = ComputationState.CLEAN;
       if (comp.effectCleanup) {

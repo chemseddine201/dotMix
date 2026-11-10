@@ -64,6 +64,7 @@ export interface Owner {
   readonly contexts: Map<symbol, unknown>;
   readonly cancellationSource: CancellationSource;
   readonly token: CancellationToken;
+  suspended?: boolean;
   errorHandler?: (err: unknown) => void;
   dispose(): void;
 }

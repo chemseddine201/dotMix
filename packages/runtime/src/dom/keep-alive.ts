@@ -8,6 +8,8 @@ import {
   createEffect,
   getCurrentOwner,
   onCleanup,
+  setOwnerSuspended,
+  untrack,
   type Owner
 } from "../core/index.js";
 import { removeNode, normalizeToNodeArray } from "./nodes.js";
@@ -23,10 +25,50 @@ export type KeepAliveHandle = Node | readonly Node[];
 
 interface KeepAliveCacheEntry {
   key: string;
+  startMarker: Comment;
+  endMarker: Comment;
+  offscreen: DocumentFragment | null;
   nodes: Node[];
   dispose: () => void;
   owner: Owner | null;
   lastAccessed: number;
+}
+
+function parkEntryOffscreen(entry: KeepAliveCacheEntry): void {
+  if (!entry.offscreen) return;
+  if (
+    entry.startMarker.parentNode &&
+    entry.startMarker.parentNode === entry.endMarker.parentNode
+  ) {
+    let curr: Node | null = entry.startMarker;
+    while (curr !== null) {
+      const next: Node | null =
+        curr === entry.endMarker ? null : curr.nextSibling;
+      entry.offscreen.appendChild(curr);
+      curr = next;
+    }
+  } else {
+    for (const node of entry.nodes) {
+      entry.offscreen.appendChild(node);
+    }
+  }
+  entry.nodes = [...entry.offscreen.childNodes];
+}
+
+function mountEntryBeforeMarker(
+  entry: KeepAliveCacheEntry,
+  marker: Comment
+): void {
+  const p = marker.parentNode;
+  if (!p) return;
+  if (entry.offscreen && entry.offscreen.childNodes.length > 0) {
+    entry.nodes = [...entry.offscreen.childNodes];
+    p.insertBefore(entry.offscreen, marker);
+  } else {
+    for (const node of entry.nodes) {
+      p.insertBefore(node, marker);
+    }
+  }
 }
 
 /**
@@ -40,8 +82,6 @@ export function KeepAlive(
 ): KeepAliveHandle {
   const marker = document.createComment("mix:keep-alive");
   const parentOwner = getCurrentOwner();
-  const offscreen =
-    typeof document !== "undefined" ? document.createDocumentFragment() : null;
 
   if (parent) {
     parent.insertBefore(marker, anchor ?? null);
@@ -49,6 +89,8 @@ export function KeepAlive(
 
   const cache = new Map<string, KeepAliveCacheEntry>();
   let accessCounter = 0;
+  let currentKey = "";
+  let initialEntry = null as KeepAliveCacheEntry | null;
 
   function getKey(): string {
     return typeof props.activeKey === "function"
@@ -80,6 +122,10 @@ export function KeepAlive(
     let entryDisposer: (() => void) | null = null;
     let renderedNodes: Node[] = [];
     let entryOwner: Owner | null = null;
+    const startMarker = document.createComment(`mix:ka-start:${key}`);
+    const endMarker = document.createComment(`mix:ka-end:${key}`);
+    const offscreen =
+      typeof document !== "undefined" ? document.createDocumentFragment() : null;
 
     createRoot((dispose) => {
       entryDisposer = dispose;
@@ -94,9 +140,19 @@ export function KeepAlive(
       );
     }, parentOwner);
 
+    const initialNodes = [startMarker, ...renderedNodes, endMarker];
+    if (offscreen) {
+      for (const node of initialNodes) {
+        offscreen.appendChild(node);
+      }
+    }
+
     return {
       key,
-      nodes: renderedNodes,
+      startMarker,
+      endMarker,
+      offscreen,
+      nodes: initialNodes,
       dispose: () => {
         if (entryDisposer) {
           entryDisposer();
@@ -108,55 +164,43 @@ export function KeepAlive(
     };
   }
 
-  // 1. Synchronously prepare initial entry
-  const initialKey = getKey();
-  let currentKey = initialKey;
-  const initialEntry = createEntry(initialKey);
-  cache.set(initialKey, initialEntry);
-
   let isFirstRun = true;
 
+  // Register KeepAlive's key-observer effect FIRST so it always executes before
+  // any conditional/child effects created inside createEntry(key) when activeKey changes.
   createEffect(() => {
     const nextKey = getKey();
     if (isFirstRun) {
       isFirstRun = false;
+      currentKey = nextKey;
+      initialEntry = untrack(() => createEntry(nextKey));
+      cache.set(nextKey, initialEntry);
+      if (marker.parentNode) {
+        mountEntryBeforeMarker(initialEntry, marker);
+      }
       return;
     }
     if (nextKey === currentKey) return;
 
-    // Move previous nodes to offscreen fragment without disposing Owner
+    // Suspend previous entry's Owner and park its live DOM range into its offscreen fragment
     if (currentKey && cache.has(currentKey)) {
       const prevEntry = cache.get(currentKey)!;
-      if (offscreen) {
-        for (const node of prevEntry.nodes) {
-          offscreen.appendChild(node);
-        }
-      }
+      setOwnerSuspended(prevEntry.owner, true);
+      parkEntryOffscreen(prevEntry);
     }
 
     currentKey = nextKey;
 
-    // Check if nextKey is in cache
+    // Restore cached entry or create new entry for nextKey
     let entry = cache.get(nextKey);
     if (entry) {
       entry.lastAccessed = ++accessCounter;
-      const p = marker.parentNode;
-      if (p) {
-        for (const node of entry.nodes) {
-          p.insertBefore(node, marker);
-        }
-      }
+      mountEntryBeforeMarker(entry, marker);
+      setOwnerSuspended(entry.owner, false);
     } else {
-      entry = createEntry(nextKey);
+      entry = untrack(() => createEntry(nextKey));
       cache.set(nextKey, entry);
-
-      const p = marker.parentNode;
-      if (p) {
-        for (const node of entry.nodes) {
-          p.insertBefore(node, marker);
-        }
-      }
-
+      mountEntryBeforeMarker(entry, marker);
       evictLruIfNeeded();
     }
   });
@@ -173,7 +217,16 @@ export function KeepAlive(
     });
   }
 
-  return [...initialEntry.nodes, marker];
+  if (parent && initialEntry) {
+    return marker;
+  }
+  if (initialEntry) {
+    if (initialEntry.offscreen && initialEntry.offscreen.childNodes.length > 0) {
+      initialEntry.nodes = [...initialEntry.offscreen.childNodes];
+    }
+    return [...initialEntry.nodes, marker];
+  }
+  return [marker];
 }
 
 export const createKeepAlive = KeepAlive;

@@ -13,6 +13,7 @@ export interface CoreKernelState {
   readonly effectQueue: EffectNode[];
   queueIndex: number;
   readonly touchedEffectsInFlush: Set<EffectNode>;
+  readonly suspendedEffects: Set<EffectNode>;
   maxEffectIterations: number;
   uncaughtErrorHandler: ((error: unknown) => void) | null;
   globalGenerationCounter: number;
@@ -27,10 +28,22 @@ export const coreState: CoreKernelState = {
   effectQueue: [],
   queueIndex: 0,
   touchedEffectsInFlush: new Set<EffectNode>(),
+  suspendedEffects: new Set<EffectNode>(),
   maxEffectIterations: 1000,
   uncaughtErrorHandler: null,
   globalGenerationCounter: 0
 };
+
+export function isOwnerSuspended(owner: Owner | null): boolean {
+  let curr: Owner | null = owner;
+  while (curr !== null) {
+    if (curr.suspended) {
+      return true;
+    }
+    curr = curr.parent ?? curr.contextParent;
+  }
+  return false;
+}
 
 export function getCurrentOwner(): Owner | null {
   return coreState.currentOwner;

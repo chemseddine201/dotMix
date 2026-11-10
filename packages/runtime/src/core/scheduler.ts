@@ -10,11 +10,17 @@ import {
   type ComputationStateValue,
   type ComputedNode,
   type EffectNode,
+  type Owner,
   type OwnerStateValue,
   type SchedulerOptions,
   type SourceNode
 } from "./types.js";
-import { coreState, findErrorHandler, unlinkComputation } from "./state.js";
+import {
+  coreState,
+  findErrorHandler,
+  isOwnerSuspended,
+  unlinkComputation
+} from "./state.js";
 import { disposeOwner } from "./owner.js";
 
 export function configureScheduler(options: SchedulerOptions): void {
@@ -33,9 +39,43 @@ export function enqueueEffect(effect: EffectNode): void {
   ) {
     return;
   }
+  if (isOwnerSuspended(effect)) {
+    coreState.suspendedEffects.add(effect);
+    return;
+  }
   if (!effect.queued) {
     effect.queued = true;
     coreState.effectQueue.push(effect);
+  }
+}
+
+export function setOwnerSuspended(owner: Owner | null, suspended: boolean): void {
+  if (!owner || owner.ownerState === OwnerState.DISPOSED) {
+    return;
+  }
+  owner.suspended = suspended;
+  if (!suspended && coreState.suspendedEffects.size > 0) {
+    for (const eff of [...coreState.suspendedEffects]) {
+      if (
+        eff.ownerState === OwnerState.DISPOSED ||
+        eff.state === ComputationState.DISPOSED
+      ) {
+        coreState.suspendedEffects.delete(eff);
+        continue;
+      }
+      if (!isOwnerSuspended(eff)) {
+        coreState.suspendedEffects.delete(eff);
+        if (
+          eff.state === ComputationState.DIRTY ||
+          eff.state === ComputationState.CHECK
+        ) {
+          enqueueEffect(eff);
+        }
+      }
+    }
+    if (coreState.batchDepth === 0 && !coreState.isFlushing && coreState.effectQueue.length > 0) {
+      flushSync();
+    }
   }
 }
 
@@ -297,6 +337,11 @@ export function flushSync(): void {
         effect.state === ComputationState.DISPOSED ||
         effect.state === ComputationState.CLEAN
       ) {
+        continue;
+      }
+
+      if (isOwnerSuspended(effect)) {
+        coreState.suspendedEffects.add(effect);
         continue;
       }
 

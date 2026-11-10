@@ -9,7 +9,8 @@ export {
   runWithOwner,
   untrack,
   unlinkComputation,
-  findErrorHandler
+  findErrorHandler,
+  isOwnerSuspended
 } from "./state.js";
 export * from "./cancellation.js";
 export * from "./owner.js";

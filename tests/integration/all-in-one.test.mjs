@@ -93,6 +93,36 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.ok(formula.textContent.includes("Right (+10): 12"));
     assert.ok(formula.textContent.includes("Sum: 16"));
 
+    // Verify KeepAlive tab switching preserves Live Calculator DOM and Scratchpad Notes
+    const [calcTabBtn, notesTabBtn] = [...overviewContainer.querySelectorAll(".keepalive-box .tab-btn")];
+    assert.ok(calcTabBtn && notesTabBtn);
+
+    // Switch to Scratchpad Notes tab
+    notesTabBtn.click();
+    assert.strictEqual(overviewContainer.querySelector(".diamond-formula"), null);
+    const notesArea = overviewContainer.querySelector(".notes-area");
+    assert.ok(notesArea);
+    notesArea.value = "Saved architectural note";
+    notesArea.dispatchEvent(new win.Event("input"));
+
+    // Switch back to Live Calculator tab -> must reappear with preserved DOM & state
+    calcTabBtn.click();
+    const restoredFormula = overviewContainer.querySelector(".diamond-formula");
+    assert.strictEqual(restoredFormula, formula);
+    assert.ok(restoredFormula.textContent.includes("Count: 2"));
+    assert.ok(restoredFormula.textContent.includes("Sum: 16"));
+
+    // Increment again inside restored KeepAlive calculator
+    overviewContainer.querySelector(".btn-inc").click();
+    assert.ok(restoredFormula.textContent.includes("Count: 3"));
+    assert.ok(restoredFormula.textContent.includes("Sum: 19"));
+
+    // Switch to Notes and back to Calculator again to verify multi-cycle preservation
+    notesTabBtn.click();
+    assert.strictEqual(overviewContainer.querySelector(".notes-area"), notesArea);
+    calcTabBtn.click();
+    assert.strictEqual(overviewContainer.querySelector(".diamond-formula"), formula);
+
     // 2. Mount TasksPage.mix
     const tasksArtifact = artifacts.get("pages/TasksPage.mix");
     const tasksModule = await import(pathToFileURL(tasksArtifact.jsPath).href);
