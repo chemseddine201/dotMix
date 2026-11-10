@@ -793,6 +793,15 @@ function trackSourceRead(sourceNode: SourceNode): void {
   }
 }
 
+export const SIGNAL_BRAND = Symbol.for("@mix/signal");
+
+export function isSignal(val: unknown): val is Signal<unknown> | Computed<unknown> {
+  return (
+    typeof val === "function" &&
+    (val as unknown as Record<symbol, unknown>)[SIGNAL_BRAND] === true
+  );
+}
+
 export function signal<T>(initialValue: T, options?: SignalOptions<T>): Signal<T> {
   const node: SignalNode<T> = {
     kind: "Signal",
@@ -835,6 +844,13 @@ export function signal<T>(initialValue: T, options?: SignalOptions<T>): Signal<T
   };
 
   read.peek = (): T => node.value;
+
+  Object.defineProperty(read, SIGNAL_BRAND, {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false
+  });
 
   return read;
 }
@@ -882,6 +898,13 @@ export function computed<T>(
     }
     return node.value as T;
   };
+
+  Object.defineProperty(read, SIGNAL_BRAND, {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false
+  });
 
   return read;
 }

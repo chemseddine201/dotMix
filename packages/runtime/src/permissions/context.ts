@@ -21,16 +21,23 @@ export const PermissionContext: Context<AbilityInput | null> =
   createContext<AbilityInput | null>(null);
 
 const DEFAULT_GUEST_ABILITY = createAbility([]);
+const abilityProxyCache = new WeakMap<object, Ability<any>>();
 
 /**
  * Hook to retrieve the active Ability from context.
- * If the provided ability is a reactive Signal or function, this returns a reactive
- * proxy that forwards all checks to the active instance while tracking signal dependencies.
+ * If the provided ability is a reactive Signal or function, this returns a memoized
+ * reactive proxy that forwards all checks to the active instance while tracking signal dependencies.
  */
 export function useAbility<A extends string = Action>(): Ability<A> {
   const ctx = getContext(PermissionContext);
   if (!ctx) {
     return DEFAULT_GUEST_ABILITY as Ability<A>;
+  }
+
+  const key = ctx as unknown as object;
+  const cached = abilityProxyCache.get(key);
+  if (cached) {
+    return cached as Ability<A>;
   }
 
   const resolve = (): Ability<A> => {
@@ -41,7 +48,7 @@ export function useAbility<A extends string = Action>(): Ability<A> {
   };
 
   // Return reactive proxy forwarding calls to the active ability
-  return {
+  const proxy: Ability<A> = {
     can(action, subject, field) {
       return resolve().can(action, subject, field);
     },
@@ -64,6 +71,9 @@ export function useAbility<A extends string = Action>(): Ability<A> {
       return resolve().relevantRuleFor(action, subject, field);
     }
   };
+
+  abilityProxyCache.set(key, proxy);
+  return proxy;
 }
 
 export interface PermissionProviderProps {

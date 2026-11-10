@@ -29,6 +29,7 @@ export interface AbilityContext {
 
 export interface AbilityOptions {
   detectSubjectType?: ((subject: unknown) => string) | undefined;
+  strictSubjects?: boolean | undefined;
 }
 
 export interface Ability<A extends string = Action, S extends string = string> {

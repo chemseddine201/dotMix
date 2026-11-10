@@ -5,7 +5,8 @@
  * signal-aware condition tracking, async cancellation, and field-level permissions.
  */
 
-import { signal, type Signal, type CancellationToken } from "../core/index.js";
+import { signal, isSignal, type Signal, type CancellationToken } from "../core/index.js";
+import { MixError, DiagnosticCodes } from "../errors.js";
 import type {
   Action,
   Rule,
@@ -50,7 +51,10 @@ export function subject<T extends object>(type: string, obj: T): T {
 /**
  * Detects the subject type identifier from a string or object.
  */
-export function detectSubjectType(subjectVal: unknown): string {
+export function detectSubjectType(
+  subjectVal: unknown,
+  options?: { strictSubjects?: boolean | undefined }
+): string {
   if (typeof subjectVal === "string") {
     return subjectVal;
   }
@@ -69,6 +73,12 @@ export function detectSubjectType(subjectVal: unknown): string {
       return obj.modelName;
     }
     if (obj.constructor && obj.constructor.name && obj.constructor.name !== "Object") {
+      if (options?.strictSubjects) {
+        return "all";
+      }
+      console.warn(
+        `[@mix/runtime/permissions] Implicit subject detection via constructor.name ("${obj.constructor.name}") is fragile under minification. Tag subjects explicitly with subject("${obj.constructor.name}", instance) or configure detectSubjectType / strictSubjects: true.`
+      );
       return obj.constructor.name;
     }
   }
@@ -99,6 +109,14 @@ function matchesField(rule: Rule, field?: string): boolean {
   return rule.fields.includes(field);
 }
 
+function isThenable(val: unknown): boolean {
+  return (
+    val !== null &&
+    (typeof val === "object" || typeof val === "function") &&
+    typeof (val as { then?: unknown }).then === "function"
+  );
+}
+
 function matchesConditionsSync(
   conditions: unknown,
   subjectVal: unknown,
@@ -109,6 +127,12 @@ function matchesConditionsSync(
   }
   if (typeof conditions === "function") {
     const res = (conditions as (subj: unknown, ctx: AbilityContext) => unknown)(subjectVal, context);
+    if (isThenable(res)) {
+      throw new MixError(
+        DiagnosticCodes.MIX_ERR_ASYNC_RULE_IN_SYNC_CHECK,
+        "Asynchronous permission rule predicate cannot be evaluated synchronously in ability.can(). Use ability.canAsync() instead."
+      );
+    }
     return res === true;
   }
   if (typeof conditions === "object" && subjectVal && typeof subjectVal === "object") {
@@ -116,9 +140,9 @@ function matchesConditionsSync(
     const condObj = conditions as Record<string, unknown>;
     for (const key of Object.keys(condObj)) {
       let actual = subj[key];
-      if (typeof actual === "function") {
-        // Automatically unwrap reactive signals!
-        actual = (actual as () => unknown)();
+      if (isSignal(actual)) {
+        // Unwrap only branded reactive signals/computeds — never invoke arbitrary object methods
+        actual = actual();
       }
       const expected = condObj[key];
       if (actual !== expected) {
@@ -190,7 +214,7 @@ export class PureAbility<A extends string = Action, S extends string = string>
     if (this._options.detectSubjectType) {
       return this._options.detectSubjectType(subjectVal);
     }
-    return detectSubjectType(subjectVal);
+    return detectSubjectType(subjectVal, this._options);
   }
 
   relevantRuleFor(action: A, subjectVal: S | object, field?: string): Rule | undefined {
