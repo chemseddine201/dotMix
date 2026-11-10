@@ -181,5 +181,6 @@ npm run test:golden
 
 ## 📄 الترخيص
 
-MIT © [Chemseddine](https://github.com/chemseddine201)
+إطار العمل **dotMix** مفتوح المصدر بالكامل بموجب **[رخصة MIT](LICENSE)** (تماماً مثل ReactJS) © 2026 [Chemseddine](https://github.com/chemseddine201).
+راجع ملف [`LICENSE`](LICENSE) (English) و [`LICENSE.ar.md`](LICENSE.ar.md) (العربية).
 

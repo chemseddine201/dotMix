@@ -181,4 +181,5 @@ npm run test:golden
 
 ## 📄 License
 
-MIT © [Chemseddine](https://github.com/chemseddine201)
+**dotMix** is [MIT Licensed](LICENSE) (open source, exactly like React) © 2026 [Chemseddine](https://github.com/chemseddine201).
+See [`LICENSE`](LICENSE) (English) and [`LICENSE.ar.md`](LICENSE.ar.md) (العربية).
