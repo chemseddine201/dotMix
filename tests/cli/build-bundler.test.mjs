@@ -87,7 +87,7 @@ describe("Gate 29 (T-29.2): Production Bundler, Lazy Route Code-Splitting, Minif
       });
 
       const proc = spawnSync(
-        process.execPath,
+        globalThis.process.execPath,
         [cliBinPath, "build", "src", "dist"],
         { cwd: appDir, encoding: "utf-8" }
       );
