@@ -7,6 +7,7 @@
 import { check } from "./check.js";
 import { build } from "./build.js";
 import { create } from "./create.js";
+import { createDevServer } from "./dev.js";
 
 const args = process.argv.slice(2);
 const command = args[0] || "help";
@@ -65,6 +66,21 @@ switch (command) {
       process.exit(1);
     }
     console.log(`\n✓ Mix check passed with 0 errors (${res.warningsCount} warnings).`);
+    break;
+  }
+
+  case "dev": {
+    let rootDir = process.cwd();
+    let port = 3000;
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i]!;
+      if (arg === "--port" || arg === "-p") {
+        port = Number(args[++i] || 3000);
+      } else if (!arg.startsWith("-")) {
+        rootDir = arg;
+      }
+    }
+    await createDevServer({ rootDir, port });
     break;
   }
 

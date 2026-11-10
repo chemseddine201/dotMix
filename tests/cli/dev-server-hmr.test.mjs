@@ -79,11 +79,16 @@ describe("Gate 29 (T-29.1): mix dev Server, @mix/vite-plugin Pipeline, HMR & SPA
           "Expected HMR acceptance code in dev transform output"
         );
 
-        // 3. Fetch resolved bare module /@modules/@mix/runtime
+        // 3. Fetch resolved bare module /@modules/@mix/runtime and /@modules/@mix/runtime/core/index.js
         const runtimeModRes = await globalThis.fetch(`${baseUrl}/@modules/@mix/runtime`);
         assert.strictEqual(runtimeModRes.status, 200);
         const runtimeModJs = await runtimeModRes.text();
-        assert.ok(runtimeModJs.includes("signal"), "Resolved @mix/runtime module must export signal");
+        assert.ok(runtimeModJs.includes("./core/index.js"), "Resolved @mix/runtime module must re-export ./core/index.js");
+
+        const coreModRes = await globalThis.fetch(`${baseUrl}/@modules/@mix/runtime/core/index.js`);
+        assert.strictEqual(coreModRes.status, 200);
+        const coreModJs = await coreModRes.text();
+        assert.ok(coreModJs.includes("signal"), "Resolved @mix/runtime/core/index.js must export signal");
       } finally {
         await server.close();
         fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -125,9 +130,10 @@ describe("Gate 29 (T-29.1): mix dev Server, @mix/vite-plugin Pipeline, HMR & SPA
       const hmrPromise = server.waitForHmrUpdate(5000);
       const originalSource = fs.readFileSync(homeFile, "utf-8");
       const updatedSource = originalSource.replace(
-        "Enterprise Reactive Architecture",
+        "Compiler-Native Web Application",
         "HMR_UPDATED_HEADING_99"
       );
+      assert.notStrictEqual(updatedSource, originalSource);
       fs.writeFileSync(homeFile, updatedSource, "utf-8");
 
       const hmrPayload = await hmrPromise;

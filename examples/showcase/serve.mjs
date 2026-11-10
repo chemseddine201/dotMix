@@ -30,6 +30,17 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml"
 };
 
+function rewriteBareMixImports(jsSource) {
+  return jsSource
+    .replace(
+      /((?:import|export)\s+(?:[^"']*?\s+from\s+)?["'])@mix\/([^"']+)(["'])/g,
+      (_, prefix, pkgSubpath, suffix) => {
+        const clean = pkgSubpath.endsWith(".js") ? pkgSubpath : `${pkgSubpath}/index.js`;
+        return `${prefix}/${clean}${suffix}`;
+      }
+    );
+}
+
 function sendFile(res, filePath) {
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
@@ -42,6 +53,11 @@ function sendFile(res, filePath) {
     "Content-Type": contentType,
     "Cache-Control": "no-store"
   });
+  if (ext === ".js" || ext === ".mjs") {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    res.end(rewriteBareMixImports(raw));
+    return;
+  }
   fs.createReadStream(filePath).pipe(res);
 }
 

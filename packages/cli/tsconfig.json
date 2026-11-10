@@ -11,6 +11,7 @@
     { "path": "../compiler-semantic" },
     { "path": "../compiler-codegen" },
     { "path": "../compiler-css" },
-    { "path": "../diagnostics" }
+    { "path": "../diagnostics" },
+    { "path": "../vite-plugin" }
   ]
 }

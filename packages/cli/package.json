@@ -13,7 +13,8 @@
     "@mix/compiler-semantic": "0.1.0",
     "@mix/compiler-codegen": "0.1.0",
     "@mix/compiler-css": "0.1.0",
-    "@mix/diagnostics": "0.1.0"
+    "@mix/diagnostics": "0.1.0",
+    "@mix/vite-plugin": "0.1.0"
   },
   "peerDependencies": {
     "sass": "1.80.6",

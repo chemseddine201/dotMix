@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "mix build src dist",
+    "dev": "mix dev",
     "build": "mix build src dist",
     "check": "mix check src",
     "test": "node --test tests/**/*.test.mjs"

@@ -22,32 +22,43 @@ export function mix(options: MixPluginOptions = {}) {
 
     resolveId(id: string): string | null {
       if (id.includes("?mix-css")) {
-        return id;
+        return path.normalize(id.split("?")[0]!) + "?mix-css=1";
       }
       return null;
     },
 
     load(id: string): string | null {
       if (id.includes("?mix-css")) {
-        const file = id.split("?")[0]!;
+        const file = path.normalize(id.split("?")[0]!);
         const css = cssMap.get(file);
         return css ?? "";
       }
       return null;
     },
 
+    invalidate(file: string): void {
+      cssMap.delete(path.normalize(file));
+    },
+
     transform(code: string, id: string, transformOptions?: { ssr?: boolean }) {
-      const [filename] = id.split("?");
-      if (!filename || (!filename.endsWith(".mix") && !filename.endsWith(".tix"))) {
+      const [rawFilename] = id.split("?");
+      if (!rawFilename || (!rawFilename.endsWith(".mix") && !rawFilename.endsWith(".tix"))) {
         return null;
       }
+      const filename = path.normalize(rawFilename);
 
-      const readExternalStyle = (relPath: string): string => {
-        const resolved = path.resolve(path.dirname(filename), relPath);
+      const readExternalStyle = (relPath: string, fromFile?: string): string => {
+        const baseDir =
+          fromFile && path.isAbsolute(fromFile)
+            ? path.dirname(fromFile)
+            : fromFile
+              ? path.dirname(path.resolve(path.dirname(filename), fromFile))
+              : path.dirname(filename);
+        const resolved = path.resolve(baseDir, relPath);
         return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
       };
 
-      const ast = parse(code, { filename, readFile: readExternalStyle });
+      const ast = parse(code, { filename, readFile: (rel) => readExternalStyle(rel) });
       const descriptor = analyze(ast, { filename, source: code });
       const isDev = process.env.NODE_ENV !== "production";
       const hmr = options.hmr ?? (isDev && !transformOptions?.ssr);
@@ -56,7 +67,7 @@ export function mix(options: MixPluginOptions = {}) {
         filename,
         runtimeImportPath: options.runtimeImportPath ?? "@mix/runtime",
         hmr,
-        resolveStyle: (src: string) => readExternalStyle(src),
+        resolveStyle: (src: string, fromFile: string) => readExternalStyle(src, fromFile)
       });
 
       let finalCode = result.code;
