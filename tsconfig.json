@@ -18,7 +18,8 @@
     { "path": "packages/interop" },
     { "path": "packages/stream" },
     { "path": "packages/sanitizer-dompurify" },
-    { "path": "packages/server-node" }
+    { "path": "packages/server-node" },
+    { "path": "packages/helpers" }
   ]
 }
 

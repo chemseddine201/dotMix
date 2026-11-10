@@ -2,10 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import httpNode from "node:http";
 import { http, createHttpClient, isHttpError, useHttp } from "mix-helpers/http";
-import { createCancellationTokenSource } from "@mix/runtime";
+import { createCancellationSource } from "@mix/runtime";
 
 describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & useHttp hook", () => {
   it("1. Standard CRUD requests, interceptors, and typed response envelope", async () => {
+    assert.strictEqual(typeof http.get, "function", "Default http export must provide get()");
     let receivedHeader = "";
     const server = httpNode.createServer((req, res) => {
       receivedHeader = req.headers["x-custom-auth"] || "";
@@ -91,7 +92,7 @@ describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & us
     let requestCount = 0;
     const server = httpNode.createServer((req, res) => {
       requestCount++;
-      setTimeout(() => {
+      globalThis.setTimeout(() => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ count: requestCount }));
       }, 30);
@@ -127,7 +128,7 @@ describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & us
 
   it("4. Cancellation via dotMix CancellationToken (D-104)", async () => {
     const server = httpNode.createServer((req, res) => {
-      setTimeout(() => {
+      globalThis.setTimeout(() => {
         res.writeHead(200);
         res.end("Done");
       }, 200);
@@ -138,10 +139,10 @@ describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & us
 
     try {
       const client = createHttpClient({ baseURL: `http://127.0.0.1:${port}` });
-      const cts = createCancellationTokenSource();
+      const cts = createCancellationSource();
 
       const reqPromise = client.get("/api/long", { cancelToken: cts.token });
-      setTimeout(() => cts.cancel(), 20);
+      globalThis.setTimeout(() => cts.cancel(), 20);
 
       await assert.rejects(
         reqPromise,
@@ -162,7 +163,7 @@ describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & us
     const port = server.address().port;
 
     try {
-      const { data, loading, error, execute } = useHttp<{ message: string }>(
+      const { data, loading, error, execute } = useHttp(
         `http://127.0.0.1:${port}/api/hello`,
         { immediate: false }
       );
@@ -179,3 +180,4 @@ describe("mix-helpers/http: HTTP client, interceptors, retry, dedupe, cache & us
     }
   });
 });
+

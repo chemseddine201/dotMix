@@ -15,6 +15,7 @@ import {
 
 describe("mix-helpers/async: asyncFlow & concurrency orchestration", () => {
   it("1. parallel, series, waterfall, and mapLimit", async () => {
+    assert.strictEqual(typeof asyncFlow.parallel, "function");
     // parallel with concurrency limit
     let active = 0;
     let maxActive = 0;
@@ -111,3 +112,4 @@ describe("mix-helpers/async: asyncFlow & concurrency orchestration", () => {
     assert.strictEqual(balance, 175);
   });
 });
+

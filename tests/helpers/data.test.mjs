@@ -64,6 +64,10 @@ describe("mix-helpers/data: dot namespace & pure data/function utilities", () =>
     const source = { id: 1, name: "Bob", role: "editor", secret: "xyz" };
     assert.deepStrictEqual(pick(source, ["id", "name"]), { id: 1, name: "Bob" });
     assert.deepStrictEqual(omit(source, ["secret", "role"]), { id: 1, name: "Bob" });
+
+    // merge
+    const merged = merge({ a: 1, b: { c: 2 } }, { b: { d: 3 }, e: 4 });
+    assert.deepStrictEqual(merged, { a: 1, b: { c: 2, d: 3 }, e: 4 });
   });
 
   it("2. Deep value & Lang: cloneDeep, isEqual, isEmpty, isPlainObject, and circular refs", () => {
@@ -189,3 +193,4 @@ describe("mix-helpers/data: dot namespace & pure data/function utilities", () =>
     assert.strictEqual(throttledCount, 1);
   });
 });
+

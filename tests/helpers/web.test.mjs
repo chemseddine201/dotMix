@@ -82,6 +82,8 @@ describe("mix-helpers/web: query, crypto/IDs, typed event bus, formatters, stora
     assert.strictEqual(formatBytes(1024), "1 KB");
     assert.strictEqual(formatBytes(1048576 * 2.5), "2.5 MB");
 
+    assert.strictEqual(formatNumber(1000), "1,000");
+
     const curr = formatCurrency(1234.5, "USD", "en-US");
     assert.ok(curr.includes("1,234.50") || curr.includes("$1,234.50"));
   });
@@ -92,7 +94,8 @@ describe("mix-helpers/web: query, crypto/IDs, typed event bus, formatters, stora
 
     assert.strictEqual(storage.get("token"), "secret-value");
 
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 60));
     assert.strictEqual(storage.get("token"), null);
   });
 });
+

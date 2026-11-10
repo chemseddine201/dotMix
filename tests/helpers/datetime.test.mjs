@@ -84,3 +84,4 @@ describe("mix-helpers/datetime: dateTime & duration engine", () => {
     assert.strictEqual(dur.humanize(), "2 hours"); // 90 mins rounds to ~2 hours or 1.5
   });
 });
+
