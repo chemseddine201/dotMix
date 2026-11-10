@@ -103,3 +103,4 @@ describe("Gate 29 (T-29.3): Formatted CLI Diagnostics (Code Frame, file:line:col
     }
   });
 });
+

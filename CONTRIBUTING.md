@@ -35,3 +35,4 @@ Before every implementation commit, run the full verification suite:
 ```bash
 npm run build && npm run lint && npm test && npm run test:golden
 ```
+

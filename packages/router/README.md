@@ -16,3 +16,4 @@ Routes may declare a `permissions` guard (`{ action, subject, field?, redirectTo
 > **Security Warning:** Client-side route guards (`route.permissions`, `beforeEnter`, `beforeEach`) and `<Can>` boundaries exist for **user experience and UI consistency only**. They are **not** an authorization boundary.
 >
 > Because all client code executes in an untrusted browser environment, a user can inspect client bundles or issue direct HTTP requests. Always enforce authentication, RBAC/ABAC permissions, and field-level filtering on the server (API endpoints, RPC handlers, and server loaders/actions).
+
