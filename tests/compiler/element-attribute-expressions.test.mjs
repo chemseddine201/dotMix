@@ -156,8 +156,8 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
       );
       const { CsrAttrElement } = factory(MixRuntime);
 
-      const container = document.createElement("div");
-      document.body.appendChild(container);
+      const container = globalThis.document.createElement("div");
+      globalThis.document.body.appendChild(container);
 
       let disposeRoot;
       MixRuntime.createRoot((dispose) => {

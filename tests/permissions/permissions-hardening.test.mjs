@@ -21,8 +21,8 @@ describe("Gate 28 (T-28.3): Permissions Hardening (Subject Detection, Branded Si
     }
 
     const warnings = [];
-    const origWarn = console.warn;
-    console.warn = (...args) => {
+    const origWarn = globalThis.console.warn;
+    globalThis.console.warn = (...args) => {
       warnings.push(args.join(" "));
     };
 
@@ -59,7 +59,7 @@ describe("Gate 28 (T-28.3): Permissions Hardening (Subject Detection, Branded Si
         "strictSubjects: true must allow explicitly tagged subject('Invoice', obj) instances"
       );
     } finally {
-      console.warn = origWarn;
+      globalThis.console.warn = origWarn;
     }
   });
 
@@ -160,3 +160,4 @@ describe("Gate 28 (T-28.3): Permissions Hardening (Subject Detection, Branded Si
     });
   });
 });
+

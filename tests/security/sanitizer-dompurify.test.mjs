@@ -69,7 +69,7 @@ describe("Gate 28 (T-28.5): Production Sanitizer (@mix/sanitizer-dompurify) & XS
 
       for (const vec of vectors) {
         const trusted = createTrustedHtml(vec.input);
-        const host = document.createElement("div");
+        const host = globalThis.document.createElement("div");
         setTrustedHtml(host, trusted);
         const out = host.innerHTML;
 
@@ -124,3 +124,4 @@ describe("Gate 28 (T-28.5): Production Sanitizer (@mix/sanitizer-dompurify) & XS
     );
   });
 });
+

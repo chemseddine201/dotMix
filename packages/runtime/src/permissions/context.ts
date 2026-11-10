@@ -23,7 +23,7 @@ export const PermissionContext: Context<AbilityInput | null> =
   createContext<AbilityInput | null>(null);
 
 const DEFAULT_GUEST_ABILITY = createAbility([]);
-const abilityProxyCache = new WeakMap<object, Ability<any>>();
+const abilityProxyCache = new WeakMap<object, Ability<string>>();
 
 /**
  * Hook to retrieve the active Ability from context.
