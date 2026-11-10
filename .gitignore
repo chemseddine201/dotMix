@@ -13,3 +13,10 @@ coverage/
 Thumbs.db
 .history/
 *.log
+
+# Internal agent governance & build tracking
+agent/
+governance/
+reports/
+AGENT_HANDOFF.md
+AGENTS.md

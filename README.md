@@ -1,47 +1,184 @@
-# dotMix — Compiler-Native UI Framework (`.mix` & `.tix`)
+# dotMix — Compiler-Native Web Framework
 
-**Purpose:** Compiler-native ahead-of-time UI language (`.mix` and `.tix`), zero-dependency fine-grained reactive runtime, and native standard library (`mix-helpers`).
+<p align="center">
+  <b>Direct DOM · Push-Pull Signals · Zero Virtual DOM · Built-in RBAC/ABAC · Offline CRDT Sync · Zero-Dependency Standard Library</b>
+</p>
 
-**Current status:** Phase Gates 0 through 9 implemented and verified under Human Architecture Authority authorization (`agent/GATE_2_TO_9_FULL_BUILD_TASK.md`).
+<p align="center">
+  <a href="README.ar.md"><b>العربية</b></a> | <b>English</b> | <a href="FEATURES.md"><b>Full Features & Architectural Comparison</b></a>
+</p>
 
-## Non-negotiable project identity
+---
 
-dotMix (`.mix` and `.tix`) is an independent compiler-native UI framework. It is not a React wrapper, JSX skin, Virtual DOM framework, runtime template interpreter, or HTML-string rendering framework.
+## ⚡ What is dotMix?
 
-The architecture pipeline is:
+**dotMix** (`.mix` and `.tix`) is an independent, compiler-native ahead-of-time (AOT) UI framework.
 
-`Source → Lexer/Parser → AST → Semantic Analysis → Type Verification (.tix) → CSS Compilation → Direct DOM Code Generation → Runtime`
+Instead of running heavy Virtual DOM diffing (like React and Vue) or interpreting templates at runtime, **dotMix** compiles your declarative templates directly into surgical, zero-allocation JavaScript instructions that operate directly on the real DOM.
 
-The runtime provides fine-grained Push-Pull reactivity, ownership, lifecycle, resources, and platform adapters. The compiler emits readable, deterministic JavaScript that performs direct DOM operations.
+Paired with a fine-grained reactive runtime, an isomorphic RBAC/ABAC permissions engine, local-first offline CRDT sync, and a 100% zero-dependency standard library (`mix-helpers`), dotMix is built from the ground up for mission-critical and enterprise-scale web applications.
 
-## Start here
+---
 
-Mandatory reading sequence per `AGENTS.md §3`:
-1. Read `AGENTS.md` (Master Agent Constitution under the Elephant–Goldfish Rule).
-2. Read `README.md`.
-3. Read `governance/PROJECT_CHARTER.md`.
-4. Read `governance/ARCHITECTURE_GUARDRAILS.md`.
-5. Read `governance/DECISION_REGISTER.md`.
-6. Read `governance/PHASE_GATES.md`.
-7. Read task assignment file (e.g., `agent/GATE_2_TO_9_FULL_BUILD_TASK.md` or `AGENT_HANDOFF.md`).
-8. Read canonical specification documents under `spec/` (`spec/*.md` and `spec/SOURCE_PROVENANCE.md`).
+## 🚀 Key Advantages Over Other Frameworks
 
-## Workspace Packages (`packages/`)
+| Advantage | How dotMix Delivers It |
+| :--- | :--- |
+| **Zero Virtual DOM Overhead** | Direct AOT compiler instructions update only the exact text node or attribute that changed. 0ms reactive latency. |
+| **Zero External Runtime Dependencies** | `@mix/runtime` and `@mix/router` have 0 dependencies. The standard library `mix-helpers` has 0 third-party dependencies. |
+| **Native RBAC/ABAC Permissions** | Built-in `<Can>` component, fine-grained reactive signal subjects, async permission cancellation, and pre-loader router guards. |
+| **Zero-Data Timezones & Date Engine** | Native IANA timezone conversions (`mix-helpers/datetime`) using the browser's `Intl` engine with 0 external tzdata bundles. |
+| **Resilient Interceptor HTTP Client** | Full Axios-compatible client (`mix-helpers/http`) with automatic retries/backoff, deduplication, cache, and reactive `useHttp` signal hook. |
+| **Offline-First Distributed CRDT State** | Built-in `@mix/sync` with Lamport timestamps, fractional indexing, vector clocks, and durable OPFS/IndexedDB storage. |
+| **Atomic Keyed Reconciliation (`D-110`)** | Duplicate keys in collections are rejected atomically upfront, throwing a deterministic error without UI or DOM corruption. |
+| **Multi-Preprocessor Scoped CSS** | Build-time compilation for `.scss`, `.sass`, `.less`, `.pcss`, and `.css` with strict AST-level scoping and security checks. |
+| **Official TypeScript 6 Compiler API** | Strict static verification of `.tix` component props, generics, and imports against real `.d.ts` declaration files. |
 
-| Package | Responsibility | Runtime Dependencies |
-|---|---|---|
-| `@mix/diagnostics` | Diagnostic codes, `MixError`, `MixDiagnosticError`, and source code frame formatting | `{}` |
-| `@mix/ast` | Immutable template AST nodes, `SourceSpan` validation, structural `ESTreeNode`, and AST walker | `@mix/diagnostics` |
-| `@mix/compiler-frontend` | `.mix` / `.tix` parser, `Acorn-TypeScript` expression boundary extraction (`R-SYN-01`), and `<{~expr}>` dynamic element token comparator (`D-105`, `R-SYN-02`) | `@mix/diagnostics`, `@mix/ast`, `acorn`, `@sveltejs/acorn-typescript` |
-| `@mix/compiler-semantic` | ESTree lexical scope & symbol analyzer, `.tix` virtual TypeScript projection (`SourceMapSpanTable`, `R-SP-01..05`), and TypeScript `6.0.3` Compiler API checker (`D-106`) | `@mix/diagnostics`, `@mix/ast`, `typescript` |
-| `@mix/compiler-css` | `css-tree` AST selector scoper (`[data-mix-<hash>]`), `:global()`/`:deep()` transformer, and static CSS security validator (`D-108`, `F-05`) | `@mix/diagnostics`, `@mix/ast`, `css-tree` |
-| `@mix/compiler-codegen` | Ahead-of-Time direct DOM JavaScript & V3 SourceMap generator | `@mix/diagnostics`, `@mix/ast`, `@mix/compiler-semantic`, `@mix/compiler-css` |
-| `@mix/runtime` | Zero-dependency reactive kernel (`Signal`, `Computed`, `Effect`, `Owner`, `CancellationToken`, `createResource`), surgical DOM adapter, LIS keyed reconciler (`D-110`), security sinks (`D-107..109`), and HMR stable scope (`D-111`) | `{}` (zero runtime dependencies) |
+👉 **Read the comprehensive deep dive in [FEATURES.md](FEATURES.md).**
 
-## Verification Commands
+---
+
+## 📦 Quick Start
+
+### 1. Scaffold a New Project
 
 ```bash
-npm run build   # Compile all workspaces via tsc -b
-npm run lint    # Verify architectural & ESLint guardrails
-npm test        # Execute full unmocked test suite across Gates 1–9
+# Using dotmix CLI
+npm create dotmix my-app
+
+# Or use npx with custom options
+npx @mix/cli create my-app --ts --scss
 ```
+
+### 2. Project Directory Structure
+
+```text
+my-app/
+├── src/
+│   ├── layouts/          # Persistent layouts (<Outlet /> retains child state)
+│   ├── pages/            # Page components bound to declarative routes
+│   ├── components/       # Design system primitives & domain widgets
+│   ├── permissions/      # Isomorphic RBAC/ABAC capability rules
+│   ├── stores/           # Reactive signals & offline CRDT collections
+│   ├── styles/           # Global tokens, resets, and preprocessor styles
+│   ├── routes.ts         # Declarative routes with pre-loader security guards
+│   └── main.mix          # Bootstrap and permission provider
+├── mix.config.ts         # Framework configuration
+├── package.json
+└── tsconfig.json
+```
+
+### 3. Development & Production Commands
+
+```bash
+cd my-app
+
+# Start lightning-fast development server with instant HMR
+npm run dev
+
+# Static typechecking and semantic diagnostics
+npm run check
+
+# Ahead-of-time production build with route code-splitting & gzip report
+npm run build
+```
+
+---
+
+## 💡 Syntax & Component Model
+
+dotMix supports both **JavaScript** (`.mix`) and **strict TypeScript** (`.tix`) with a modern, functional component syntax:
+
+```tsx
+import "./UserProfile.scss";
+import { createSignal } from "@mix/runtime";
+import { Can } from "@mix/runtime/permissions";
+import { http, useHttp } from "mix-helpers/http";
+import { dateTime } from "mix-helpers/datetime";
+import { dot } from "mix-helpers/data";
+
+export interface UserProps {
+  userId: string;
+  initialRole?: string;
+}
+
+export default function UserProfile(props: UserProps) {
+  const user = createSignal({ name: "Alex", role: props.initialRole ?? "viewer" });
+
+  // Reactive HTTP hook with automatic cancellation
+  const { data: stats, loading } = useHttp(`/api/users/${props.userId}/stats`);
+
+  return (
+    <div class="user-profile-card">
+      <header>
+        <h2>{user().name}</h2>
+        <span class="updated-time">Joined {dateTime().fromNow()}</span>
+      </header>
+
+      {if loading()}
+        <p class="skeleton">Loading analytics...</p>
+      {elseif stats()}
+        <div class="metrics">
+          <span>Views: {dot.get(stats(), "metrics.views", 0)}</span>
+          <span>Score: {dot.get(stats(), "metrics.score", 0)}</span>
+        </div>
+      {else}
+        <p>No analytics available.</p>
+      {endif}
+
+      {/* Surgical DOM permission gate */}
+      <Can I="edit" this={user()} fallback={<span class="badge">Read Only</span>}>
+        <button class="btn-primary" onClick={() => console.log("Edit user")}>
+          Edit Profile
+        </button>
+      </Can>
+    </div>
+  );
+}
+```
+
+---
+
+## 🛠️ The Workspace Packages
+
+| Package | Purpose | Dependencies |
+| :--- | :--- | :---: |
+| [`@mix/runtime`](packages/runtime) | Push-Pull reactivity kernel, surgical DOM adapter, keyed reconciler, permissions | **0 dependencies** |
+| [`@mix/router`](packages/router) | Radix-Trie data router, loaders, actions, pre-loader security guards | **0 dependencies** |
+| [`mix-helpers`](packages/helpers) | Zero-dependency standard library (`data`, `datetime`, `http`, `async`, `web`) | `@mix/runtime` only |
+| [`@mix/sync`](packages/sync) | Offline-First CRDT distributed state synchronization engine | `@mix/runtime` only |
+| [`@mix/compiler-frontend`](packages/compiler-frontend) | `.mix` / `.tix` parser and expression boundary extraction | Dev toolchain |
+| [`@mix/compiler-semantic`](packages/compiler-semantic) | Scope analyzer, TS 6 Compiler API checker, virtual projection | Dev toolchain |
+| [`@mix/compiler-css`](packages/compiler-css) | Multi-preprocessor scoper (`.scss`, `.sass`, `.less`, `.pcss`) & AST security | Dev toolchain |
+| [`@mix/compiler-codegen`](packages/compiler-codegen) | Ahead-Of-Time direct DOM code & SourceMap generator | Dev toolchain |
+| [`@mix/compiler-ssr`](packages/compiler-ssr) | Server-side rendering generator with signal auto-invocation | Dev toolchain |
+| [`@mix/server-node`](packages/server-node) | Streaming SSR HTTP server with per-request cryptographic CSP nonces | Node runtime |
+| [`@mix/vite-plugin`](packages/vite-plugin) | Vite & Rollup compiler plugin with instant HMR | Dev toolchain |
+| [`@mix/cli`](packages/cli) | CLI tool (`mix` / `dotmix`: `dev`, `build`, `check`, `create`) | Dev toolchain |
+| [`@mix/language-server`](packages/language-server) | Language Server Protocol (LSP) for VS Code and editors | Dev toolchain |
+
+---
+
+## 🧪 Testing & Verification
+
+The dotMix repository enforces strict automated verification:
+
+```bash
+# Compile all workspace packages
+npm run build
+
+# Run architecture guardrails & ESLint
+npm run lint
+
+# Execute full unmocked test suite (208+ tests)
+npm test
+
+# Run Golden-Path E2E verification across all 10 scaffold variants
+npm run test:golden
+```
+
+---
+
+## 📄 License
+
+MIT © [Chemseddine](https://github.com/chemseddine201)
