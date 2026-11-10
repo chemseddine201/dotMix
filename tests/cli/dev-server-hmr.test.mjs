@@ -62,6 +62,13 @@ describe("Gate 29 (T-29.1): mix dev Server, @mix/vite-plugin Pipeline, HMR & SPA
         const spaHtml = await spaFallbackRes.text();
         assert.ok(spaHtml.includes("/src/main.mix"), "SPA fallback for /tasks must serve index HTML");
 
+        const splatDotFallbackRes = await globalThis.fetch(`${baseUrl}/reports/2026/perf.log`, {
+          headers: { Accept: "text/html,application/xhtml+xml" }
+        });
+        assert.strictEqual(splatDotFallbackRes.status, 200, "SPA fallback for /reports/2026/perf.log must return 200 on refresh");
+        const splatDotHtml = await splatDotFallbackRes.text();
+        assert.ok(splatDotHtml.includes("/src/main.mix"), "SPA fallback for /reports/2026/perf.log must serve index HTML");
+
         // 2. Transform /src/pages/HomePage.{tix|mix} via @mix/vite-plugin with HMR and rewritten @mix/* specifiers
         const homeRes = await globalThis.fetch(`${baseUrl}/src/pages/HomePage.${variant.ext}`);
         assert.strictEqual(homeRes.status, 200);

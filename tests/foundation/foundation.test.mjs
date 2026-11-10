@@ -221,3 +221,40 @@ test("Foundation 6: All 10 canonical specs and SOURCE_PROVENANCE.md exist withou
     );
   }
 });
+
+test("Foundation 7: Guardrail J — No source file in packages/*/src exceeds 500 lines and no no-explicit-any disables", async () => {
+  const packagesDir = path.join(rootDir, "packages");
+  const pkgEntries = fs.readdirSync(packagesDir, { withFileTypes: true }).filter(d => d.isDirectory());
+
+  const walkTsFiles = (dir, out = []) => {
+    if (!fs.existsSync(dir)) return out;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walkTsFiles(fullPath, out);
+      } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+        out.push(fullPath);
+      }
+    }
+    return out;
+  };
+
+  for (const pkg of pkgEntries) {
+    const srcDir = path.join(packagesDir, pkg.name, "src");
+    const tsFiles = walkTsFiles(srcDir);
+    for (const filePath of tsFiles) {
+      const relPath = path.relative(rootDir, filePath).split(path.sep).join("/");
+      const content = fs.readFileSync(filePath, "utf-8");
+      const lineCount = content.split(/\r?\n/).length;
+      assert.ok(
+        lineCount <= 500,
+        `${relPath} has ${lineCount} lines, exceeding the strict 500-line ceiling (Guardrail J)`
+      );
+      assert.strictEqual(
+        content.includes("@typescript-eslint/no-explicit-any"),
+        false,
+        `${relPath} must not disable @typescript-eslint/no-explicit-any (Guardrail J)`
+      );
+    }
+  }
+});

@@ -10,12 +10,40 @@ export interface MutationId {
 
 export type MutationOp = "set" | "insert" | "update" | "delete" | "move";
 
+export interface CollectionInsertPayload<T = unknown> {
+  readonly id: string;
+  readonly value: T;
+  readonly indexKey: string;
+  readonly targetIndex?: number | undefined;
+}
+
+export interface CollectionUpdatePayload<T = unknown> {
+  readonly id: string;
+  readonly partial: Partial<T>;
+}
+
+export interface CollectionDeletePayload {
+  readonly id: string;
+}
+
+export interface CollectionMovePayload {
+  readonly id: string;
+  readonly targetIndex: number;
+}
+
+export type CollectionMutationPayload<T = unknown> =
+  | CollectionInsertPayload<T>
+  | CollectionUpdatePayload<T>
+  | CollectionUpdatePayload<unknown>
+  | CollectionDeletePayload
+  | CollectionMovePayload;
+
 export interface Mutation<T = unknown> {
   readonly id: MutationId;
   readonly idStr: string;
   readonly storeKey: string;
   readonly op: MutationOp;
-  readonly payload: T;
+  readonly payload: T | CollectionMutationPayload<T> | Record<string, unknown> | unknown;
   readonly previousState?: unknown;
   state: "pending" | "committed" | "rejected";
   readonly createdAt: number;

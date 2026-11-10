@@ -4,12 +4,43 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import zlib from "node:zlib";
 import { parse } from "@mix/compiler-frontend";
 import { analyze, projectTypeScript, transpileSourceModule } from "@mix/compiler-semantic";
 import { generate } from "@mix/compiler-codegen";
 import { compileCss, preprocessCss } from "@mix/compiler-css";
+import {
+  STYLE_FILE_REGEX,
+  scanInputDirectory,
+  shortHash,
+} from "./scanner.js";
+import {
+  type BundleChunkInfo,
+  type BundleAssetInfo,
+  type BundleSizeReport,
+  minifyCss,
+  resolveRelativeDistModule,
+  buildModuleGraphBundle,
+  createBundleReport,
+} from "./minifier.js";
+
+export type {
+  BundleChunkInfo,
+  BundleAssetInfo,
+  BundleSizeReport,
+};
+export {
+  minifyJs,
+  minifyCss,
+  resolveRelativeDistModule,
+  createBundleReport,
+} from "./minifier.js";
+export {
+  STYLE_FILE_REGEX,
+  type ScannedSources,
+  scanInputDirectory,
+  shortHash,
+} from "./scanner.js";
 
 export interface BuildOptions {
   inDir?: string | undefined;
@@ -18,275 +49,11 @@ export interface BuildOptions {
   silent?: boolean | undefined;
 }
 
-export interface BundleChunkInfo {
-  readonly file: string;
-  readonly name: string;
-  readonly sizeBytes: number;
-  readonly gzipBytes: number;
-  readonly isEntry: boolean;
-  readonly isDynamicEntry: boolean;
-}
-
-export interface BundleAssetInfo {
-  readonly file: string;
-  readonly sizeBytes: number;
-  readonly gzipBytes: number;
-}
-
-export interface BundleSizeReport {
-  readonly chunks: readonly BundleChunkInfo[];
-  readonly assets: readonly BundleAssetInfo[];
-  readonly totalBytes: number;
-  readonly totalGzipBytes: number;
-  readonly reportText: string;
-}
-
 export interface BuildResult {
   success: boolean;
   compiledFiles: string[];
   watchedFiles: string[];
   bundleReport: BundleSizeReport;
-}
-
-interface ScannedSources {
-  mixFiles: string[];
-  scriptFiles: string[];
-  styleFiles: string[];
-}
-
-const STYLE_FILE_REGEX = /\.(css|scss|sass|less|styl|stylus|pcss|postcss)$/i;
-
-function scanInputDirectory(dir: string): ScannedSources {
-  const mixFiles: string[] = [];
-  const scriptFiles: string[] = [];
-  const styleFiles: string[] = [];
-
-  if (!fs.existsSync(dir)) {
-    return { mixFiles, scriptFiles, styleFiles };
-  }
-
-  function walk(current: string): void {
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") {
-        continue;
-      }
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.isFile()) {
-        if (entry.name.endsWith(".mix") || entry.name.endsWith(".tix")) {
-          mixFiles.push(fullPath);
-        } else if (
-          (entry.name.endsWith(".ts") || entry.name.endsWith(".js")) &&
-          !entry.name.endsWith(".d.ts")
-        ) {
-          scriptFiles.push(fullPath);
-        } else if (STYLE_FILE_REGEX.test(entry.name)) {
-          styleFiles.push(fullPath);
-        }
-      }
-    }
-  }
-
-  walk(dir);
-  return { mixFiles, scriptFiles, styleFiles };
-}
-
-function shortHash(content: string): string {
-  return crypto.createHash("sha256").update(content).digest("hex").slice(0, 8);
-}
-
-function minifyJs(code: string): string {
-  return code
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("//"))
-    .join("\n");
-}
-
-function minifyCss(css: string): string {
-  return css
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\s+/g, " ")
-    .replace(/\s*([{}:;,])\s*/g, "$1")
-    .replace(/;}/g, "}")
-    .trim();
-}
-
-function resolveRelativeDistModule(fromFile: string, relSpec: string): string | null {
-  const base = path.resolve(path.dirname(fromFile), relSpec);
-  for (const cand of [base, `${base}.js`, path.join(base, "index.js")]) {
-    if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
-      return path.normalize(cand);
-    }
-  }
-  return null;
-}
-
-/**
- * Bundles an entry module and its static relative dependencies into a single ES module chunk,
- * preserving external `@mix/*` imports and rewriting dynamic `import("./...")` calls to split chunk filenames.
- */
-function buildModuleGraphBundle(
-  entryFile: string,
-  dynamicChunkLookup: ReadonlyMap<string, string>,
-  shouldMinify: boolean
-): string {
-  const visited = new Set<string>();
-  const orderedModules: Array<{ file: string; body: string }> = [];
-  const externalImports = new Map<string, Set<string>>();
-  const sideEffectExternalImports = new Set<string>();
-
-  function visit(modFile: string, isRootEntry: boolean): void {
-    const norm = path.normalize(modFile);
-    if (visited.has(norm) || !fs.existsSync(norm)) return;
-    visited.add(norm);
-
-    const raw = fs.readFileSync(norm, "utf-8");
-    const staticDeps: string[] = [];
-
-    // Strip static import statements and collect dependencies
-    let body = raw.replace(
-      /^\s*import\s+(?:([^"';]+?)\s+from\s+)?["']([^"']+)["'];?\s*$/gm,
-      (_, clause: string | undefined, spec: string) => {
-        if (spec.startsWith("./") || spec.startsWith("../")) {
-          const target = resolveRelativeDistModule(norm, spec);
-          if (target) {
-            if (!isRootEntry || !dynamicChunkLookup.has(target)) {
-              if (dynamicChunkLookup.has(target)) {
-                const chunkFile = `./${dynamicChunkLookup.get(target)!}`;
-                if (clause) {
-                  let set = externalImports.get(chunkFile);
-                  if (!set) {
-                    set = new Set<string>();
-                    externalImports.set(chunkFile, set);
-                  }
-                  set.add(clause.trim());
-                } else {
-                  sideEffectExternalImports.add(chunkFile);
-                }
-                return "";
-              }
-            } else if (dynamicChunkLookup.has(target)) {
-              const chunkFile = `./${dynamicChunkLookup.get(target)!}`;
-              if (clause) {
-                let set = externalImports.get(chunkFile);
-                if (!set) {
-                  set = new Set<string>();
-                  externalImports.set(chunkFile, set);
-                }
-                set.add(clause.trim());
-              } else {
-                sideEffectExternalImports.add(chunkFile);
-              }
-              return "";
-            }
-            staticDeps.push(target);
-          }
-          return "";
-        }
-        if (spec.startsWith("@mix/") || spec.startsWith("mix-helpers") || spec === "mix-helpers") {
-          if (!clause) {
-            sideEffectExternalImports.add(spec);
-          } else {
-            const trimmedClause = clause.trim();
-            if (trimmedClause.startsWith("{") && trimmedClause.endsWith("}")) {
-              const names = trimmedClause
-                .slice(1, -1)
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean);
-              let set = externalImports.get(spec);
-              if (!set) {
-                set = new Set<string>();
-                externalImports.set(spec, set);
-              }
-              for (const n of names) {
-                set.add(n);
-              }
-            } else {
-              let set = externalImports.get(spec);
-              if (!set) {
-                set = new Set<string>();
-                externalImports.set(spec, set);
-              }
-              set.add(trimmedClause);
-            }
-          }
-          return "";
-        }
-        return "";
-      }
-    );
-
-    for (const dep of staticDeps) {
-      visit(dep, false);
-    }
-
-    // Rewrite dynamic import("./...") to point to split hashed chunk in ./<chunkFile>
-    body = body.replace(
-      /import\s*\(\s*["']([^"']+)["']\s*\)/g,
-      (fullMatch, dynSpec: string) => {
-        if (dynSpec.startsWith("./") || dynSpec.startsWith("../")) {
-          const target = resolveRelativeDistModule(norm, dynSpec);
-          if (target && dynamicChunkLookup.has(target)) {
-            return `import("./${dynamicChunkLookup.get(target)!}")`;
-          }
-        }
-        return fullMatch;
-      }
-    );
-
-    // For non-entry modules, strip `export default` and convert `export function/const/let` to local declarations
-    if (!isRootEntry) {
-      body = body
-        .replace(/^\s*export\s+default\s+[A-Za-z0-9_$]+;?\s*$/gm, "")
-        .replace(/^\s*export\s+(function|const|let|var|class)\s+/gm, "$1 ");
-    }
-
-    orderedModules.push({ file: norm, body });
-  }
-
-  visit(entryFile, true);
-
-  const headerLines: string[] = [];
-  for (const [spec, bindings] of externalImports.entries()) {
-    const namedBindings: string[] = [];
-    const defaultBindings: string[] = [];
-    for (const b of bindings) {
-      if (spec.startsWith("./")) {
-        defaultBindings.push(b);
-      } else if (b.includes(" as ") || !b.startsWith("*")) {
-        namedBindings.push(b);
-      } else {
-        defaultBindings.push(b);
-      }
-    }
-    if (namedBindings.length > 0) {
-      headerLines.push(`import { ${namedBindings.join(", ")} } from "${spec}";`);
-    }
-    for (const def of defaultBindings) {
-      headerLines.push(`import ${def} from "${spec}";`);
-    }
-  }
-  for (const spec of sideEffectExternalImports) {
-    if (!externalImports.has(spec)) {
-      headerLines.push(`import "${spec}";`);
-    }
-  }
-
-  const combined = [
-    ...headerLines,
-    ...orderedModules.map((m) => m.body)
-  ].join("\n");
-
-  return shouldMinify ? minifyJs(combined) : combined;
-}
-
-function formatKb(bytes: number): string {
-  return `${(bytes / 1024).toFixed(2)} kB`;
 }
 
 export function build(options: BuildOptions = {}): BuildResult {
@@ -513,42 +280,7 @@ export function build(options: BuildOptions = {}): BuildResult {
     }
   }
 
-  let totalBytes = 0;
-  let totalGzipBytes = 0;
-  const reportLines: string[] = [
-    "Bundle Size Report:",
-    "----------------------------------------------------------------------",
-    `${"Asset / Chunk".padEnd(38)} ${"Size".padStart(12)} ${"Gzip".padStart(14)}`,
-    "----------------------------------------------------------------------"
-  ];
-
-  for (const chunk of chunks) {
-    totalBytes += chunk.sizeBytes;
-    totalGzipBytes += chunk.gzipBytes;
-    const tag = chunk.isEntry ? " [entry]" : chunk.isDynamicEntry ? " [lazy]" : "";
-    reportLines.push(
-      `${(chunk.file + tag).padEnd(38)} ${formatKb(chunk.sizeBytes).padStart(12)} ${`gzip: ${formatKb(chunk.gzipBytes)}`.padStart(14)}`
-    );
-  }
-  for (const asset of assets) {
-    totalBytes += asset.sizeBytes;
-    totalGzipBytes += asset.gzipBytes;
-    reportLines.push(
-      `${asset.file.padEnd(38)} ${formatKb(asset.sizeBytes).padStart(12)} ${`gzip: ${formatKb(asset.gzipBytes)}`.padStart(14)}`
-    );
-  }
-  reportLines.push("----------------------------------------------------------------------");
-  reportLines.push(
-    `${"Total".padEnd(38)} ${formatKb(totalBytes).padStart(12)} ${`gzip: ${formatKb(totalGzipBytes)}`.padStart(14)}`
-  );
-
-  const bundleReport: BundleSizeReport = {
-    chunks,
-    assets,
-    totalBytes,
-    totalGzipBytes,
-    reportText: reportLines.join("\n")
-  };
+  const bundleReport = createBundleReport(chunks, assets);
 
   fs.writeFileSync(
     path.join(outDir, "bundle-report.json"),

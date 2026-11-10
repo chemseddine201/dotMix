@@ -11,6 +11,7 @@ import {
   MixDiagnosticError,
   type Diagnostic
 } from "@mix/diagnostics";
+import { scanInputDirectory } from "./scanner.js";
 
 export interface CheckOptions {
   files?: string[] | undefined;
@@ -26,30 +27,9 @@ export interface CheckResult {
   diagnostics: Diagnostic[];
 }
 
-function findMixFiles(dir: string): string[] {
-  const results: string[] = [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") {
-      continue;
-    }
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...findMixFiles(fullPath));
-    } else if (entry.isFile()) {
-      if (entry.name.endsWith(".mix") || entry.name.endsWith(".tix")) {
-        results.push(fullPath);
-      }
-    }
-  }
-
-  return results;
-}
-
 export function check(options: CheckOptions = {}): CheckResult {
   const targetDir = options.dir ? path.resolve(options.dir) : process.cwd();
-  const filePaths = options.files && options.files.length > 0 ? options.files : findMixFiles(targetDir);
+  const filePaths = options.files && options.files.length > 0 ? options.files : scanInputDirectory(targetDir).mixFiles;
 
   const allDiagnostics: Diagnostic[] = [];
   const fileSources = new Map<string, string>();

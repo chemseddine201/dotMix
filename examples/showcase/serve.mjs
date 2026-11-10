@@ -150,8 +150,11 @@ const server = http.createServer((req, res) => {
   }
 
 
-  // SPA fallback: Route HTML requests to index.html so direct URL navigation / refresh works
-  if (!pathname.includes(".")) {
+  // SPA fallback: Route HTML navigation requests (including client routes with dots like /reports/2026/perf.log or /reports/benchmarks/dom-render.json) to index.html
+  const acceptHeader = req.headers.accept ?? "";
+  const isBrowserHtmlRefresh = acceptHeader.includes("text/html");
+  const isDirectAssetExt = /\.(js|mjs|cjs|css|map|ico|png|jpg|jpeg|gif|webp|svg|woff|woff2|ttf|eot|wasm)$/i.test(pathname);
+  if (isBrowserHtmlRefresh || !isDirectAssetExt) {
     buildShowcase({
       outDir: webOutDir,
       runtimeImportPath: "/runtime/index.js"

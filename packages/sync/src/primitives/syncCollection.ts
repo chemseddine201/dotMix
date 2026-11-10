@@ -4,6 +4,10 @@
 
 import { signal } from "@mix/runtime";
 import type {
+  CollectionDeletePayload,
+  CollectionInsertPayload,
+  CollectionMovePayload,
+  CollectionUpdatePayload,
   Mutation,
   MutationId,
   SyncCollection,
@@ -81,16 +85,16 @@ export function syncCollection<T>(
   engine.registerStore(key, {
     applyRemoteMutation(remoteMut: Mutation<unknown>) {
       if (remoteMut.op === "insert") {
-        const payload = remoteMut.payload as { id: string; value: T; indexKey: string };
+        const payload = remoteMut.payload as CollectionInsertPayload<T>;
         crdtArray.insertWithKey(payload.id, payload.value, payload.indexKey, remoteMut.id);
       } else if (remoteMut.op === "update") {
-        const payload = remoteMut.payload as { id: string; partial: Partial<T> };
+        const payload = remoteMut.payload as CollectionUpdatePayload<T>;
         crdtArray.update(payload.id, payload.partial, remoteMut.id);
       } else if (remoteMut.op === "delete") {
-        const payload = remoteMut.payload as { id: string };
+        const payload = remoteMut.payload as CollectionDeletePayload;
         crdtArray.delete(payload.id, remoteMut.id);
       } else if (remoteMut.op === "move") {
-        const payload = remoteMut.payload as { id: string; targetIndex: number };
+        const payload = remoteMut.payload as CollectionMovePayload;
         crdtArray.move(payload.id, payload.targetIndex, remoteMut.id);
       }
       updateItems();
@@ -151,12 +155,18 @@ export function syncCollection<T>(
       updateItems();
       saveSnapshot();
 
+      const payload: CollectionInsertPayload<T> = {
+        id,
+        value: item,
+        indexKey: entry.indexKey,
+        targetIndex,
+      };
       const mutation: Mutation<T> = {
         id: mutId,
         idStr,
         storeKey: key,
         op: "insert",
-        payload: { id, value: item, indexKey: entry.indexKey, targetIndex } as unknown as T,
+        payload,
         state: "pending",
         createdAt: Date.now(),
       };
@@ -179,17 +189,18 @@ export function syncCollection<T>(
       updateItems();
       saveSnapshot();
 
+      const payload: CollectionUpdatePayload<T> = { id, partial };
       const mutation: Mutation<Partial<T>> = {
         id: mutId,
         idStr,
         storeKey: key,
         op: "update",
-        payload: { id, partial } as unknown as Partial<T>,
+        payload,
         state: "pending",
         createdAt: Date.now(),
       };
 
-      await engine.enqueueMutation(mutation as unknown as Mutation<unknown>);
+      await engine.enqueueMutation(mutation);
       return mutation;
     },
 
@@ -204,17 +215,18 @@ export function syncCollection<T>(
       updateItems();
       saveSnapshot();
 
+      const payload: CollectionDeletePayload = { id };
       const mutation: Mutation<string> = {
         id: mutId,
         idStr,
         storeKey: key,
         op: "delete",
-        payload: { id } as unknown as string,
+        payload,
         state: "pending",
         createdAt: Date.now(),
       };
 
-      await engine.enqueueMutation(mutation as unknown as Mutation<unknown>);
+      await engine.enqueueMutation(mutation);
       return mutation;
     },
 
@@ -235,12 +247,13 @@ export function syncCollection<T>(
       updateItems();
       saveSnapshot();
 
+      const payload: CollectionMovePayload = { id: target.id, targetIndex: toIndex };
       const mutation: Mutation<unknown> = {
         id: mutId,
         idStr,
         storeKey: key,
         op: "move",
-        payload: { id: target.id, targetIndex: toIndex },
+        payload,
         state: "pending",
         createdAt: Date.now(),
       };

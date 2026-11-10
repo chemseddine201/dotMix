@@ -151,7 +151,11 @@ export class RouteTrie {
       // 3. Try wildcard match (lowest priority)
       if (node.wildcardChild) {
         const remainder = segments.slice(segIndex).join("/");
-        const nextParams = { ...currentParams, [node.wildcardChild.wildcardName!]: remainder };
+        const nextParams = {
+          ...currentParams,
+          "*": remainder,
+          [node.wildcardChild.wildcardName!]: remainder,
+        };
         return { node: node.wildcardChild, params: nextParams };
       }
 

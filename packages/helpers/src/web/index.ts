@@ -4,12 +4,16 @@
  * 100% zero external dependencies. Prototype-pollution protected.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { clamp } from "../data/predicates-math.js";
+
+export { clamp };
 
 const PROTOTYPE_POLLUTION_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
-export function parseQuery(queryString: string): Record<string, any> {
-  const result: Record<string, any> = {};
+export type ParsedQueryValue = string | string[] | Record<string, string>;
+
+export function parseQuery(queryString: string): Record<string, ParsedQueryValue> {
+  const result: Record<string, ParsedQueryValue> = {};
   if (!queryString) return result;
 
   const clean = queryString.startsWith("?") ? queryString.slice(1) : queryString;
@@ -36,24 +40,32 @@ export function parseQuery(queryString: string): Record<string, any> {
 
       if (subKey === "") {
         // array e.g. tags[]=a
-        if (!Array.isArray(result[rootKey])) {
-          result[rootKey] = result[rootKey] !== undefined ? [result[rootKey]] : [];
+        const existing = result[rootKey];
+        if (Array.isArray(existing)) {
+          existing.push(val);
+        } else if (typeof existing === "string") {
+          result[rootKey] = [existing, val];
+        } else {
+          result[rootKey] = [val];
         }
-        result[rootKey].push(val);
       } else {
         // object e.g. filter[category]=books
-        if (!result[rootKey] || typeof result[rootKey] !== "object" || Array.isArray(result[rootKey])) {
-          result[rootKey] = {};
+        const existing = result[rootKey];
+        if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+          result[rootKey] = { [subKey]: val };
+        } else {
+          existing[subKey] = val;
         }
-        result[rootKey][subKey] = val;
       }
     } else {
       if (PROTOTYPE_POLLUTION_KEYS.has(key)) continue;
-      if (result[key] !== undefined) {
-        if (!Array.isArray(result[key])) {
-          result[key] = [result[key]];
+      const existing = result[key];
+      if (existing !== undefined) {
+        if (Array.isArray(existing)) {
+          existing.push(val);
+        } else if (typeof existing === "string") {
+          result[key] = [existing, val];
         }
-        result[key].push(val);
       } else {
         result[key] = val;
       }
@@ -64,7 +76,7 @@ export function parseQuery(queryString: string): Record<string, any> {
 }
 
 export function stringifyQuery(
-  obj: Record<string, any>,
+  obj: Record<string, unknown>,
   options: { arrayFormat?: "repeat" | "brackets" | "comma"; skipNulls?: boolean } = {}
 ): string {
   if (!obj || typeof obj !== "object") return "";
@@ -91,7 +103,7 @@ export function stringifyQuery(
         }
       }
     } else if (typeof value === "object" && value !== null) {
-      for (const [subKey, subVal] of Object.entries(value)) {
+      for (const [subKey, subVal] of Object.entries(value as Record<string, unknown>)) {
         if (PROTOTYPE_POLLUTION_KEYS.has(subKey)) continue;
         parts.push(`${encKey}%5B${encodeURIComponent(subKey)}%5D=${encodeURIComponent(String(subVal))}`);
       }
@@ -161,7 +173,7 @@ export function fnv1a(str: string): number {
   return hash >>> 0;
 }
 
-export interface EventBus<Events extends Record<string, any> = Record<string, any>> {
+export interface EventBus<Events extends Record<string, unknown> = Record<string, unknown>> {
   on<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void): () => void;
   once<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void): () => void;
   off<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void): void;
@@ -169,29 +181,29 @@ export interface EventBus<Events extends Record<string, any> = Record<string, an
   clear(event?: keyof Events): void;
 }
 
-export function createEventBus<Events extends Record<string, any> = Record<string, any>>(): EventBus<Events> {
-  const map = new Map<keyof Events, Set<(payload: any) => void>>();
+export function createEventBus<Events extends Record<string, unknown> = Record<string, unknown>>(): EventBus<Events> {
+  const map = new Map<keyof Events, Set<(payload: never) => void>>();
 
   return {
     on(event, handler) {
       if (!map.has(event)) map.set(event, new Set());
-      map.get(event)!.add(handler);
+      map.get(event)!.add(handler as (payload: never) => void);
       return () => this.off(event, handler);
     },
     once(event, handler) {
-      const wrapper = (payload: any) => {
+      const wrapper = (payload: Events[typeof event]): void => {
         this.off(event, wrapper);
         handler(payload);
       };
       return this.on(event, wrapper);
     },
     off(event, handler) {
-      map.get(event)?.delete(handler);
+      map.get(event)?.delete(handler as (payload: never) => void);
     },
     emit(event, payload) {
       const handlers = map.get(event);
       if (handlers) {
-        handlers.forEach((h) => h(payload));
+        handlers.forEach((h) => (h as (p: Events[typeof event]) => void)(payload));
       }
     },
     clear(event) {
@@ -200,12 +212,8 @@ export function createEventBus<Events extends Record<string, any> = Record<strin
       } else {
         map.clear();
       }
-    }
+    },
   };
-}
-
-export function clamp(val: number, min: number, max: number): number {
-  return Math.min(Math.max(val, min), max);
 }
 
 export function formatNumber(n: number, options?: Intl.NumberFormatOptions, locale = "en-US"): string {
@@ -220,7 +228,7 @@ export function formatPercent(n: number, decimals = 1, locale = "en-US"): string
   return new Intl.NumberFormat(locale, {
     style: "percent",
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    maximumFractionDigits: decimals,
   }).format(n);
 }
 
@@ -240,14 +248,14 @@ export interface StorageOptions {
   driver?: "local" | "session" | "memory";
 }
 
-export interface StorageWrapper<T = any> {
+export interface StorageWrapper<T = unknown> {
   get(key: string): T | null;
   set(key: string, value: T, ttlMs?: number): void;
   remove(key: string): void;
   clear(): void;
 }
 
-export function createStorage<T = any>(options: StorageOptions = {}): StorageWrapper<T> {
+export function createStorage<T = unknown>(options: StorageOptions = {}): StorageWrapper<T> {
   const prefix = options.prefix ?? "dotmix_";
   const defaultTtl = options.ttlMs;
   const memoryStore = new Map<string, string>();
@@ -305,13 +313,14 @@ export function createStorage<T = any>(options: StorageOptions = {}): StorageWra
       const raw = getRaw(key);
       if (!raw) return null;
       try {
-        const item = JSON.parse(raw);
+        const item = JSON.parse(raw) as unknown;
         if (item && typeof item === "object" && "value" in item) {
-          if (item.expiresAt && Date.now() > item.expiresAt) {
+          const envelope = item as { value: T; expiresAt?: number | undefined };
+          if (envelope.expiresAt && Date.now() > envelope.expiresAt) {
             removeRaw(key);
             return null;
           }
-          return item.value as T;
+          return envelope.value;
         }
         return item as T;
       } catch {
@@ -322,7 +331,7 @@ export function createStorage<T = any>(options: StorageOptions = {}): StorageWra
       const ttl = ttlMs ?? defaultTtl;
       const item = {
         value,
-        expiresAt: ttl ? Date.now() + ttl : undefined
+        expiresAt: ttl ? Date.now() + ttl : undefined,
       };
       setRaw(key, JSON.stringify(item));
     },
@@ -331,7 +340,6 @@ export function createStorage<T = any>(options: StorageOptions = {}): StorageWra
     },
     clear(): void {
       memoryStore.clear();
-    }
+    },
   };
 }
-
