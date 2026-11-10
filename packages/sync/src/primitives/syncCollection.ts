@@ -18,17 +18,19 @@ import type {
 import { formatMutationId } from "../crdt/clock.js";
 import { type ArrayEntry, ReplicableArray } from "../crdt/array.js";
 import { getDefaultSyncEngine, SyncEngine } from "../engine/engine.js";
-import { MemoryDriver } from "../storage/memory.js";
 import { IndexedDbDriver } from "../storage/indexeddb.js";
 import { OpfsDriver } from "../storage/opfs.js";
 
-function resolveDriver(driverOpt?: SyncDriver | "memory" | "indexeddb" | "opfs"): SyncDriver {
+function resolveDriver(
+  driverOpt: SyncDriver | "memory" | "indexeddb" | "opfs" | undefined,
+  engine: SyncEngine
+): SyncDriver {
   if (typeof driverOpt === "object" && driverOpt !== null) {
     return driverOpt;
   }
   if (driverOpt === "opfs") return new OpfsDriver();
   if (driverOpt === "indexeddb") return new IndexedDbDriver();
-  return new MemoryDriver();
+  return engine.driver;
 }
 
 function resolveItemId<T>(item: T, idField?: keyof T | ((item: T) => string)): string {
@@ -50,11 +52,11 @@ export function syncCollection<T>(
 ): SyncCollection<T> {
   const options: SyncCollectionOptions<T> =
     typeof keyOrOptions === "string"
-      ? (opts ?? { key: keyOrOptions })
+      ? { ...opts, key: keyOrOptions }
       : keyOrOptions;
-  const key = options.key;
+  const key = options.key ?? "default_collection";
   const engine = (options.syncEngine as SyncEngine) || getDefaultSyncEngine();
-  const driver = resolveDriver(options.driver);
+  const driver = resolveDriver(options.driver, engine);
   const crdtArray = new ReplicableArray<T>();
 
   const itemsSig = signal<T[]>([]);
@@ -72,13 +74,28 @@ export function syncCollection<T>(
     void driver.setItem(key, crdtArray.toJSON());
   }
 
-  // Pre-seed initial items if provided
-  if (options.initialItems && options.initialItems.length > 0) {
+  function restoreAndWitness(saved: ArrayEntry<T>[]): void {
+    for (const entry of saved) {
+      if (entry.mutationId && typeof entry.mutationId.timestamp === "number") {
+        engine.clock.witness(entry.mutationId.timestamp);
+      }
+    }
+    crdtArray.restoreSnapshot(saved);
+    updateItems();
+  }
+
+  // 1. Check synchronous snapshot cache / storage first so route changes preserve state in 0ms
+  const syncSaved = driver.getItemSync?.<ArrayEntry<T>[]>(key) ?? null;
+  if (Array.isArray(syncSaved)) {
+    restoreAndWitness(syncSaved);
+  } else if (options.initialItems && options.initialItems.length > 0) {
+    // Pre-seed initial items only when no persisted snapshot exists
     for (const it of options.initialItems) {
       const id = resolveItemId(it, options.idField);
       crdtArray.insert(id, it, engine.clock.tick());
     }
     updateItems();
+    saveSnapshot();
   }
 
   // Register with SyncEngine
@@ -122,9 +139,8 @@ export function syncCollection<T>(
     try {
       await driver.init();
       const saved = await driver.getItem<ArrayEntry<T>[]>(key);
-      if (Array.isArray(saved) && saved.length > 0) {
-        crdtArray.restoreSnapshot(saved);
-        updateItems();
+      if (Array.isArray(saved)) {
+        restoreAndWitness(saved);
       } else if (crdtArray.length > 0) {
         saveSnapshot();
       }

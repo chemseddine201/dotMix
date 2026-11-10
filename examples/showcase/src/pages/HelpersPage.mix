@@ -126,7 +126,7 @@ export default function HelpersPage() {
             </div>
             {if concurrencyLog().length > 0}
               <ul class="task-list">
-                {each concurrencyLog() as item}
+                {each item in concurrencyLog()}
                   <li>{item}</li>
                 {endeach}
               </ul>

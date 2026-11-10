@@ -188,6 +188,15 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.ok(root.querySelector(".page-tasks"), "TasksPage is rendered in outlet");
     assert.strictEqual(root.querySelector(".page-overview"), null, "OverviewPage unmounted");
 
+    // Add a task on /tasks before navigating away to verify persistence across route changes
+    const taskCountBefore = root.querySelectorAll(".task-item").length;
+    const taskInput = root.querySelector(".task-input");
+    taskInput.value = "Persisted Across Route Switch";
+    taskInput.dispatchEvent(new win.Event("input"));
+    root.querySelector(".btn-primary").click();
+    assert.strictEqual(root.querySelectorAll(".task-item").length, taskCountBefore + 1);
+    assert.ok(root.querySelector(".page-tasks").textContent.includes("Persisted Across Route Switch"));
+
     // 4. Switch to /users/lead-architect -> extracts :id
     navLinks[2].click();
     assert.strictEqual(mountCounter.textContent, "1");
@@ -226,6 +235,15 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".helpers-page"), "HelpersPage rendered in outlet");
     assert.ok(root.textContent.includes("Native Standard Library"), "HelpersPage title rendered");
+
+    // 11. Navigate back to /tasks -> verify added task persisted across all route switches!
+    navLinks[1].click();
+    assert.ok(root.querySelector(".page-tasks"), "TasksPage re-mounted in outlet");
+    assert.strictEqual(root.querySelectorAll(".task-item").length, taskCountBefore + 1);
+    assert.ok(
+      root.querySelector(".page-tasks").textContent.includes("Persisted Across Route Switch"),
+      "Added task must persist when navigating away from /tasks and returning"
+    );
 
   });
 });

@@ -1,32 +1,24 @@
-import { syncCollection, MemoryDriver } from "@mix/sync";
+import { syncCollection } from "@mix/sync";
 import "./SyncPage.css";
 
 export default function SyncPage() {
-  const isOnline = signal(true);
   const newTodoText = signal("");
-  const driver = new MemoryDriver();
 
   const store = syncCollection("showcase_todos", {
-    driver,
-    autoFlush: true,
-    transport: {
-      send(mutations) {
-        // Mock remote transport
-        return Promise.resolve(mutations.map((m) => m.id));
-      }
-    }
+    driver: "indexeddb",
+    initialItems: [
+      { id: "t1", title: "Verify compiler AOT surgical DOM pipeline", completed: true },
+      { id: "t2", title: "Test offline CRDT conflict convergence", completed: false },
+      { id: "t3", title: "Audit zero external dependencies rule", completed: false }
+    ]
   });
 
-  // Seed with initial items if empty
-  if (store.items().length === 0) {
-    store.insert({ id: "t1", title: "Verify compiler AOT surgical DOM pipeline", completed: true });
-    store.insert({ id: "t2", title: "Test offline CRDT conflict convergence", completed: false });
-    store.insert({ id: "t3", title: "Audit zero external dependencies rule", completed: false });
-  }
-
   function toggleNetwork() {
-    isOnline.set(!isOnline());
-    store.engine.setOnline(isOnline());
+    if (store.engine.isOnline()) {
+      store.engine.goOffline();
+    } else {
+      store.engine.goOnline();
+    }
   }
 
   function onInput(e) {
@@ -52,7 +44,7 @@ export default function SyncPage() {
 
   function runCompaction() {
     // Purges tombstones up to current clock
-    const clock = store.engine.clock;
+    const clock = store.engine.clock.currentTime;
     store.compact(clock);
   }
 
@@ -68,13 +60,13 @@ export default function SyncPage() {
       <div class="sync-controls-bar">
         <div class="network-toggle-box">
           <button
-            class={"btn-network " + (isOnline() ? "online" : "offline")}
+            class={"btn-network " + (store.engine.isOnline() ? "online" : "offline")}
             onClick={toggleNetwork}
           >
-            {isOnline() ? "🟢 Simulated Network: ONLINE" : "🔴 Simulated Network: OFFLINE"}
+            {store.engine.isOnline() ? "🟢 Simulated Network: ONLINE" : "🔴 Simulated Network: OFFLINE"}
           </button>
           <span class="network-desc">
-            {isOnline()
+            {store.engine.isOnline()
               ? "Mutations immediately flush to transport"
               : "Mutations queue locally; 0ms UI latency preserved"}
           </span>
@@ -82,7 +74,7 @@ export default function SyncPage() {
 
         <div class="sync-stats">
           <span class="stat-pill">Pending Queue: <strong>{store.pendingMutations().length}</strong></span>
-          <span class="stat-pill">Lamport Clock: <strong>{store.engine.clock}</strong></span>
+          <span class="stat-pill">Lamport Clock: <strong>{store.engine.clock.currentTime}</strong></span>
           <button class="btn-compact" onClick={runCompaction}>🧹 Compact Tombstones (GC)</button>
         </div>
       </div>
@@ -101,7 +93,7 @@ export default function SyncPage() {
           </form>
 
           <ul class="sync-list">
-            {#each store.items() as todo (todo.id)}
+            {each todo in store.items()}
               <li class={"sync-item " + (todo.completed ? "completed" : "")}>
                 <label class="item-check">
                   <input
@@ -116,7 +108,7 @@ export default function SyncPage() {
                   <button class="btn-del" onClick={() => deleteTodo(todo.id)}>✕</button>
                 </div>
               </li>
-            {/each}
+            {endeach}
           </ul>
         </div>
 
@@ -133,7 +125,7 @@ export default function SyncPage() {
 
           <div class="crdt-metric">
             <span class="metric-name">Storage Driver:</span>
-            <span class="metric-val">MemoryDriver (OPFS/IndexedDB Ready)</span>
+            <span class="metric-val">IndexedDbDriver (Durable Persistence)</span>
           </div>
 
           <h4>Internal Fractional Array State:</h4>

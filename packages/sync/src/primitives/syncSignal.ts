@@ -7,25 +7,29 @@ import type { Mutation, MutationId, SyncDriver, SyncSignal, SyncSignalOptions, S
 import { formatMutationId } from "../crdt/clock.js";
 import { LWWRegister } from "../crdt/lww.js";
 import { getDefaultSyncEngine, SyncEngine } from "../engine/engine.js";
-import { MemoryDriver } from "../storage/memory.js";
 import { IndexedDbDriver } from "../storage/indexeddb.js";
 import { OpfsDriver } from "../storage/opfs.js";
 
-function resolveDriver(driverOpt?: SyncDriver | "memory" | "indexeddb" | "opfs"): SyncDriver {
+function resolveDriver(
+  driverOpt: SyncDriver | "memory" | "indexeddb" | "opfs" | undefined,
+  engine: SyncEngine
+): SyncDriver {
   if (typeof driverOpt === "object" && driverOpt !== null) {
     return driverOpt;
   }
   if (driverOpt === "opfs") return new OpfsDriver();
   if (driverOpt === "indexeddb") return new IndexedDbDriver();
-  return new MemoryDriver();
+  return engine.driver;
 }
 
 export function syncSignal<T>(
   initialValue: T,
-  options: SyncSignalOptions<T>
+  keyOrOptions: string | SyncSignalOptions<T>
 ): SyncSignal<T> {
+  const options: SyncSignalOptions<T> =
+    typeof keyOrOptions === "string" ? { key: keyOrOptions } : keyOrOptions;
   const engine = (options.syncEngine as SyncEngine) || getDefaultSyncEngine();
-  const driver = resolveDriver(options.driver);
+  const driver = resolveDriver(options.driver, engine);
   const key = options.key;
 
   const initId: MutationId = engine.clock.tick();
@@ -35,6 +39,13 @@ export function syncSignal<T>(
   const internalSignal = signal<T>(initialValue);
   const pendingCountSig = signal<number>(0);
   const statusSig = signal<SyncStatus>(engine.isOnline() ? "synced" : "offline");
+
+  const syncSaved = driver.getItemSync?.<{ value: T; mutationId: MutationId }>(key) ?? null;
+  if (syncSaved && syncSaved.mutationId) {
+    engine.clock.witness(syncSaved.mutationId.timestamp);
+    register.merge(syncSaved.value, syncSaved.mutationId);
+    internalSignal.set(register.value);
+  }
 
   // History stack for optimistic rollback
   const historyStack: { value: T; mutationIdStr: string }[] = [];
@@ -70,6 +81,7 @@ export function syncSignal<T>(
       await driver.init();
       const saved = await driver.getItem<{ value: T; mutationId: MutationId }>(key);
       if (saved && saved.mutationId) {
+        engine.clock.witness(saved.mutationId.timestamp);
         register.merge(saved.value, saved.mutationId);
         internalSignal.set(register.value);
       }

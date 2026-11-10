@@ -54,6 +54,7 @@ export type SyncStatus = "synced" | "syncing" | "offline" | "error";
 export interface SyncDriver {
   readonly name: string;
   init(): Promise<void>;
+  getItemSync?<T>(key: string): T | null;
   getItem<T>(key: string): Promise<T | null>;
   setItem<T>(key: string, value: T): Promise<void>;
   removeItem(key: string): Promise<void>;
@@ -83,7 +84,7 @@ export interface SyncSignal<T> {
 }
 
 export interface SyncCollectionOptions<T> {
-  readonly key: string;
+  readonly key?: string;
   readonly idField?: keyof T | ((item: T) => string);
   readonly driver?: SyncDriver | "memory" | "indexeddb" | "opfs";
   readonly syncEngine?: unknown; // SyncEngine instance

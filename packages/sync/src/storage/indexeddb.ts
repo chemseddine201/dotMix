@@ -9,15 +9,18 @@ const DB_NAME = "mix_sync_db";
 const DB_VERSION = 1;
 const STORE_SNAPSHOTS = "snapshots";
 const STORE_MUTATIONS = "mutation_log";
+const LS_PREFIX = "mix_sync_snap:";
 
 export class IndexedDbDriver implements SyncDriver {
   readonly name = "indexeddb";
+  private static memoryMirror: Map<string, unknown> = new Map();
+  private static sharedFallback: MemoryDriver = new MemoryDriver();
   private db: IDBDatabase | null = null;
   private fallback: MemoryDriver | null = null;
 
   async init(): Promise<void> {
     if (typeof indexedDB === "undefined") {
-      this.fallback = new MemoryDriver();
+      this.fallback = IndexedDbDriver.sharedFallback;
       return this.fallback.init();
     }
 
@@ -39,8 +42,8 @@ export class IndexedDbDriver implements SyncDriver {
         resolve();
       };
       req.onerror = () => {
-        // Fall back to memory on permission denied or private browsing issue
-        this.fallback = new MemoryDriver();
+        // Fall back to shared memory on permission denied or private browsing issue
+        this.fallback = IndexedDbDriver.sharedFallback;
         resolve();
       };
     });
@@ -52,22 +55,59 @@ export class IndexedDbDriver implements SyncDriver {
     return this.fallback;
   }
 
+  getItemSync<T>(key: string): T | null {
+    if (IndexedDbDriver.memoryMirror.has(key)) {
+      return structuredClone(IndexedDbDriver.memoryMirror.get(key)) as T;
+    }
+    try {
+      if (typeof localStorage !== "undefined") {
+        const raw = localStorage.getItem(LS_PREFIX + key);
+        if (raw !== null) {
+          const parsed = JSON.parse(raw) as T;
+          IndexedDbDriver.memoryMirror.set(key, structuredClone(parsed));
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage access errors
+    }
+    return IndexedDbDriver.sharedFallback.getItemSync<T>(key);
+  }
+
   async getItem<T>(key: string): Promise<T | null> {
     const fb = await this.ensureReady();
-    if (fb) return fb.getItem<T>(key);
+    if (fb) {
+      const fbVal = await fb.getItem<T>(key);
+      return fbVal ?? this.getItemSync<T>(key);
+    }
 
     return new Promise((resolve) => {
       const tx = this.db!.transaction(STORE_SNAPSHOTS, "readonly");
       const store = tx.objectStore(STORE_SNAPSHOTS);
       const req = store.get(key);
       req.onsuccess = () => {
-        resolve(req.result ? (req.result.value as T) : null);
+        if (req.result && req.result.value !== undefined) {
+          const val = req.result.value as T;
+          IndexedDbDriver.memoryMirror.set(key, structuredClone(val));
+          resolve(val);
+        } else {
+          resolve(this.getItemSync<T>(key));
+        }
       };
-      req.onerror = () => resolve(null);
+      req.onerror = () => resolve(this.getItemSync<T>(key));
     });
   }
 
   async setItem<T>(key: string, value: T): Promise<void> {
+    IndexedDbDriver.memoryMirror.set(key, structuredClone(value));
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+      }
+    } catch {
+      // Ignore storage quota/access errors
+    }
+
     const fb = await this.ensureReady();
     if (fb) return fb.setItem<T>(key, value);
 
@@ -81,6 +121,15 @@ export class IndexedDbDriver implements SyncDriver {
   }
 
   async removeItem(key: string): Promise<void> {
+    IndexedDbDriver.memoryMirror.delete(key);
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem(LS_PREFIX + key);
+      }
+    } catch {
+      // Ignore
+    }
+
     const fb = await this.ensureReady();
     if (fb) return fb.removeItem(key);
 
@@ -173,6 +222,7 @@ export class IndexedDbDriver implements SyncDriver {
   }
 
   async clear(): Promise<void> {
+    IndexedDbDriver.memoryMirror.clear();
     const fb = await this.ensureReady();
     if (fb) return fb.clear();
 

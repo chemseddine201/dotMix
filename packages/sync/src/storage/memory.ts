@@ -13,6 +13,11 @@ export class MemoryDriver implements SyncDriver {
     // No-op for in-memory
   }
 
+  getItemSync<T>(key: string): T | null {
+    const val = this.store.get(key);
+    return val !== undefined ? (structuredClone(val) as T) : null;
+  }
+
   async getItem<T>(key: string): Promise<T | null> {
     const val = this.store.get(key);
     return val !== undefined ? (structuredClone(val) as T) : null;
