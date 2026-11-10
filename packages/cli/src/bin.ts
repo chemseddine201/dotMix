@@ -119,7 +119,7 @@ switch (command) {
     const inDir = args[1] || "src";
     const outDir = args[2] || "dist";
     const res = build({ inDir, outDir });
-    console.log(`\n✓ Mix build completed successfully. (${res.compiledFiles.length} files compiled)`);
+    console.log(`\n✓ dotMix build completed successfully. (${res.compiledFiles.length} files compiled)`);
     console.log(`\n${res.bundleReport.reportText}\n`);
     break;
   }
@@ -127,7 +127,7 @@ switch (command) {
   case "version":
   case "-v":
   case "--version": {
-    console.log("Mix/Tix Framework v0.1.0");
+    console.log("dotMix Framework v0.1.0");
     break;
   }
 
@@ -136,10 +136,10 @@ switch (command) {
   case "--help":
   default: {
     console.log(`
-Mix/Tix Framework CLI
+dotMix Framework CLI
 
 Usage:
-  mix create [name] [options]  Scaffold a React-inspired Mix application
+  dotmix create [name] [options]  Scaffold a React-inspired dotMix application (or mix create)
                                Options: --ts (default) | --js
                                         --scss (default) | --less | --css
                                         --target <dir>

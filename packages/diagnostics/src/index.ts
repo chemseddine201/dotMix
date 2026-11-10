@@ -110,6 +110,6 @@ export function formatCliDiagnostic(diagnostic: Diagnostic, source?: string): st
     }
   }
 
-  parts.push(`  Docs: https://mix-framework.dev/docs/errors#${diagnostic.code}`);
+  parts.push(`  Docs: https://dotmix.dev/docs/errors#${diagnostic.code}`);
   return parts.join("\n");
 }

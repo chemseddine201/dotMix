@@ -4,7 +4,8 @@
   "description": "Command-line interface for Mix/Tix framework",
   "type": "module",
   "bin": {
-    "mix": "./dist/bin.js"
+    "mix": "./dist/bin.js",
+    "dotmix": "./dist/bin.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,12 +1,12 @@
-# Mix / Tix — Compiler-Native UI Framework
+# dotMix — Compiler-Native UI Framework (`.mix` & `.tix`)
 
-**Purpose:** Compiler-native ahead-of-time UI language (`.mix` and `.tix`) and zero-dependency fine-grained reactive runtime.
+**Purpose:** Compiler-native ahead-of-time UI language (`.mix` and `.tix`), zero-dependency fine-grained reactive runtime, and native standard library (`mix-helpers`).
 
 **Current status:** Phase Gates 0 through 9 implemented and verified under Human Architecture Authority authorization (`agent/GATE_2_TO_9_FULL_BUILD_TASK.md`).
 
 ## Non-negotiable project identity
 
-Mix/Tix is an independent compiler-native UI language. It is not a React wrapper, JSX skin, Virtual DOM framework, runtime template interpreter, or HTML-string rendering framework.
+dotMix (`.mix` and `.tix`) is an independent compiler-native UI framework. It is not a React wrapper, JSX skin, Virtual DOM framework, runtime template interpreter, or HTML-string rendering framework.
 
 The architecture pipeline is:
 

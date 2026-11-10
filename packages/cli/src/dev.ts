@@ -499,7 +499,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
   const serverUrl = `http://${host}:${actualPort}`;
 
   if (!options.silent) {
-    console.log(`\n⚡ Mix Dev Server running at ${serverUrl} (HMR enabled via @mix/vite-plugin)`);
+    console.log(`\n⚡ dotMix Dev Server running at ${serverUrl} (HMR enabled via @mix/vite-plugin)`);
   }
 
   return {

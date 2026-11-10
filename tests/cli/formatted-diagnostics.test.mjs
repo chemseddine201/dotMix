@@ -60,7 +60,7 @@ describe("Gate 29 (T-29.3): Formatted CLI Diagnostics (Code Frame, file:line:col
 
         // 3. Docs link
         assert.ok(
-          combined.includes("https://mix-framework.dev/docs/errors#MIX_ERR_PARSE_SYNTAX"),
+          combined.includes("https://dotmix.dev/docs/errors#MIX_ERR_PARSE_SYNTAX"),
           `Expected docs link for MIX_ERR_PARSE_SYNTAX in output:\n${combined}`
         );
 

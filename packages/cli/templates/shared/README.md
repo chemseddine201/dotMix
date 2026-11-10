@@ -1,6 +1,6 @@
 # {{projectName}}
 
-Built with **Mix Framework** — Compiler-Native UI with Zero Virtual DOM, Fine-Grained Reactivity, Built-in RBAC/ABAC Permissions, and Offline CRDT State.
+Built with **dotMix** — Compiler-Native UI with Zero Virtual DOM, Fine-Grained Reactivity, Built-in RBAC/ABAC Permissions, and Offline CRDT State.
 
 ## Architecture Layout
 

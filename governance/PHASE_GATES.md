@@ -430,6 +430,19 @@ Acceptance:
 - Production bundle passes specifier and size audits;
 - Streaming SSR hydrates cleanly with CSP nonce enforcement.
 
+## Gate 29.5 — dotMix Identity & Native Standard Library (`mix-helpers`) (D-134, D-135)
+
+Scope:
+- `T-29.5.1`: Framework identity rebrand to **dotMix** (`dotmix-framework`), dual `dotmix` / `mix` CLI binaries, doc links, templates, and Showcase branding (`D-134`);
+- `T-29.5.2`: `packages/helpers` (`mix-helpers` / `@mix/helpers`) zero-dependency package with `mix-helpers/data` (`dot` namespace for path access, collections, strings, debounce/throttle) and `mix-helpers/datetime` (`dateTime` & `duration` with format tokens, relative time, timezones, date math);
+- `T-29.5.3`: `mix-helpers/http` (resilient interceptor HTTP client with retries, deduplication, cache, and reactive `useHttp` signal hook), `mix-helpers/async` (`asyncFlow` with parallel, series, mapLimit, queue, mutex), and `mix-helpers/web` (query strings, crypto/IDs, typed event bus, formatters, storage);
+- `T-29.5.4`: Compiler (`typecheckTix`), dev server (`mix dev`), bundler (`mix build`), and template integration for `mix-helpers` / `@mix/helpers`.
+
+Acceptance:
+- Zero external runtime dependencies in `packages/helpers`;
+- All subpath exports (`mix-helpers/data`, `mix-helpers/datetime`, `mix-helpers/http`, `mix-helpers/async`, `mix-helpers/web`) tree-shakeable and verified;
+- Full build, lint, and test suite green across all modules and golden-path variants.
+
 ## Gate 30 — Prove and Publish (P3)
 
 Scope:
