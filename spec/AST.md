@@ -120,11 +120,20 @@ export interface DynamicElementNode extends ASTNodeBase {
 
 ### 2.4 Control Flow, Text, and Attribute Nodes
 ```ts
+export interface DynamicAttributeNode extends ASTNodeBase {
+  readonly type: "DynamicAttribute";
+  readonly name: string;
+  readonly expression: ESTreeNode;
+  readonly rawExpression: string;
+  readonly templateValue?: readonly TemplateNode[] | undefined; // D-132: nested element/fragment attribute expression
+}
+
 export interface IfBlockNode extends ASTNodeBase {
   readonly type: "IfBlock";
   readonly condition: ESTreeNode;
   readonly consequent: readonly TemplateNode[];
   readonly alternate: readonly TemplateNode[] | IfBlockNode | null;
+  readonly legacySyntax?: boolean | undefined; // D-133: true when opened with {#if
 }
 
 export interface EachBlockNode extends ASTNodeBase {
@@ -134,6 +143,7 @@ export interface EachBlockNode extends ASTNodeBase {
   readonly indexIdentifier: string | null;
   readonly keyExpression: ESTreeNode;
   readonly children: readonly TemplateNode[];
+  readonly legacySyntax?: boolean | undefined; // D-133: true when opened with {#each
 }
 ```
 

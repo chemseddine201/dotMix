@@ -103,11 +103,14 @@ DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
    - After `node.end`, the scanner skips ASCII whitespace and JS comments (`//...`, `/*...*/`) and verifies that the immediately following character sequence matches the expected context delimiter (`}`, `}>`, `)`). Otherwise, it emits `MIX_ERR_PARSE_SYNTAX`.
 2. **Parenthesized Expressions (`R-SYN-01a`):** `preserveParens: true` is mandatory so expressions such as `{ ({ k: 1 }) }` include outer closing parentheses in `node.end`.
 3. **AST Representation (`R-SYN-01b`):** Parsed expressions are stored as structural, deeply frozen `ESTreeNode` trees with 1-based line/column and 0-based offset `SourceSpan` coordinates.
-4. **No Markup Inside Expressions (`R-SYN-01c`):** Template markup tags inside `{ ... }` expressions are forbidden and rejected with `MIX_ERR_PARSE_SYNTAX`.
+4. **Markup in Expressions & Attribute Subtrees (`R-SYN-01c`, `D-132`, `D-133`):**
+   - Arbitrary template markup tags inside general `{ ... }` expressions are forbidden (`R-SYN-01c`).
+   - JSX-style logical or conditional markup inside expressions (e.g. `{cond && <span>Hi</span>}`) is rejected with `MIX_ERR_JSX_LOGICAL_EXPRESSION` and a hint to use `{if cond}<span>Hi</span>{endif}` (`D-133` Option b).
+   - **Attribute Element & Fragment Expressions (`D-132`):** Attribute bindings of the form `attr={<Element ... />}` or `attr={<>...</>}` (e.g., `<Can fallback={<span class="denied">Read Only</span>}>` or `<Button icon={<Icon name="plus" />} />`) are parsed as a nested `TemplateNode[]` subtree (`DynamicAttributeNode.templateValue`) and compiled to a lazily-mounted render function.
 
 ---
 
-## 6. Control-Flow Blocks (`IfBlockNode` & `EachBlockNode` — `HAA-06` / `D-112`)
+## 6. Control-Flow Blocks (`IfBlockNode` & `EachBlockNode` — `HAA-06` / `D-112` / `D-133`)
 
 ### 6.1 Conditional Block (`{if} ... {elseif} ... {else} ... {endif}`)
 ```mix
@@ -128,13 +131,14 @@ DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
 ```
 - Also supports `{each item in itemsExpr} ... {endeach}` and `{each itemsExpr as (item, index)} ... {endeach}`.
 - Automatically resolves the item key via `(item?.id ?? item?.key ?? item)` (or accepts an explicit third tuple expression `{each (item, index, item.customKey) in itemsExpr}`) while enforcing `D-110` (`HAA-02`) atomic duplicate-key rejection at runtime.
+- **Legacy Control-Flow Deprecation (`D-133`):** Legacy `{#if}` / `{#each}` / `{#await}` blocks remain parseable for backward compatibility and emit a `MIX_WARN_LEGACY_CONTROL_FLOW` warning in `mix check` and the Language Server.
 
 ---
 
 ## 7. Attributes, Directives, and Event Handlers
 
 - **Static Attributes:** `name="value"` or boolean shorthand `disabled` (`StaticAttributeNode`)
-- **Reactive Attribute Bindings:** `name={expr}` (`DynamicAttributeNode`)
+- **Reactive Attribute Bindings:** `name={expr}` or element/fragment subtree `name={<span/>}` (`DynamicAttributeNode`, `D-132`)
 - **Event Listeners:** `onClick={handler}`, `onInput={handler}`, `@click={handler}`, or `on:click={handler}` (`EventBindingNode`)
 - **Element References:** `ref={myRef}` (`RefBindingNode`)
 - **Trusted HTML Directive:** `mix-html={trustedHtmlExpr}` (`DirectiveAttributeNode`, validated at runtime via `SanitizerProvider` and `WeakSet` registry per `D-109` / `HAA-03`)
