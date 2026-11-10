@@ -4,14 +4,45 @@
  * @mix/cli — Command Line Executable
  */
 
+import fs from "node:fs";
+import path from "node:path";
+import { formatCliDiagnostic, MixDiagnosticError, type Diagnostic } from "@mix/diagnostics";
 import { check } from "./check.js";
 import { build } from "./build.js";
 import { create } from "./create.js";
 import { createDevServer } from "./dev.js";
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const debug = rawArgs.includes("--debug");
+const args = rawArgs.filter((a) => a !== "--debug");
 const command = args[0] || "help";
 
+function findSourceForDiagnostic(fileRef: string | undefined, searchDir: string): string | undefined {
+  if (!fileRef) return undefined;
+  if (fs.existsSync(fileRef) && fs.statSync(fileRef).isFile()) {
+    return fs.readFileSync(fileRef, "utf-8");
+  }
+  const directInSearch = path.resolve(searchDir, fileRef);
+  if (fs.existsSync(directInSearch) && fs.statSync(directInSearch).isFile()) {
+    return fs.readFileSync(directInSearch, "utf-8");
+  }
+  if (fs.existsSync(searchDir) && fs.statSync(searchDir).isDirectory()) {
+    const entries = fs.readdirSync(searchDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
+      const full = path.join(searchDir, entry.name);
+      if (entry.isDirectory()) {
+        const found = findSourceForDiagnostic(fileRef, full);
+        if (found !== undefined) return found;
+      } else if (entry.isFile() && entry.name === path.basename(fileRef)) {
+        return fs.readFileSync(full, "utf-8");
+      }
+    }
+  }
+  return undefined;
+}
+
+try {
 switch (command) {
   case "create":
   case "init": {
@@ -53,7 +84,7 @@ switch (command) {
 
   case "check": {
     const target = args[1];
-    const checkOpts: Record<string, unknown> = {};
+    const checkOpts: Record<string, unknown> = { debug };
     if (target) {
       if (target.endsWith(".mix") || target.endsWith(".tix")) {
         checkOpts.files = [target];
@@ -113,9 +144,28 @@ Usage:
                                         --scss (default) | --less | --css
                                         --target <dir>
   mix check [dir/file]         Typecheck .tix and analyze .mix files
-  mix build [src] [dist]       Ahead-of-time compile components
+  mix dev [dir] [--port 3000]  Start development server with HMR
+  mix build [src] [dist]       Ahead-of-time compile and bundle components
   mix version                  Display CLI version
 `);
     break;
   }
+}
+} catch (err: unknown) {
+  if (err instanceof MixDiagnosticError || (err && typeof err === "object" && "diagnostic" in err)) {
+    const diag = (err as { diagnostic: Diagnostic }).diagnostic;
+    const searchDir = args[1] ? path.resolve(args[1]) : process.cwd();
+    const source = findSourceForDiagnostic(diag.span.file, searchDir);
+    console.error(formatCliDiagnostic(diag, source));
+    if (debug && err instanceof Error && err.stack) {
+      console.error(err.stack);
+    }
+  } else {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[ERROR] ${msg}`);
+    if (debug && err instanceof Error && err.stack) {
+      console.error(err.stack);
+    }
+  }
+  process.exit(1);
 }

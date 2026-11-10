@@ -81,6 +81,35 @@ export function formatDiagnosticCodeFrame(source: string, span: SourceSpan): str
     span.end.line === span.start.line
       ? Math.max(1, span.end.column - span.start.column)
       : 1;
+  const lineNumStr = String(line);
+  const pad = " ".repeat(lineNumStr.length);
   const caret = " ".repeat(Math.max(0, col - 1)) + "^".repeat(width);
-  return `  ${line} | ${lineText}\n    | ${caret}`;
+  return `  ${lineNumStr} | ${lineText}\n  ${pad} | ${caret}`;
+}
+
+export function formatCliDiagnostic(diagnostic: Diagnostic, source?: string): string {
+  const prefix =
+    diagnostic.severity === "error"
+      ? "ERROR"
+      : diagnostic.severity === "warning"
+        ? "WARN"
+        : "INFO";
+  const file = diagnostic.span.file || "<anonymous>";
+  const loc = `${file}:${diagnostic.span.start.line}:${diagnostic.span.start.column}`;
+  const parts: string[] = [
+    `[${prefix}] ${diagnostic.code} at ${loc}: ${diagnostic.message}`
+  ];
+
+  if (source && diagnostic.span.start.line >= 1) {
+    parts.push(formatDiagnosticCodeFrame(source, diagnostic.span));
+  }
+
+  if (diagnostic.notes && diagnostic.notes.length > 0) {
+    for (const note of diagnostic.notes) {
+      parts.push(`  Hint: ${note}`);
+    }
+  }
+
+  parts.push(`  Docs: https://mix-framework.dev/docs/errors#${diagnostic.code}`);
+  return parts.join("\n");
 }

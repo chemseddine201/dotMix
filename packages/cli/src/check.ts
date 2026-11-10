@@ -6,12 +6,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse } from "@mix/compiler-frontend";
 import { analyze, typecheckTix } from "@mix/compiler-semantic";
-import type { Diagnostic } from "@mix/diagnostics";
+import {
+  formatCliDiagnostic,
+  MixDiagnosticError,
+  type Diagnostic
+} from "@mix/diagnostics";
 
 export interface CheckOptions {
   files?: string[] | undefined;
   dir?: string | undefined;
   silent?: boolean | undefined;
+  debug?: boolean | undefined;
 }
 
 export interface CheckResult {
@@ -47,13 +52,17 @@ export function check(options: CheckOptions = {}): CheckResult {
   const filePaths = options.files && options.files.length > 0 ? options.files : findMixFiles(targetDir);
 
   const allDiagnostics: Diagnostic[] = [];
+  const fileSources = new Map<string, string>();
   let errorsCount = 0;
   let warningsCount = 0;
 
   for (const filePath of filePaths) {
     const filename = path.basename(filePath);
+    let source = "";
     try {
-      const source = fs.readFileSync(filePath, "utf-8");
+      source = fs.readFileSync(filePath, "utf-8");
+      fileSources.set(filePath, source);
+      fileSources.set(filename, source);
       const readExternalStyle = (relPath: string): string => {
         const resolved = path.resolve(path.dirname(filePath), relPath);
         return fs.existsSync(resolved) ? fs.readFileSync(resolved, "utf-8") : "";
@@ -76,9 +85,21 @@ export function check(options: CheckOptions = {}): CheckResult {
         }
       }
     } catch (err: unknown) {
-      errorsCount++;
-      if (!options.silent) {
-        console.error(`Error processing ${filePath}:`, err);
+      if (err instanceof MixDiagnosticError || (err && typeof err === "object" && "diagnostic" in err)) {
+        const diag = (err as { diagnostic: Diagnostic }).diagnostic;
+        allDiagnostics.push(diag);
+        if (options.debug && !options.silent && err instanceof Error && err.stack) {
+          console.error(err.stack);
+        }
+      } else {
+        errorsCount++;
+        if (!options.silent) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`[ERROR] ${filename}:1:1: ${msg}`);
+          if (options.debug && err instanceof Error && err.stack) {
+            console.error(err.stack);
+          }
+        }
       }
     }
   }
@@ -88,9 +109,10 @@ export function check(options: CheckOptions = {}): CheckResult {
     else if (diag.severity === "warning") warningsCount++;
 
     if (!options.silent) {
-      const loc = `${diag.span.file || ""}:${diag.span.start.line}:${diag.span.start.column}`;
-      const prefix = diag.severity === "error" ? "ERROR" : "WARN";
-      console.log(`[${prefix}] ${diag.code} at ${loc}: ${diag.message}`);
+      const source =
+        fileSources.get(diag.span.file ?? "") ??
+        fileSources.get(path.basename(diag.span.file ?? ""));
+      console.log(formatCliDiagnostic(diag, source));
     }
   }
 
