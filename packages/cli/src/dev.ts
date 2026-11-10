@@ -113,9 +113,16 @@ export function rewriteModuleImportsForDev(
       return spec;
     }
 
-    // 2. Bare @mix/<pkg> or @mix/<pkg>/<subpath> specifier
+    // 2. Bare @mix/<pkg> or mix-helpers/<subpath> specifier
     if (spec.startsWith("@mix/")) {
       const sub = spec.slice("@mix/".length);
+      if (sub.endsWith(".js")) {
+        return `/@modules/@mix/${sub}`;
+      }
+      return `/@modules/@mix/${sub}/index.js`;
+    }
+    if (spec === "mix-helpers" || spec.startsWith("mix-helpers/")) {
+      const sub = spec === "mix-helpers" ? "helpers" : `helpers/${spec.slice("mix-helpers/".length)}`;
       if (sub.endsWith(".js")) {
         return `/@modules/@mix/${sub}`;
       }
@@ -181,6 +188,7 @@ export function resolveMixModuleFile(moduleSubpath: string, rootDir: string): st
 
   const candidatePkgDirs = [
     path.join(rootDir, "node_modules", "@mix", pkgFolder),
+    path.join(rootDir, "node_modules", pkgFolder === "helpers" ? "mix-helpers" : pkgFolder),
     path.join(MONOREPO_PACKAGES_DIR, pkgFolder)
   ];
 

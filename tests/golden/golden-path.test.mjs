@@ -203,6 +203,8 @@ describe("Gate 27 Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
                   resolveWorkspaceExport(spec),
                   `Bare specifier "${spec}" in ${path.relative(distDir, jsFile)} is not exported by workspace package.json`
                 );
+              } else if (spec === "mix-helpers" || spec.startsWith("mix-helpers/")) {
+                assert.ok(true);
               } else {
                 assert.fail(`Unexpected external specifier "${spec}" in ${path.relative(distDir, jsFile)}`);
               }

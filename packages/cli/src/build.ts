@@ -187,7 +187,7 @@ function buildModuleGraphBundle(
           }
           return "";
         }
-        if (spec.startsWith("@mix/")) {
+        if (spec.startsWith("@mix/") || spec.startsWith("mix-helpers") || spec === "mix-helpers") {
           if (!clause) {
             sideEffectExternalImports.add(spec);
           } else {

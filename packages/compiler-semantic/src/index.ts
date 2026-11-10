@@ -1332,16 +1332,24 @@ function resolveMixPackageDts(
   containingFile: string,
   baseDir?: string
 ): string | undefined {
-  if (!modName.startsWith("@mix/")) return undefined;
+  if (!modName.startsWith("@mix/") && !modName.startsWith("mix-helpers")) return undefined;
   const cached = MIX_PACKAGE_DTS_CACHE.get(modName);
   if (cached && ts.sys.fileExists(cached)) {
     return cached;
   }
 
-  const parts = modName.split("/");
-  if (parts.length < 2) return undefined;
-  const pkgShort = parts[1]!;
-  const subpath = parts.length > 2 ? `./${parts.slice(2).join("/")}` : ".";
+  let pkgShort: string;
+  let subpath: string;
+  if (modName.startsWith("@mix/")) {
+    const parts = modName.split("/");
+    if (parts.length < 2) return undefined;
+    pkgShort = parts[1]!;
+    subpath = parts.length > 2 ? `./${parts.slice(2).join("/")}` : ".";
+  } else {
+    pkgShort = "helpers";
+    const parts = modName.split("/");
+    subpath = parts.length > 1 ? `./${parts.slice(1).join("/")}` : ".";
+  }
 
   const searchStarts = [
     baseDir,
@@ -1355,7 +1363,8 @@ function resolveMixPackageDts(
     for (let depth = 0; depth < 10; depth++) {
       const candidatePkgPaths = [
         `${curr}/packages/${pkgShort}/package.json`,
-        `${curr}/node_modules/@mix/${pkgShort}/package.json`
+        `${curr}/node_modules/@mix/${pkgShort}/package.json`,
+        `${curr}/node_modules/mix-helpers/package.json`
       ];
       for (const pkgJsonPath of candidatePkgPaths) {
         if (ts.sys.fileExists(pkgJsonPath)) {
@@ -1582,8 +1591,8 @@ export function typecheckTix(
           }
         }
 
-        // 2. Resolve @mix/* packages to their real emitted .d.ts files on disk (D-131)
-        if (modName.startsWith("@mix/")) {
+        // 2. Resolve @mix/* and mix-helpers packages to their real emitted .d.ts files on disk (D-131)
+        if (modName.startsWith("@mix/") || modName.startsWith("mix-helpers")) {
           const dtsPath = resolveMixPackageDts(modName, normContaining, baseDir);
           if (dtsPath) {
             return {
