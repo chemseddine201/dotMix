@@ -16,7 +16,8 @@
         "@mix/router": "/router/index.js",
         "@mix/router/": "/router/",
         "@mix/sync": "/sync/index.js",
-        "@mix/sync/": "/sync/"
+        "@mix/sync/": "/sync/",
+        "@mix/sanitizer-dompurify": "/sanitizer-dompurify/index.js"
       }
     }
   </script>
@@ -109,16 +110,13 @@
 
   <script type="module">
     import { mount, setSanitizerProvider } from "/runtime/index.js";
+    import { createDomPurifySanitizer } from "/sanitizer-dompurify/index.js";
     import MasterApp from "/dist/MasterApp.mix.js";
     import StatefulWorkspace from "/dist/StatefulWorkspace.mix.js";
     import App from "/dist/App.mix.js";
 
     // Configure root HTML Sanitizer Authority (D-109 / HAA-03)
-    setSanitizerProvider({
-      sanitizeHtml(untrustedHtml) {
-        return untrustedHtml.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
-      }
-    });
+    setSanitizerProvider(createDomPurifySanitizer());
 
     const container = document.getElementById("app");
     const btnMaster = document.getElementById("btn-view-master");

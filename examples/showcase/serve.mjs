@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runtimeDistDir = path.resolve(__dirname, "../../packages/runtime/dist");
 const routerDistDir = path.resolve(__dirname, "../../packages/router/dist");
 const syncDistDir = path.resolve(__dirname, "../../packages/sync/dist");
+const sanitizerDistDir = path.resolve(__dirname, "../../packages/sanitizer-dompurify/dist");
 const webOutDir = path.join(__dirname, "dist-web");
 const indexHtmlPath = path.join(__dirname, "index.html");
 
@@ -101,6 +102,15 @@ const server = http.createServer((req, res) => {
     const rel = pathname.slice("/sync/".length);
     const target = resolveTarget(syncDistDir, rel);
     if (target.startsWith(syncDistDir)) {
+      sendFile(res, target);
+      return;
+    }
+  }
+
+  if (pathname.startsWith("/sanitizer-dompurify/")) {
+    const rel = pathname.slice("/sanitizer-dompurify/".length);
+    const target = resolveTarget(sanitizerDistDir, rel);
+    if (target.startsWith(sanitizerDistDir)) {
       sendFile(res, target);
       return;
     }

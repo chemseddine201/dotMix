@@ -73,7 +73,7 @@ export default function OverviewPage() {
         </button>
       </div>
 
-      {#if showModal()}
+      {if showModal()}
         <Teleport to="body">
           <div class="modal-backdrop" onClick={closeModal}>
             <div class="modal-dialog" onClick={(e) => e.stopPropagation()}>
@@ -92,7 +92,7 @@ export default function OverviewPage() {
             </div>
           </div>
         </Teleport>
-      {/if}
+      {endif}
 
       <div class="keepalive-box">
         <div class="keepalive-header">

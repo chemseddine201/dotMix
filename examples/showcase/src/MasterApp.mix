@@ -1,5 +1,6 @@
 import { createBrowserRouter, createMemoryRouter, RouterProvider } from "@mix/router";
 import { setSanitizerProvider } from "@mix/runtime";
+import { createDomPurifySanitizer } from "@mix/sanitizer-dompurify";
 import DashboardLayout from "./DashboardLayout.mix";
 import OverviewPage from "./pages/OverviewPage.mix";
 import TasksPage from "./pages/TasksPage.mix";
@@ -13,11 +14,7 @@ import PermissionsPage from "./pages/PermissionsPage.mix";
 import "./MasterApp.css";
 
 // Configure application security sanitizer authority (D-109 / HAA-03)
-setSanitizerProvider({
-  sanitizeHtml(raw) {
-    return raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
-  }
-});
+setSanitizerProvider(createDomPurifySanitizer());
 
 export default function MasterApp() {
   const routes = [

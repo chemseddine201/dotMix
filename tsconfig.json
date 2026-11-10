@@ -16,7 +16,8 @@
     { "path": "packages/language-server" },
     { "path": "packages/sync" },
     { "path": "packages/interop" },
-    { "path": "packages/stream" }
+    { "path": "packages/stream" },
+    { "path": "packages/sanitizer-dompurify" }
   ]
 }
 

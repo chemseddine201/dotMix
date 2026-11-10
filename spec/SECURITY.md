@@ -53,7 +53,7 @@ TypeScript type branding (e.g. `type TrustedHTML = string & { __brand: "TrustedH
 ### 3.2 Runtime Sanitizer Contract
 Direct HTML injection (`mix-html`) requires processing by an approved sanitizer:
 
-1. **Root Application Authority:** The security boundary is configured at application root via `setSanitizerProvider(provider)`.
+1. **Root Application Authority:** The security boundary is configured at application root via `setSanitizerProvider(provider)` (for production deployments, use the official `@mix/sanitizer-dompurify` adapter via `setSanitizerProvider(createDomPurifySanitizer())`).
 2. **Invocation:** `createTrustedHtml(dirtyHtml)` invokes the configured `SanitizerProvider` (or native W3C `window.trustedTypes` policy where supported).
 3. **Private Registry:** Authentic instances are registered in a module-private `WeakSet<object>`.
 4. **Prohibition of Caller Sanitizers:** The function `createTrustedHtml` does **not** accept an arbitrary caller-supplied sanitizer callback.
