@@ -60,3 +60,12 @@ Direct HTML injection (`mix-html`) requires processing by an approved sanitizer:
 5. **Sink Enforcement:** Direct DOM sinks accept only verified objects from the `WeakSet`. Attempting to inject raw strings throws `MixError` (`MIX_SEC_FOREIGN_TRUSTED_HTML`).
 6. **Context Restrictions:** Trusted HTML insertion into scriptable or active elements (`<script>`, `<iframe>`, `<object>`, `<embed>`) is unconditionally rejected (`MIX_SEC_HTML_CONTEXT`).
 
+---
+
+## 4. Client Guards Are Not Authorization
+
+Client-side route `permissions` (`RoutePermissionGuard`) and `<Can>` conditional boundaries in `@mix/router` and `@mix/runtime/permissions` enforce **UI presentation and client navigation invariants** (preventing unauthorized initial route activation, reacting to runtime ability downgrades, and blocking unauthorized `popstate` transitions).
+
+> **Important Security Boundary:** Client-side guards are **not** a substitute for server-side authorization. Any user with browser DevTools can inspect bundled client code or forge HTTP requests. All sensitive data loaders, API endpoints, and mutations **must** independently verify authentication and authorization on the server before returning data or mutating state.
+
+

@@ -5,6 +5,8 @@
 import {
   createSignal,
   createMemo,
+  createEffect,
+  createRoot,
   createContext,
   useContext,
   createCancellationSource,
@@ -137,13 +139,58 @@ export function parseLocation(
   };
 }
 
+function checkLocationPermissions(
+  targetLoc: RouteLocation,
+  abilitySource: unknown
+): { allowed: boolean; redirectTo?: string | undefined } {
+  for (const m of targetLoc.matched) {
+    const perm = m.route.permissions;
+    if (perm) {
+      let ab: unknown = abilitySource;
+      if (typeof ab === "function") {
+        ab = (ab as () => unknown)();
+      }
+      if (ab && typeof (ab as { can?: unknown }).can === "function") {
+        const allowed = (ab as { can: (a: string, s: string, f?: string) => boolean }).can(
+          perm.action,
+          perm.subject,
+          perm.field
+        );
+        if (!allowed) {
+          return { allowed: false, redirectTo: perm.redirectTo };
+        }
+      }
+    }
+  }
+  return { allowed: true };
+}
+
 export function createRouter(options: RouterOptions): Router {
   const history: RouterHistory =
     options.history ??
     (typeof window !== "undefined" ? createBrowserHistory() : createMemoryHistory(options.initialPath ?? "/"));
 
   const routes = options.routes || [];
-  const initialLoc = parseLocation(history.location || options.initialPath || "/", routes);
+  let isInternalNav = false;
+  let currentAbility = options.ability;
+  const abilitySignal = createSignal<unknown>(options.ability);
+
+  let initialLoc = parseLocation(history.location || options.initialPath || "/", routes);
+  // Enforce route permissions synchronously during router initialization before mounting or running loaders
+  for (let hop = 0; hop < 10; hop++) {
+    const permCheck = checkLocationPermissions(initialLoc, currentAbility);
+    if (permCheck.allowed) {
+      break;
+    }
+    const redirectTarget = permCheck.redirectTo ?? "/";
+    isInternalNav = true;
+    try {
+      history.replace(redirectTarget);
+    } finally {
+      isInternalNav = false;
+    }
+    initialLoc = parseLocation(redirectTarget, routes);
+  }
 
   const currentRoute = createSignal<RouteLocation>(initialLoc);
   const navigation = createSignal<NavigationState>({ state: "idle" });
@@ -159,8 +206,7 @@ export function createRouter(options: RouterOptions): Router {
   let navGeneration = 0;
   let activeSource: CancellationSource | null = null;
   let unlistenHistory: (() => void) | null = null;
-  let isInternalNav = false;
-  let currentAbility = options.ability;
+  let disposeAbilitySubscription: (() => void) | null = null;
 
   async function resolveRouteLazy(route: RouteObject): Promise<void> {
     if (route.lazy && typeof route.lazy === "function") {
@@ -211,29 +257,22 @@ export function createRouter(options: RouterOptions): Router {
     navigation.set({ state: "loading", location: targetLoc });
 
     // Check route permissions before any guards or loaders run
-    for (const m of targetLoc.matched) {
-      const perm = m.route.permissions;
-      if (perm) {
-        let ab: unknown = currentAbility;
-        if (typeof ab === "function") {
-          ab = (ab as () => unknown)();
-        }
-        if (ab && typeof (ab as { can?: unknown }).can === "function") {
-          const allowed = (ab as { can: (a: string, s: string, f?: string) => boolean }).can(
-            perm.action,
-            perm.subject,
-            perm.field
-          );
-          if (!allowed) {
-            navigation.set({ state: "idle" });
-            activeSource = null;
-            if (perm.redirectTo) {
-              return navigateTo(perm.redirectTo, true, false);
-            }
-            return false;
-          }
+    const permCheck = checkLocationPermissions(targetLoc, currentAbility);
+    if (!permCheck.allowed) {
+      navigation.set({ state: "idle" });
+      activeSource = null;
+      if (permCheck.redirectTo) {
+        return navigateTo(permCheck.redirectTo, true, false);
+      }
+      if (fromHistory) {
+        isInternalNav = true;
+        try {
+          history.replace(fromLoc.fullPath);
+        } finally {
+          isInternalNav = false;
         }
       }
+      return false;
     }
 
     const allGuards: NavigationGuard[] = [...beforeEachGuards];
@@ -326,6 +365,19 @@ export function createRouter(options: RouterOptions): Router {
     if (!isInternalNav && loc !== currentRoute().fullPath) {
       void navigateTo(loc, false, true);
     }
+  });
+
+  // Reactively re-evaluate permissions when abilitySignal or currentRoute changes
+  createRoot((dispose) => {
+    disposeAbilitySubscription = dispose;
+    createEffect(() => {
+      const ab = abilitySignal();
+      const loc = currentRoute();
+      const permCheck = checkLocationPermissions(loc, ab);
+      if (!permCheck.allowed) {
+        void navigateTo(permCheck.redirectTo ?? "/", true, false);
+      }
+    });
   });
 
   const router: Router = {
@@ -437,11 +489,16 @@ export function createRouter(options: RouterOptions): Router {
     },
     setAbility(ability: unknown): void {
       currentAbility = ability;
+      abilitySignal.set(() => ability);
     },
     destroy(): void {
       if (activeSource) {
         activeSource.cancel("MIX_ROUTER_DESTROYED");
         activeSource = null;
+      }
+      if (disposeAbilitySubscription) {
+        disposeAbilitySubscription();
+        disposeAbilitySubscription = null;
       }
       if (unlistenHistory) {
         unlistenHistory();
