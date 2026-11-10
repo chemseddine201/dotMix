@@ -47,6 +47,7 @@ export class MockTransportChannel implements SyncChannel {
 }
 
 export class BroadcastChannelTransport implements SyncChannel {
+  readonly isBroadcast = true;
   private channel: BroadcastChannel | null = null;
   private handlers = new Set<(packet: SyncPacket) => void | Promise<void>>();
 

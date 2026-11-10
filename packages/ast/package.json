@@ -12,6 +12,6 @@
   },
   "dependencies": {
     "@mix/diagnostics": "0.1.0"
-  }
+  },
+  "license": "MIT"
 }
-

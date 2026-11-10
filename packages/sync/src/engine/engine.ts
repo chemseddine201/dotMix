@@ -10,6 +10,7 @@ import { MemoryDriver } from "../storage/memory.js";
 export interface SyncStoreHandler {
   applyRemoteMutation(mutation: Mutation<unknown>): void;
   rollbackMutation(mutationIdStr: string): void;
+  commitMutation?(mutationIdStr: string): void;
   compact?(ackWatermarkClock: number): number;
 }
 
@@ -23,6 +24,8 @@ export class SyncEngine {
   private channel: SyncChannel | null = null;
   private unlistenChannel: (() => void) | null = null;
   private stores: Map<string, SyncStoreHandler> = new Map();
+  private collections: Map<string, unknown> = new Map();
+  private signals: Map<string, unknown> = new Map();
   private pendingQueue: Mutation<unknown>[] = [];
   private flushing = false;
 
@@ -61,6 +64,24 @@ export class SyncEngine {
     this.unlistenChannel = channel.onReceive((packet) => this.handleIncomingPacket(packet));
   }
 
+  getOrCreateCollection<T>(key: string, factory: () => T): T {
+    if (this.collections.has(key)) {
+      return this.collections.get(key) as T;
+    }
+    const inst = factory();
+    this.collections.set(key, inst);
+    return inst;
+  }
+
+  getOrCreateSignal<T>(key: string, factory: () => T): T {
+    if (this.signals.has(key)) {
+      return this.signals.get(key) as T;
+    }
+    const inst = factory();
+    this.signals.set(key, inst);
+    return inst;
+  }
+
   registerStore(storeKey: string, handler: SyncStoreHandler): () => void {
     this.stores.set(storeKey, handler);
     return () => {
@@ -84,7 +105,13 @@ export class SyncEngine {
     await this.driver.appendMutation(mutation);
     this.pendingQueue.push(mutation);
 
-    if (this.isOnline()) {
+    if (!this.channel) {
+      await this.driver.markMutationsCommitted([mutation.idStr]);
+      const store = this.stores.get(mutation.storeKey);
+      store?.commitMutation?.(mutation.idStr);
+      this.pendingQueue = this.pendingQueue.filter((m) => m.idStr !== mutation.idStr);
+      this.status.set("synced");
+    } else if (this.isOnline()) {
       await this.flush();
     } else {
       this.status.set("offline");
@@ -112,6 +139,20 @@ export class SyncEngine {
           mutations: toSend,
         };
         await this.channel.send(packet);
+
+        const isBroadcast =
+          (this.channel as { isBroadcast?: boolean }).isBroadcast ||
+          this.channel.constructor.name === "BroadcastChannelTransport";
+
+        if (isBroadcast) {
+          const sentIds = toSend.map((m) => m.idStr);
+          await this.driver.markMutationsCommitted(sentIds);
+          for (const m of toSend) {
+            const store = this.stores.get(m.storeKey);
+            store?.commitMutation?.(m.idStr);
+          }
+          this.pendingQueue = this.pendingQueue.filter((m) => !sentIds.includes(m.idStr));
+        }
       }
       this.status.set(this.pendingQueue.length === 0 ? "synced" : "syncing");
     } catch {
@@ -125,6 +166,11 @@ export class SyncEngine {
     // 1. Process server ACKs
     if (packet.acks && packet.acks.length > 0) {
       await this.driver.markMutationsCommitted(packet.acks);
+      for (const ackId of packet.acks) {
+        for (const store of this.stores.values()) {
+          store.commitMutation?.(ackId);
+        }
+      }
       this.pendingQueue = this.pendingQueue.filter((m) => !packet.acks!.includes(m.idStr));
       if (this.pendingQueue.length === 0 && this.isOnline()) {
         this.status.set("synced");

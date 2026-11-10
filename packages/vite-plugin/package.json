@@ -11,6 +11,6 @@
     "@mix/compiler-codegen": "0.1.0",
     "@mix/compiler-css": "0.1.0",
     "@mix/diagnostics": "0.1.0"
-  }
+  },
+  "license": "MIT"
 }
-

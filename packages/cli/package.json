@@ -23,9 +23,15 @@
     "postcss": "8.4.49"
   },
   "peerDependenciesMeta": {
-    "sass": { "optional": true },
-    "less": { "optional": true },
-    "postcss": { "optional": true }
-  }
+    "sass": {
+      "optional": true
+    },
+    "less": {
+      "optional": true
+    },
+    "postcss": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
 }
-

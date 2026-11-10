@@ -20,6 +20,6 @@
     "dompurify": {
       "optional": true
     }
-  }
+  },
+  "license": "MIT"
 }
-

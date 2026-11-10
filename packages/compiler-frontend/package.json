@@ -15,6 +15,6 @@
     "@mix/ast": "0.1.0",
     "acorn": "8.14.0",
     "@sveltejs/acorn-typescript": "1.0.13"
-  }
+  },
+  "license": "MIT"
 }
-

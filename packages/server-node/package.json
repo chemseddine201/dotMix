@@ -15,6 +15,6 @@
   "dependencies": {
     "@mix/runtime": "0.1.0",
     "@mix/stream": "0.1.0"
-  }
+  },
+  "license": "MIT"
 }
-

@@ -2,10 +2,11 @@ import Header from "./components/Header.mix";
 import Sidebar from "./components/Sidebar.mix";
 import Breadcrumbs from "./components/Breadcrumbs.mix";
 import { Outlet } from "@mix/router";
+import { syncSignal } from "@mix/sync";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
-  const theme = signal("light");
+  const theme = syncSignal("light", { key: "dashboard_theme", driver: "indexeddb" });
 
   function toggleTheme() {
     theme.set(theme() === "light" ? "dark" : "light");

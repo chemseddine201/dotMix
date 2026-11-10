@@ -15,6 +15,6 @@
     "@mix/ast": "0.1.0",
     "@mix/compiler-semantic": "0.1.0",
     "@mix/compiler-css": "0.1.0"
-  }
+  },
+  "license": "MIT"
 }
-

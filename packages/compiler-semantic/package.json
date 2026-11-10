@@ -14,6 +14,6 @@
     "@mix/diagnostics": "0.1.0",
     "@mix/ast": "0.1.0",
     "typescript": "6.0.3"
-  }
+  },
+  "license": "MIT"
 }
-

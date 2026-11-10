@@ -1,6 +1,7 @@
 import MetricCard from "../components/MetricCard.tix";
 import { useOutletContext } from "@mix/router";
 import { Teleport, KeepAlive } from "@mix/runtime";
+import { syncSignal } from "@mix/sync";
 import "./OverviewPage.css";
 
 export default function OverviewPage() {
@@ -11,7 +12,10 @@ export default function OverviewPage() {
 
   const showModal = signal(false);
   const activeTab = signal("calculator");
-  const notesText = signal("These notes persist across tab switches via KeepAlive!");
+  const notesText = syncSignal(
+    "These notes persist across tab switches via KeepAlive!",
+    { key: "overview_scratchpad_notes", driver: "indexeddb" }
+  );
 
   const ctx = useOutletContext();
 
