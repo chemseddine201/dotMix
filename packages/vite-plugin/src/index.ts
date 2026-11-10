@@ -15,6 +15,7 @@ export interface MixPluginOptions {
 
 export function mix(options: MixPluginOptions = {}) {
   const cssMap = new Map<string, string>();
+  const normPath = (p: string): string => p.replace(/\\/g, "/");
 
   return {
     name: "mix",
@@ -22,14 +23,14 @@ export function mix(options: MixPluginOptions = {}) {
 
     resolveId(id: string): string | null {
       if (id.includes("?mix-css")) {
-        return path.normalize(id.split("?")[0]!) + "?mix-css=1";
+        return normPath(id.split("?")[0]!) + "?mix-css=1";
       }
       return null;
     },
 
     load(id: string): string | null {
       if (id.includes("?mix-css")) {
-        const file = path.normalize(id.split("?")[0]!);
+        const file = normPath(id.split("?")[0]!);
         const css = cssMap.get(file);
         return css ?? "";
       }
@@ -37,7 +38,7 @@ export function mix(options: MixPluginOptions = {}) {
     },
 
     invalidate(file: string): void {
-      cssMap.delete(path.normalize(file));
+      cssMap.delete(normPath(file));
     },
 
     transform(code: string, id: string, transformOptions?: { ssr?: boolean }) {
@@ -45,7 +46,7 @@ export function mix(options: MixPluginOptions = {}) {
       if (!rawFilename || (!rawFilename.endsWith(".mix") && !rawFilename.endsWith(".tix"))) {
         return null;
       }
-      const filename = path.normalize(rawFilename);
+      const filename = normPath(rawFilename);
 
       const readExternalStyle = (relPath: string, fromFile?: string): string => {
         const baseDir =
