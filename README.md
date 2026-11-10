@@ -24,9 +24,9 @@ Paired with a fine-grained reactive runtime, an isomorphic RBAC/ABAC permissions
 
 | Advantage | How dotMix Delivers It |
 | :--- | :--- |
-| **Zero Virtual DOM Overhead** | Direct AOT compiler instructions update only the exact text node or attribute that changed. 0ms reactive latency. |
+| **Zero Virtual DOM Overhead** | Direct AOT compiler instructions update only the exact text node or attribute that changed. Sub-microsecond (<1µs) surgical DOM updates with zero Virtual DOM reconciliation latency. |
 | **Zero External Runtime Dependencies** | `@mix/runtime` and `@mix/router` have 0 dependencies. The standard library `mix-helpers` has 0 third-party dependencies. |
-| **Native RBAC/ABAC Permissions** | Built-in `<Can>` component, fine-grained reactive signal subjects, async permission cancellation, and pre-loader router guards. |
+| **Native RBAC/ABAC Permissions** | Built-in `<Can>` component, fine-grained reactive signal subjects, async permission cancellation, and pre-loader router guards. (UI visibility guard; pair with server-side authorization). |
 | **Zero-Data Timezones & Date Engine** | Native IANA timezone conversions (`mix-helpers/datetime`) using the browser's `Intl` engine with 0 external tzdata bundles. |
 | **Resilient Interceptor HTTP Client** | Full Axios-compatible client (`mix-helpers/http`) with automatic retries/backoff, deduplication, cache, and reactive `useHttp` signal hook. |
 | **Offline-First Distributed CRDT State** | Built-in `@mix/sync` with Lamport timestamps, fractional indexing, vector clocks, and durable OPFS/IndexedDB storage. |
@@ -152,10 +152,21 @@ export default function UserProfile(props: UserProps) {
 | [`@mix/compiler-css`](packages/compiler-css) | Multi-preprocessor scoper (`.scss`, `.sass`, `.less`, `.pcss`) & AST security | Dev toolchain |
 | [`@mix/compiler-codegen`](packages/compiler-codegen) | Ahead-Of-Time direct DOM code & SourceMap generator | Dev toolchain |
 | [`@mix/compiler-ssr`](packages/compiler-ssr) | Server-side rendering generator with signal auto-invocation | Dev toolchain |
+| [`@mix/stream`](packages/stream) | WinterCG Edge Web Streams (`ReadableStream`, `Response`) for Cloudflare, Deno, Bun & partial hydration | Edge & Node runtime |
 | [`@mix/server-node`](packages/server-node) | Streaming SSR HTTP server with per-request cryptographic CSP nonces | Node runtime |
 | [`@mix/vite-plugin`](packages/vite-plugin) | Vite & Rollup compiler plugin with instant HMR | Dev toolchain |
 | [`@mix/cli`](packages/cli) | CLI tool (`mix` / `dotmix`: `dev`, `build`, `check`, `create`) | Dev toolchain |
 | [`@mix/language-server`](packages/language-server) | Language Server Protocol (LSP) for VS Code and editors | Dev toolchain |
+
+---
+
+## 🌐 Browser & Runtime Baseline (Modern 2022+)
+
+dotMix targets modern web platforms and evergreen runtimes:
+- **Browsers:** Chrome 100+, Edge 100+, Safari 15.4+, Firefox 100+ (ES2022+ baseline).
+- **Web Standards:** Native `BroadcastChannel`, Web Crypto (`crypto.getRandomValues`), IndexedDB, OPFS, and `AbortSignal`.
+- **Server & Edge Runtimes:** Node.js 18+ / 20+ / 22+, Cloudflare Workers, Deno, Bun, and Vercel Edge.
+- **Security Note:** Client-side RBAC/ABAC rules (`@mix/runtime/permissions`) govern UI presentation and interactive workflows; backend APIs must independently enforce authoritative authorization.
 
 ---
 

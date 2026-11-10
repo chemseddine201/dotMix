@@ -108,7 +108,7 @@ dotMix provides **`mix-helpers`** with **100% zero external dependencies**, desi
 Building offline-capable collaborative web applications typically requires external frameworks like Yjs or Automerge. 
 
 dotMix incorporates **`@mix/sync`** natively:
-- **Zero-Latency Mutations:** Signals update synchronously in 0ms; changes are queued optimistically.
+- **Instantaneous Optimistic Mutations:** Signals update synchronously (<1µs) with zero VDOM overhead; changes are queued optimistically.
 - **Durable Local Storage:** Pluggable persistence drivers (`MemoryDriver`, `IndexedDbDriver`, `OpfsDriver`) ensure mutation logs survive page reloads and browser crashes.
 - **Deterministic Convergence:** Vector clocks, Lamport timestamps, and fractional indexing guarantee that divergent offline edits converge to identical states without server coordination.
 - **Automatic Rollback:** If a server rejects an optimistic mutation, local state and surgical DOM rollback automatically without full-page remounting.
