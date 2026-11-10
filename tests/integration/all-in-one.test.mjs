@@ -138,7 +138,7 @@ describe("All-In-One Modular Architecture Suite", () => {
 
     // 2. Navigation items exist in Sidebar
     const navLinks = root.querySelectorAll(".nav-link");
-    assert.strictEqual(navLinks.length, 9);
+    assert.strictEqual(navLinks.length, 10);
     assert.ok(navLinks[0].textContent.includes("Overview"), "Overview link must render label");
     assert.ok(navLinks[0].classList.contains("active"), "Overview link is active at /");
     assert.ok(navLinks[1].textContent.includes("Tasks"), "Tasks link must render label");
@@ -149,6 +149,7 @@ describe("All-In-One Modular Architecture Suite", () => {
     assert.ok(navLinks[6].textContent.includes("Forms"), "Forms link must render label");
     assert.ok(navLinks[7].textContent.includes("Sync"), "Sync link must render label");
     assert.ok(navLinks[8].textContent.includes("Permissions"), "Permissions link must render label");
+    assert.ok(navLinks[9].textContent.includes("Native Helpers"), "Helpers link must render label");
 
 
     // 3. Switch to /tasks -> renders TasksPage while parent layout remains mounted (mounts=1)
@@ -189,6 +190,12 @@ describe("All-In-One Modular Architecture Suite", () => {
     navLinks[8].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".permissions-container"), "PermissionsPage rendered in outlet");
+
+    // 10. Switch to /helpers -> renders HelpersPage with mix-helpers (Gate 29 / D-135)
+    navLinks[9].click();
+    assert.strictEqual(mountCounter.textContent, "1");
+    assert.ok(root.querySelector(".helpers-page"), "HelpersPage rendered in outlet");
+    assert.ok(root.textContent.includes("Native Standard Library"), "HelpersPage title rendered");
 
   });
 });

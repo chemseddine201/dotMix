@@ -9,6 +9,7 @@ const runtimeDistDir = path.resolve(__dirname, "../../packages/runtime/dist");
 const routerDistDir = path.resolve(__dirname, "../../packages/router/dist");
 const syncDistDir = path.resolve(__dirname, "../../packages/sync/dist");
 const sanitizerDistDir = path.resolve(__dirname, "../../packages/sanitizer-dompurify/dist");
+const helpersDistDir = path.resolve(__dirname, "../../packages/helpers/dist");
 const webOutDir = path.join(__dirname, "dist-web");
 const indexHtmlPath = path.join(__dirname, "index.html");
 
@@ -37,6 +38,13 @@ function rewriteBareMixImports(jsSource) {
       (_, prefix, pkgSubpath, suffix) => {
         const clean = pkgSubpath.endsWith(".js") ? pkgSubpath : `${pkgSubpath}/index.js`;
         return `${prefix}/${clean}${suffix}`;
+      }
+    )
+    .replace(
+      /((?:import|export)\s+(?:[^"']*?\s+from\s+)?["'])mix-helpers(?:\/([^"']+))?(["'])/g,
+      (_, prefix, subpath, suffix) => {
+        const clean = subpath ? (subpath.endsWith(".js") ? subpath : `${subpath}/index.js`) : "index.js";
+        return `${prefix}/helpers/${clean}${suffix}`;
       }
     );
 }
@@ -127,6 +135,15 @@ const server = http.createServer((req, res) => {
     const rel = pathname.slice("/sanitizer-dompurify/".length);
     const target = resolveTarget(sanitizerDistDir, rel);
     if (target.startsWith(sanitizerDistDir)) {
+      sendFile(res, target);
+      return;
+    }
+  }
+
+  if (pathname.startsWith("/helpers/")) {
+    const rel = pathname.slice("/helpers/".length);
+    const target = resolveTarget(helpersDistDir, rel);
+    if (target.startsWith(helpersDistDir)) {
       sendFile(res, target);
       return;
     }

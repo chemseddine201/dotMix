@@ -1,0 +1,139 @@
+import { createSignal } from "@mix/runtime";
+import { dot } from "mix-helpers/data";
+import { dateTime, duration } from "mix-helpers/datetime";
+import { uuidv4, formatCurrency, formatBytes, stringifyQuery } from "mix-helpers/web";
+import { mapLimit, createMutex } from "mix-helpers/async";
+import "./HelpersPage.css";
+
+export default function HelpersPage() {
+  // 1. Data state
+  const rawObj = {
+    user: {
+      profile: {
+        displayName: "Chemseddine",
+        settings: { theme: { primaryColor: "#3b82f6" } }
+      }
+    }
+  };
+  const extractedColor = dot.get(rawObj, "user.profile.settings.theme.primaryColor", "#000");
+
+  const clickCount = createSignal(0);
+  const debouncedCount = createSignal(0);
+  const triggerDebounce = dot.debounce(() => {
+    debouncedCount.set(clickCount());
+  }, 400);
+
+  function handleFastClick() {
+    clickCount.set(c => c + 1);
+    triggerDebounce();
+  }
+
+  // 2. Datetime state
+  const selectedTz = createSignal("America/New_York");
+  const now = dateTime();
+
+  // 3. Web & Crypto state
+  const generatedId = createSignal(uuidv4());
+  function refreshId() {
+    generatedId.set(uuidv4());
+  }
+
+  // 4. Async state
+  const concurrencyLog = createSignal([]);
+  const mutexBalance = createSignal(100);
+  const mutex = createMutex();
+
+  async function runConcurrentTasks() {
+    concurrencyLog.set(["Starting 4 tasks with limit: 2..."]);
+    const tasks = [1, 2, 3, 4];
+    await mapLimit(tasks, 2, async (id) => {
+      concurrencyLog.set(l => [...l, `Task ${id} running...`]);
+      await new Promise(r => setTimeout(r, 200));
+      concurrencyLog.set(l => [...l, `Task ${id} done!`]);
+    });
+  }
+
+  async function runSafeDeposit() {
+    await mutex.runExclusive(async () => {
+      const cur = mutexBalance();
+      await new Promise(r => setTimeout(r, 50));
+      mutexBalance.set(cur + 50);
+    });
+  }
+
+  return (
+    <div class="helpers-page">
+      <div class="helpers-card">
+        <h3>🧰 Native Standard Library (mix-helpers)</h3>
+        <p class="desc">
+          Zero external dependencies. High-performance native replacements for Lodash, Moment, Axios, Async.js, and Web utilities.
+        </p>
+
+        <div class="helpers-grid">
+          <!-- Data Pillar -->
+          <div class="mini-box">
+            <h4>1. Data & Path Access (dot)</h4>
+            <div class="code-preview">
+              dot.get(obj, "user.profile...primaryColor")
+            </div>
+            <p>Resolved: <strong>{extractedColor}</strong></p>
+            <div class="action-row">
+              <button class="btn-helper" onClick={handleFastClick}>Rapid Click</button>
+              <span>Clicks: {clickCount()}</span>
+              <span class="badge-res">Debounced: {debouncedCount()}</span>
+            </div>
+          </div>
+
+          <!-- DateTime Pillar -->
+          <div class="mini-box">
+            <h4>2. DateTime & IANA Timezones</h4>
+            <div class="code-preview">
+              dateTime().tz("{selectedTz()}").format("HH:mm:ss")
+            </div>
+            <p>Current: <strong>{now.tz(selectedTz()).format("YYYY-MM-DD HH:mm:ss")}</strong></p>
+            <p>Humanized: <strong>{duration(90, "minutes").humanize()}</strong></p>
+            <div class="action-row">
+              <button class="btn-helper" onClick={() => selectedTz.set("America/New_York")}>New York</button>
+              <button class="btn-helper" onClick={() => selectedTz.set("Asia/Tokyo")}>Tokyo</button>
+              <button class="btn-helper" onClick={() => selectedTz.set("Europe/London")}>London</button>
+            </div>
+          </div>
+
+          <!-- Web Pillar -->
+          <div class="mini-box">
+            <h4>3. Web, Crypto & Formatters</h4>
+            <div class="code-preview">
+              uuidv4() & formatCurrency(4999.5)
+            </div>
+            <p>ID: <small>{generatedId()}</small></p>
+            <p>Currency: <strong>{formatCurrency(4999.5, "USD")}</strong></p>
+            <p>Bytes: <strong>{formatBytes(15728640)}</strong></p>
+            <div class="action-row">
+              <button class="btn-helper" onClick={refreshId}>Generate UUID</button>
+            </div>
+          </div>
+
+          <!-- Async Pillar -->
+          <div class="mini-box">
+            <h4>4. Async Concurrency & Mutex</h4>
+            <div class="code-preview">
+              mapLimit(tasks, 2) & mutex.runExclusive()
+            </div>
+            <p>Balance: <strong>${mutexBalance()}</strong></p>
+            <div class="action-row">
+              <button class="btn-helper" onClick={runSafeDeposit}>Safe +$50 Deposit</button>
+              <button class="btn-helper" onClick={runConcurrentTasks}>Run Tasks (Limit: 2)</button>
+            </div>
+            {if concurrencyLog().length > 0}
+              <ul class="task-list">
+                {each concurrencyLog() as item}
+                  <li>{item}</li>
+                {endeach}
+              </ul>
+            {endif}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

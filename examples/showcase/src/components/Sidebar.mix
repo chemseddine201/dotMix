@@ -32,6 +32,9 @@ export default function Sidebar() {
       <NavLink to="/permissions" class="nav-link">
         🛡️ Permissions (RBAC/ABAC)
       </NavLink>
+      <NavLink to="/helpers" class="nav-link">
+        🧰 Native Helpers (mix-helpers)
+      </NavLink>
     </nav>
   );
 }

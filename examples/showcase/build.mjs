@@ -18,6 +18,9 @@ const routerUrl = pathToFileURL(
 const syncUrl = pathToFileURL(
   path.resolve(__dirname, "../../packages/sync/dist/index.js")
 ).href;
+const helpersUrl = pathToFileURL(
+  path.resolve(__dirname, "../../packages/helpers/dist/index.js")
+).href;
 
 function scanSourceFiles(dir, base = "") {
   if (!fs.existsSync(dir)) return [];
@@ -123,10 +126,12 @@ export function buildShowcase(options = {}) {
     const runtimeTarget = options.runtimeImportPath ?? runtimeUrl;
     const routerTarget = options.routerImportPath ?? (options.runtimeImportPath ? "/router/index.js" : routerUrl);
     const syncTarget = options.syncImportPath ?? (options.runtimeImportPath ? "/sync/index.js" : syncUrl);
+    const helpersTarget = options.helpersImportPath ?? (options.runtimeImportPath ? "/helpers/index.js" : helpersUrl);
     content = content
       .replaceAll('from "@mix/runtime"', `from "${runtimeTarget}"`)
       .replaceAll('from "@mix/router"', `from "${routerTarget}"`)
       .replaceAll('from "@mix/sync"', `from "${syncTarget}"`)
+      .replaceAll('from "mix-helpers"', `from "${helpersTarget}"`)
       .replaceAll('from "/runtime/index.js"', `from "${runtimeTarget}"`)
       .replaceAll('from "/router/index.js"', `from "${routerTarget}"`)
       .replaceAll('from "/sync/index.js"', `from "${syncTarget}"`);
