@@ -1,0 +1,22 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import PermissionsDemo from "../../components/demos/permissions/PermissionsDemo.tix";
+
+export default function PermissionsPage() {
+  return (
+    <DocPage title="Permissions" summary="Policies describe what a role may do. Rules can depend on the subject (ABAC) and on single fields.">
+      <DocSection title="The policy">
+        <p>The policy lives in src/permissions and imports no UI. It defines role based rules, a condition on the subject (an author may update only their own, unlocked article) and field rules.</p>
+        <SourceView source="permissions/articlePolicy.ts" title="src/permissions/articlePolicy.ts" />
+      </DocSection>
+      <DocSection title="Checking the policy">
+        <p>Each line asks the ability directly with can(action, subject, field). In templates, the can directive and the Can component ask the same ability.</p>
+        <CodeExample source="permissions/PermissionsDemo">
+          <PermissionsDemo />
+        </CodeExample>
+      </DocSection>
+    </DocPage>
+  );
+}

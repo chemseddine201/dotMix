@@ -1,0 +1,8 @@
+{
+  "project": "dotMix",
+  "releases": [
+    { "version": "0.1.0", "date": "2026-01-15", "notes": "First public build" },
+    { "version": "0.2.0", "date": "2026-03-02", "notes": "Router loaders" },
+    { "version": "0.3.0", "date": "2026-05-20", "notes": "Offline collections" }
+  ]
+}

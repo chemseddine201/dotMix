@@ -1,0 +1,35 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function SwitchBlockDemo() {
+  const role = signal<string>("editor");
+  const daysLeft = signal<number>(5);
+
+  return (
+    <div>
+      <ActionButton label="admin" onPress={() => role.set("admin")} active={role() === "admin"} />
+      <ActionButton label="editor" onPress={() => role.set("editor")} active={role() === "editor"} />
+      <ActionButton label="viewer" onPress={() => role.set("viewer")} active={role() === "viewer"} />
+      <ActionButton label="Trial: one day less" onPress={() => daysLeft.set(daysLeft() - 1)} />
+
+
+      {switch role()}
+        {case "admin", "owner"}
+          <Badge tone="danger">Full access</Badge>
+        {case "editor"}
+          <Badge tone="warning">Can edit</Badge>
+        {default}
+          <Badge>Read only</Badge>
+      {endswitch}
+      {switch}
+        {case if daysLeft() <= 0}
+          <Badge tone="danger">Trial ended</Badge>
+        {case if daysLeft() <= 3}
+          <Badge tone="warning">Trial ends soon</Badge>
+        {default}
+          <Badge tone="success">Trial running</Badge>
+      {endswitch}
+    </div>
+  );
+}

@@ -1,0 +1,112 @@
+import "./FormTabs.css";
+import { createRef, signal } from "@dotmix/runtime";
+import SourceView from "./SourceView.tix";
+
+type FormTabKey = "block" | "component";
+
+interface FormTabsProps {
+  blockSource: string;
+  componentSource: string;
+}
+
+let nextTabsGroupId = 1;
+
+export default function FormTabs(props: FormTabsProps) {
+  const groupId = nextTabsGroupId++;
+  const activeTab = signal<FormTabKey>("block");
+  const blockTabRef = createRef<HTMLButtonElement>();
+  const componentTabRef = createRef<HTMLButtonElement>();
+
+  const blockTabId = `form-tab-block-${groupId}`;
+  const componentTabId = `form-tab-component-${groupId}`;
+  const blockPanelId = `form-panel-block-${groupId}`;
+  const componentPanelId = `form-panel-component-${groupId}`;
+
+  function activateTab(tab: FormTabKey, moveFocus: boolean): void {
+    activeTab.set(tab);
+    if (!moveFocus) {
+      return;
+    }
+    if (tab === "block") {
+      blockTabRef.current?.focus();
+    } else {
+      componentTabRef.current?.focus();
+    }
+  }
+
+  function handleTabKeyDown(event: KeyboardEvent, current: FormTabKey): void {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      activateTab(current === "block" ? "component" : "block", true);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      activateTab("block", true);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      activateTab("component", true);
+    }
+  }
+
+  return (
+    <div class="form-tabs">
+      <div class="form-tabs-bar" role="tablist" aria-label="Directive form">
+        <button
+          ref={blockTabRef}
+          id={blockTabId}
+          type="button"
+          role="tab"
+          aria-selected={activeTab() === "block" ? "true" : "false"}
+          aria-controls={blockPanelId}
+          tabIndex={activeTab() === "block" ? 0 : -1}
+          class={{ "form-tab-button": true, "form-tab-button-active": activeTab() === "block" }}
+          onClick={() => activateTab("block", false)}
+          onKeyDown={(event: KeyboardEvent) => handleTabKeyDown(event, "block")}
+        >
+          Block form
+        </button>
+        <button
+          ref={componentTabRef}
+          id={componentTabId}
+          type="button"
+          role="tab"
+          aria-selected={activeTab() === "component" ? "true" : "false"}
+          aria-controls={componentPanelId}
+          tabIndex={activeTab() === "component" ? 0 : -1}
+          class={{ "form-tab-button": true, "form-tab-button-active": activeTab() === "component" }}
+          onClick={() => activateTab("component", false)}
+          onKeyDown={(event: KeyboardEvent) => handleTabKeyDown(event, "component")}
+        >
+          Component form
+        </button>
+      </div>
+
+      <section
+        id={blockPanelId}
+        class="form-pane"
+        role="tabpanel"
+        aria-labelledby={blockTabId}
+        hidden={activeTab() !== "block"}
+      >
+        <h3 class="form-pane-title">Block form</h3>
+        <div class="form-pane-live"><slot name="block" /></div>
+        <SourceView source={props.blockSource} title={`${props.blockSource.split("/").pop() ?? "Block"}.tix`} />
+      </section>
+
+      <section
+        id={componentPanelId}
+        class="form-pane"
+        role="tabpanel"
+        aria-labelledby={componentTabId}
+        hidden={activeTab() !== "component"}
+      >
+        <h3 class="form-pane-title">Component form</h3>
+        <div class="form-pane-live"><slot name="component" /></div>
+        <SourceView source={props.componentSource} title={`${props.componentSource.split("/").pop() ?? "Component"}.tix`} />
+      </section>
+    </div>
+  );
+}

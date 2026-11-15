@@ -1,0 +1,95 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import OnceBlockDemo from "../../components/demos/render/OnceBlockDemo.tix";
+import OnceComponentDemo from "../../components/demos/render/OnceComponentDemo.tix";
+import MemoBlockDemo from "../../components/demos/render/MemoBlockDemo.tix";
+import MemoComponentDemo from "../../components/demos/render/MemoComponentDemo.tix";
+import LazyBlockDemo from "../../components/demos/render/LazyBlockDemo.tix";
+import LazyComponentDemo from "../../components/demos/render/LazyComponentDemo.tix";
+import KeepAliveBlockDemo from "../../components/demos/render/KeepAliveBlockDemo.tix";
+import KeepAliveComponentDemo from "../../components/demos/render/KeepAliveComponentDemo.tix";
+
+const onceRows = [
+  { name: "children", type: "Children", description: "The markup mounted once." }
+];
+
+const memoRows = [
+  { name: "on", type: "Maybe<unknown[]>", description: "The dependency list." },
+  { name: "equals", type: "(previous, next) => boolean", description: "Optional comparison." }
+];
+
+const lazyRows = [
+  { name: "trigger", type: "'visible' | 'idle'", description: "When to mount. Default: visible." },
+  { name: "fallback", type: "Children", description: "Shown until the body mounts. Use this or an Else child." }
+];
+
+const keepAliveRows = [
+  { name: "activeKey", type: "Maybe<string>", description: "The key of the view to show." },
+  { name: "max", type: "number", description: "Maximum number of kept views." },
+  { name: "children", type: "() => Children", description: "The view for the active key." }
+];
+
+export default function RenderControlPage() {
+  return (
+    <DocPage title="Render control" summary="Control when a region is created and updated, not what it renders.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Skip rebuilding a heavy region unless specific inputs change.</li>
+        <li>Delay mounting a region until the browser is idle or the region is visible.</li>
+        <li>Keep the state of tabs that the user switches between.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="once">
+      <p>Mounts the body once in an untracked scope. The region is never rebuilt, so work done while mounting happens exactly once. Writing to a signal inside the body is a compile error.</p>
+      <FormTabs blockSource="render/OnceBlockDemo" componentSource="render/OnceComponentDemo">
+        <div slot="block"><OnceBlockDemo /></div>
+        <div slot="component"><OnceComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={onceRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Writing to a signal inside the body.</p>
+        <p><code>MIX_ERR_ONCE_WRITE</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="memo">
+      <p>The body is rebuilt only when a listed dependency changes. Bindings inside the body stay live, but the body itself is not created again for unrelated changes. The build number below increases only when the item changes.</p>
+      <FormTabs blockSource="render/MemoBlockDemo" componentSource="render/MemoComponentDemo">
+        <div slot="block"><MemoBlockDemo /></div>
+        <div slot="component"><MemoComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={memoRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>An empty dependency list never updates the region.</p>
+        <p><code>MIX_WARN_MEMO_EMPTY_DEPS</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="lazy">
+      <p>Delays mounting until the browser is idle (idle) or until the region scrolls into view (visible, the default). The optional fallback shows until then. On the server the body renders immediately.</p>
+      <FormTabs blockSource="render/LazyBlockDemo" componentSource="render/LazyComponentDemo">
+        <div slot="block"><LazyBlockDemo /></div>
+        <div slot="component"><LazyComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={lazyRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Supplying both the fallback prop and an Else child.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="keepalive">
+      <p>Shows the view for the active key and keeps the views of other keys mounted but detached, up to max entries (the least recently used are dropped). Type into a field, switch tab and come back: the text is still there.</p>
+      <FormTabs blockSource="render/KeepAliveBlockDemo" componentSource="render/KeepAliveComponentDemo">
+        <div slot="block"><KeepAliveBlockDemo /></div>
+        <div slot="component"><KeepAliveComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={keepAliveRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Expecting the cache to survive when the keepalive region itself is removed. It lives only while the region is mounted.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

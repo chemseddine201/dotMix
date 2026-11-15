@@ -1,0 +1,27 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { createSignupForm } from "../../../stores/signupForm.js";
+import { FieldError, FormErrors, FieldValid } from "@dotmix/runtime/directives";
+
+export default function FieldErrorComponentDemo() {
+  const signupForm = createSignupForm();
+
+  return (
+    <div>
+      <input type="text" placeholder="Email" value={signupForm.fields.email.value()} onInput={(event: Event) => signupForm.fields.email.setValue((event.target as HTMLInputElement).value)} onBlur={() => signupForm.fields.email.blur()} />
+      <ActionButton label="Submit" onPress={() => signupForm.handleSubmit()} />
+      <ActionButton label="Reset" onPress={() => signupForm.reset()} />
+
+
+      <FieldError form={signupForm} name="email">
+        {(message) => <p>{message()}</p>}
+      </FieldError>
+      <FieldValid form={signupForm} name="email">
+        <Badge tone="success">Email looks valid</Badge>
+      </FieldValid>
+      <FormErrors form={signupForm}>
+        {(problems) => <p>The form has visible errors.</p>}
+      </FormErrors>
+    </div>
+  );
+}

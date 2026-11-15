@@ -1,0 +1,25 @@
+import "./Logo.css";
+
+interface LogoProps {
+  size?: number;
+}
+
+export default function Logo(props: LogoProps) {
+  const dimension = String(props.size ?? 24);
+
+  return (
+    <svg
+      class="logo-mark"
+      viewBox="0 0 28 28"
+      width={dimension}
+      height={dimension}
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect x="2.5" y="2.5" width="23" height="23" rx="6" stroke="currentColor" stroke-width="2" />
+      <path d="M8.5 18.5V9.5L14 14.5L19.5 9.5V18.5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="14" cy="20" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+

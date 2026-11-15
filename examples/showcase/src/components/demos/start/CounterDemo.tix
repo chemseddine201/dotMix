@@ -1,0 +1,14 @@
+import "./CounterDemo.css";
+import { signal } from "@dotmix/runtime";
+
+export default function CounterDemo() {
+  const count = signal<number>(0);
+
+  return (
+    <div class="counter">
+      <button type="button" class="counter-button" onClick={() => count.set(count() - 1)}>-</button>
+      <span class="counter-value">{count()}</span>
+      <button type="button" class="counter-button" onClick={() => count.set(count() + 1)}>+</button>
+    </div>
+  );
+}

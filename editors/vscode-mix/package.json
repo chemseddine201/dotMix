@@ -1,0 +1,195 @@
+{
+  "name": "vscode-mix",
+  "displayName": "Mix / Tix Language Support",
+  "description": "Rich language support, syntax highlighting, live diagnostics, hover tooltips, completions, and navigation for dotMix (.mix, .tix) components",
+  "version": "0.1.0",
+  "publisher": "mix-framework",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chemseddine201/dotMix"
+  },
+  "type": "module",
+  "main": "./dist/extension.js",
+  "types": "./dist/extension.d.ts",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
+  "keywords": [
+    "mix",
+    "tix",
+    "dotmix",
+    "compiler",
+    "signals",
+    "reactivity"
+  ],
+  "activationEvents": [
+    "onLanguage:mix",
+    "onLanguage:tix"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "package": "npm run build && node scripts/package-vsix.mjs"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "mix",
+        "aliases": [
+          "Mix",
+          "mix",
+          "dotMix"
+        ],
+        "extensions": [
+          ".mix"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "tix",
+        "aliases": [
+          "Tix",
+          "tix",
+          "dotTix"
+        ],
+        "extensions": [
+          ".tix"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mix",
+        "scopeName": "source.mix",
+        "path": "./syntaxes/mix.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript",
+          "source.js.jsx": "javascriptreact",
+          "source.ts": "typescript",
+          "source.tsx": "typescriptreact",
+          "source.css": "css",
+          "source.css.scss": "scss",
+          "source.css.less": "less"
+        },
+        "unbalancedBracketScopes": [
+          "keyword.operator.relational",
+          "storage.type.function.arrow",
+          "keyword.operator.bitwise.shift",
+          "punctuation.definition.tag",
+          "keyword.operator.assignment.compound.bitwise.ts",
+          "keyword.operator.relational.ts",
+          "storage.type.function.arrow.ts",
+          "keyword.operator.bitwise.shift.ts",
+          "keyword.operator.relational.tsx",
+          "storage.type.function.arrow.tsx",
+          "keyword.operator.bitwise.shift.tsx",
+          "keyword.operator.relational.js",
+          "storage.type.function.arrow.js",
+          "keyword.operator.bitwise.shift.js"
+        ]
+      },
+      {
+        "language": "tix",
+        "scopeName": "source.tix",
+        "path": "./syntaxes/tix.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript",
+          "source.js.jsx": "javascriptreact",
+          "source.ts": "typescript",
+          "source.tsx": "typescriptreact",
+          "source.css": "css",
+          "source.css.scss": "scss",
+          "source.css.less": "less"
+        },
+        "unbalancedBracketScopes": [
+          "keyword.operator.relational",
+          "storage.type.function.arrow",
+          "keyword.operator.bitwise.shift",
+          "punctuation.definition.tag",
+          "keyword.operator.assignment.compound.bitwise.ts",
+          "keyword.operator.relational.ts",
+          "storage.type.function.arrow.ts",
+          "keyword.operator.bitwise.shift.ts",
+          "keyword.operator.relational.tsx",
+          "storage.type.function.arrow.tsx",
+          "keyword.operator.bitwise.shift.tsx",
+          "keyword.operator.relational.js",
+          "storage.type.function.arrow.js",
+          "keyword.operator.bitwise.shift.js"
+        ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "mix",
+        "path": "./snippets/mix.snippets.json"
+      },
+      {
+        "language": "tix",
+        "path": "./snippets/mix.snippets.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "mix.restartServer",
+        "title": "dotMix: Restart Language Server",
+        "category": "dotMix"
+      },
+      {
+        "command": "mix.checkWorkspace",
+        "title": "dotMix: Run Type & Semantic Diagnostics Check",
+        "category": "dotMix"
+      },
+      {
+        "command": "mix.showOutput",
+        "title": "dotMix: Show Output Channel",
+        "category": "dotMix"
+      }
+    ],
+    "configuration": {
+      "title": "dotMix",
+      "properties": {
+        "mix.diagnostics.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable live semantic and TypeScript 6 typecheck diagnostics for .mix and .tix files."
+        },
+        "mix.hover.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable rich Markdown hover tooltips for reactive symbols, signals, and props."
+        },
+        "mix.completions.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable IntelliSense autocomplete suggestions for symbols, control flow, and CSS classes."
+        },
+        "mix.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace communication between VS Code and dotMix language service."
+        }
+      }
+    },
+    "typescriptServerPlugins": [
+      {
+        "name": "mix-typescript-plugin",
+        "enableForWorkspaceTypeScriptVersions": true
+      }
+    ]
+  },
+  "dependencies": {
+    "@dotmix/language-server": "0.1.0"
+  }
+}

@@ -1,0 +1,15 @@
+import { RouterProvider } from "@dotmix/router";
+import type { Router } from "@dotmix/router";
+import ShowcaseLayout from "./layouts/ShowcaseLayout.tix";
+
+interface AppProps {
+  router: Router;
+}
+
+export default function App(props: AppProps) {
+  return (
+    <RouterProvider router={props.router}>
+      <ShowcaseLayout />
+    </RouterProvider>
+  );
+}

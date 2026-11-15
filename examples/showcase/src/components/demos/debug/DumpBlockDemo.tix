@@ -1,0 +1,9 @@
+export default function DumpBlockDemo() {
+  const currentUser = { name: "Ada", roles: ["admin"] };
+
+  return (
+    <div>
+      {dump currentUser}
+    </div>
+  );
+}

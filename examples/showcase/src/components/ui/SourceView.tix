@@ -1,0 +1,53 @@
+import { createEffect, onCleanup, signal } from "@dotmix/runtime";
+import CodeBlock from "./CodeBlock.tix";
+
+interface SourceViewProps {
+  source: string;
+  title?: string;
+}
+
+export default function SourceView(props: SourceViewProps) {
+  const code = signal<string>("Loading source...");
+  const loadError = signal<string>("");
+
+  createEffect(() => {
+    const target = props.source;
+    let cancelled = false;
+    loadError.set("");
+    code.set("Loading source...");
+
+    onCleanup(() => {
+      cancelled = true;
+    });
+
+    fetch(`demo-sources/${target}.tix`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.text();
+      })
+      .then((text) => {
+        if (!cancelled) {
+          code.set(text);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          loadError.set(`Source for ${target} could not be loaded.`);
+          code.set(`// Source unavailable: ${target}.tix`);
+        }
+      });
+  });
+
+  const displayTitle = props.title ?? `${props.source.split("/").pop() ?? props.source}.tix`;
+
+  return (
+    <div class="source-view">
+      {if (loadError() !== "")}
+        <p class="source-error" role="status">{loadError()}</p>
+      {endif}
+      <CodeBlock title={displayTitle} code={code()} language="tix" />
+    </div>
+  );
+}

@@ -1,0 +1,115 @@
+.code-block {
+  border: 1px solid var(--color-code-border);
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  background-color: var(--color-code-background);
+  margin: var(--space-3) 0;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-code-header);
+  border-bottom: 1px solid var(--color-code-border);
+}
+
+.code-block-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.code-block-title {
+  color: var(--color-code-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-block-lang {
+  color: var(--color-code-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.code-copy-button {
+  appearance: none;
+  background-color: transparent;
+  color: var(--color-code-text);
+  border: 1px solid var(--color-code-border);
+  border-radius: var(--radius-small);
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.code-copy-button:hover {
+  background-color: var(--color-code-border);
+}
+
+.code-copy-button-copied {
+  border-color: var(--color-token-string);
+  color: var(--color-token-string);
+}
+
+.code-pre {
+  margin: 0;
+  padding: var(--space-4);
+  overflow-x: auto;
+  white-space: pre;
+  background-color: var(--color-code-background);
+  color: var(--color-code-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-code);
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.tok-comment {
+  color: var(--color-token-comment);
+  font-style: italic;
+}
+
+.tok-string {
+  color: var(--color-token-string);
+}
+
+.tok-number {
+  color: var(--color-token-number);
+}
+
+.tok-keyword {
+  color: var(--color-token-keyword);
+}
+
+.tok-directive {
+  color: var(--color-token-directive);
+  font-weight: 600;
+}
+
+.tok-tag {
+  color: var(--color-token-tag);
+}
+
+.tok-attr {
+  color: var(--color-token-attr);
+}
+
+.tok-punct {
+  color: var(--color-token-punct);
+}
+

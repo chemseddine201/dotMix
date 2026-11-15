@@ -1,0 +1,40 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import SwitchBlockDemo from "../../components/demos/switch/SwitchBlockDemo.tix";
+import SwitchComponentDemo from "../../components/demos/switch/SwitchComponentDemo.tix";
+
+const switchRows = [
+  { name: "on", type: "Maybe<T>", description: "Switch: the subject. Omit it to use condition cases only." },
+  { name: "is", type: "T | readonly T[]", description: "Case: the value, or list of values, to match." },
+  { name: "condition", type: "Maybe<unknown>", description: "Case: a free-form condition. Do not combine with is." },
+  { name: "children", type: "Children", description: "The markup of the branch." }
+];
+
+export default function SwitchPage() {
+  return (
+    <DocPage title="Switch" summary="Pick exactly one branch by comparing a subject with a list of cases.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Every branch compares the same value, such as a role or a status.</li>
+        <li>A case should match several values at once.</li>
+        <li>Free-form conditions are needed without a subject (case if / condition).</li>
+      </ul>
+    </DocSection>
+    <DocSection title="switch, case, default">
+      <p>Cases are tested in source order using Object.is, with no fall-through. Without a subject only condition cases are allowed.</p>
+      <FormTabs blockSource="switch/SwitchBlockDemo" componentSource="switch/SwitchComponentDemo">
+        <div slot="block"><SwitchBlockDemo /></div>
+        <div slot="component"><SwitchComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={switchRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Using a value case in a switch without a subject, or combining is and condition on one Case.</p>
+        <p><code>MIX_ERR_SWITCH_CASE_FORM, MIX_ERR_SWITCH_STRAY_CONTENT, MIX_ERR_SWITCH_DEFAULT_ORDER</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

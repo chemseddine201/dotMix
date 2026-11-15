@@ -1,0 +1,22 @@
+import Badge from "../../ui/Badge.tix";
+import ThemeScope from "./ThemeScope.tix";
+import { ThemeContext } from "../../../stores/themeContext.js";
+import { Context, Else } from "@dotmix/runtime/directives";
+
+export default function ContextComponentDemo() {
+  return (
+    <div>
+      <ThemeScope theme="dark">
+        <Context of={ThemeContext}>
+          {(theme) => <Badge tone="info">Theme: {theme()}</Badge>}
+        </Context>
+      </ThemeScope>
+      <Context of={ThemeContext}>
+        {(theme) => <Badge tone="info">Theme: {theme()}</Badge>}
+        <Else>
+          <Badge>Outside any provider</Badge>
+        </Else>
+      </Context>
+    </div>
+  );
+}

@@ -1,0 +1,15 @@
+import "./ActionButton.css";
+
+interface ActionButtonProps {
+  label: string;
+  onPress: () => void;
+  active?: boolean;
+}
+
+export default function ActionButton(props: ActionButtonProps) {
+  return (
+    <button type="button" class={{ "action-button": true, "action-button-active": props.active === true }} onClick={() => props.onPress()}>
+      {props.label}
+    </button>
+  );
+}

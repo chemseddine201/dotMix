@@ -1,0 +1,14 @@
+import { Session, Else } from "@dotmix/runtime/directives";
+
+export default function SessionComponentDemo() {
+  return (
+    <div>
+      <Session key="flash">
+        {(message) => <p>{message()}</p>}
+        <Else>
+          <p>No flash message</p>
+        </Else>
+      </Session>
+    </div>
+  );
+}

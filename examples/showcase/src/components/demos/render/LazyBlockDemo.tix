@@ -1,0 +1,13 @@
+import Badge from "../../ui/Badge.tix";
+
+export default function LazyBlockDemo() {
+  return (
+    <div>
+      {lazy idle}
+        <Badge tone="success">Mounted when the browser was idle</Badge>
+      {else}
+        <p>Waiting for idle time...</p>
+      {endlazy}
+    </div>
+  );
+}

@@ -1,0 +1,15 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import { Link } from "@dotmix/router";
+
+export default function NotFoundPage() {
+  return (
+    <DocPage title="Page not found" summary="The requested route does not match any showcase page.">
+      <DocSection title="Navigation">
+        <p>Use the sidebar, press <code>/</code> to search, or return to the start page.</p>
+        <p><Link to="/">Return to Home</Link></p>
+      </DocSection>
+    </DocPage>
+  );
+}
+

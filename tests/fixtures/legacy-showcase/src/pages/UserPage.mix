@@ -1,0 +1,32 @@
+import { useParams, useNavigate } from "@dotmix/router";
+import "./UserPage.css";
+
+export default function UserPage() {
+  const params = useParams();
+  const navigate = useNavigate();
+
+  function switchUser(userId) {
+    navigate(`/users/${userId}`);
+  }
+
+  return (
+    <div class="page-user">
+      <div class="card-header">
+        <h2>👤 Dynamic Route Parameter Resolution</h2>
+        <p>Pattern <code>/users/:id</code> extracts dynamic route segment via <code>useParams()</code>.</p>
+      </div>
+
+      <div class="param-box">
+        <span class="box-label">Matched Parameter:</span>
+        <code class="param-code">:id = "{params().id || params.id}"</code>
+      </div>
+
+      <div class="switch-row">
+        <span>Quick switch user ID:</span>
+        <button class="chip-btn" onClick={() => switchUser("alice-core")}>User: alice-core</button>
+        <button class="chip-btn" onClick={() => switchUser("bob-security")}>User: bob-security</button>
+        <button class="chip-btn" onClick={() => switchUser("lead-architect")}>User: lead-architect</button>
+      </div>
+    </div>
+  );
+}

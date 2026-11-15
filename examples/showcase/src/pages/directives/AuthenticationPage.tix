@@ -1,0 +1,59 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import AuthBlockDemo from "../../components/demos/auth/AuthBlockDemo.tix";
+import AuthComponentDemo from "../../components/demos/auth/AuthComponentDemo.tix";
+import GuestBlockDemo from "../../components/demos/auth/GuestBlockDemo.tix";
+import GuestComponentDemo from "../../components/demos/auth/GuestComponentDemo.tix";
+
+const authRows = [
+  { name: "guard", type: "string", description: "The guard to read. Defaults to the contract default." },
+  { name: "role", type: "string[]", description: "Optional roles; needs hasRole in the contract." },
+  { name: "else", type: "Children", description: "Optional fallback." },
+  { name: "children", type: "Children | (user: () => U) => Children", description: "Markup, or a function receiving the user." }
+];
+
+const guestRows = [
+  { name: "guard", type: "string", description: "The guard to read. Defaults to the contract default." },
+  { name: "else", type: "Children", description: "Optional fallback rendered for signed-in users." }
+];
+
+export default function AuthenticationPage() {
+  return (
+    <DocPage title="Authentication" summary="Render markup for signed-in users, guests and users with specific roles.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Show account menus to signed-in users and a sign-in link to guests.</li>
+        <li>Restrict a region to users that hold a role.</li>
+        <li>Keep the user lookup in one auth contract instead of repeating checks.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="auth and AuthProvider">
+      <p>An auth contract (created with createAuth) names one function per guard that returns the current user or null. AuthProvider makes it available to the directives below it. Using auth or guest without a provider throws.</p>
+      <FormTabs blockSource="auth/AuthBlockDemo" componentSource="auth/AuthComponentDemo">
+        <div slot="block"><AuthBlockDemo /></div>
+        <div slot="component"><AuthComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={authRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Using auth or guest without an AuthProvider above it, or using role when the contract has no hasRole function.</p>
+        <p><code>MIX_ERR_AUTH_PROVIDER_MISSING, MIX_ERR_AUTH_ROLE_UNSUPPORTED</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="guest">
+      <p>Renders when no user is signed in for the guard.</p>
+      <FormTabs blockSource="auth/GuestBlockDemo" componentSource="auth/GuestComponentDemo">
+        <div slot="block"><GuestBlockDemo /></div>
+        <div slot="component"><GuestComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={guestRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Rendering guest content outside an AuthProvider.</p>
+        <p><code>MIX_ERR_AUTH_PROVIDER_MISSING</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

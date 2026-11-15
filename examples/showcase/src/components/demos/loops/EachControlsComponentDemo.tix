@@ -1,0 +1,22 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { Each } from "@dotmix/runtime/directives";
+
+export default function EachControlsComponentDemo() {
+  const entries = signal<string[]>(["Draft", "Archived report", "Summary", "Appendix", "Notes"]);
+  const limit = signal<number>(3);
+
+  return (
+    <div>
+      <ActionButton label="Show at most 2" onPress={() => limit.set(2)} />
+      <ActionButton label="Show at most 4" onPress={() => limit.set(4)} />
+
+
+      <ul>
+        <Each data={entries()} skip={(entry: string) => entry.startsWith("Archived")} stop={(entry: string, position: number) => position >= limit()}>
+          {(entry) => <li>{entry}</li>}
+        </Each>
+      </ul>
+    </div>
+  );
+}

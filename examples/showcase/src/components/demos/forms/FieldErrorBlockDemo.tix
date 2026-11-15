@@ -1,0 +1,26 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { createSignupForm } from "../../../stores/signupForm.js";
+
+export default function FieldErrorBlockDemo() {
+  const signupForm = createSignupForm();
+
+  return (
+    <div>
+      <input type="text" placeholder="Email" value={signupForm.fields.email.value()} onInput={(event: Event) => signupForm.fields.email.setValue((event.target as HTMLInputElement).value)} onBlur={() => signupForm.fields.email.blur()} />
+      <ActionButton label="Submit" onPress={() => signupForm.handleSubmit()} />
+      <ActionButton label="Reset" onPress={() => signupForm.reset()} />
+
+
+      {error "email" in signupForm as message}
+        <p>{message}</p>
+      {enderror}
+      {valid "email" in signupForm}
+        <Badge tone="success">Email looks valid</Badge>
+      {endvalid}
+      {errors in signupForm as problems}
+        <p>The form has visible errors.</p>
+      {enderrors}
+    </div>
+  );
+}

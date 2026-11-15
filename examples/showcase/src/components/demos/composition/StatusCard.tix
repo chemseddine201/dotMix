@@ -1,0 +1,9 @@
+import Badge from "../../ui/Badge.tix";
+
+interface StatusCardProps {
+  title?: string;
+}
+
+export default function StatusCard(props: StatusCardProps) {
+  return <Badge tone="info">{props.title ?? "Untitled"}</Badge>;
+}

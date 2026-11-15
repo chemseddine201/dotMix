@@ -1,0 +1,36 @@
+node_modules/
+dist/
+dist-web/
+build/
+!tests/build/
+coverage/
+.turbo/
+.cache/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+# Built editor extension packages are attached to GitHub releases, not committed.
+*.vsix
+.history/
+*.log
+
+# Internal agent governance & build tracking
+agent/
+governance/
+reports/
+branchmark/
+research/
+examples/portfolio/
+AGENT_HANDOFF.md
+AGENTS.md
+*PLAN*.md
+*AUDIT*.md
+dotMix_*.md
+
+
+# Internal notes and agent logs (kept local, not published)
+TODO.md
+Tasks_report.md

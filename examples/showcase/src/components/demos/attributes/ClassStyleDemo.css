@@ -1,0 +1,12 @@
+.is-active {
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.is-large {
+  font-size: var(--font-size-large);
+}
+
+.note {
+  color: var(--color-text-muted);
+}

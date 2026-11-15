@@ -1,0 +1,9 @@
+export default function PartialBlockDemo() {
+  return (
+    <div>
+      {partial "task-row"}
+        <p>One task row</p>
+      {endpartial}
+    </div>
+  );
+}

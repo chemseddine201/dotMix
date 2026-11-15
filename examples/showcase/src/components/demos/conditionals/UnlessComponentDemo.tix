@@ -1,0 +1,22 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { Unless, Else } from "@dotmix/runtime/directives";
+
+export default function UnlessComponentDemo() {
+  const suspended = signal<boolean>(false);
+
+  return (
+    <div>
+      <ActionButton label="Toggle suspension" onPress={() => suspended.set(!suspended())} />
+
+
+      <Unless condition={suspended()}>
+        <Badge tone="success">Account active</Badge>
+        <Else>
+          <Badge tone="danger">Account suspended</Badge>
+        </Else>
+      </Unless>
+    </div>
+  );
+}

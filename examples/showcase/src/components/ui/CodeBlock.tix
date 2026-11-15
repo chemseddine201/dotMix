@@ -1,0 +1,98 @@
+import "./CodeBlock.css";
+import { computed, onCleanup, signal } from "@dotmix/runtime";
+import { inferLanguage, tokenizeCode, type CodeToken, type TokenKind } from "./codeTokenizer.js";
+
+interface CodeBlockProps {
+  code: string;
+  title?: string;
+  language?: string;
+}
+
+export default function CodeBlock(props: CodeBlockProps) {
+  const copied = signal<boolean>(false);
+  let resetTimer: number | null = null;
+
+  const language = computed<ReturnType<typeof inferLanguage>>(() =>
+    inferLanguage(props.title, props.language)
+  );
+  const tokens = computed<CodeToken[]>(() => tokenizeCode(props.code, language()));
+
+  onCleanup(() => {
+    if (resetTimer !== null && typeof window !== "undefined") {
+      window.clearTimeout(resetTimer);
+    }
+  });
+
+  function tokenClassName(kind: TokenKind): string {
+    return kind === "plain" ? "" : `tok-${kind}`;
+  }
+
+  function copyViaTextarea(text: string): boolean {
+    if (typeof document === "undefined") {
+      return false;
+    }
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.className = "sr-only";
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    document.body.removeChild(area);
+    return ok;
+  }
+
+  async function handleCopy(): Promise<void> {
+    let ok = false;
+    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(props.code);
+        ok = true;
+      } catch {
+        ok = copyViaTextarea(props.code);
+      }
+    } else {
+      ok = copyViaTextarea(props.code);
+    }
+    if (!ok) {
+      return;
+    }
+    copied.set(true);
+    if (typeof window !== "undefined") {
+      if (resetTimer !== null) {
+        window.clearTimeout(resetTimer);
+      }
+      resetTimer = window.setTimeout(() => {
+        copied.set(false);
+        resetTimer = null;
+      }, 1800);
+    }
+  }
+
+  return (
+    <figure class="code-block">
+      <figcaption class="code-block-header">
+        <div class="code-block-meta">
+          <span class="code-block-title">{props.title ?? language()}</span>
+          {if (props.title)}
+            <span class="code-block-lang">{language()}</span>
+          {endif}
+        </div>
+        <button
+          type="button"
+          class={{ "code-copy-button": true, "code-copy-button-copied": copied() }}
+          aria-live="polite"
+          onClick={() => void handleCopy()}
+        >
+          {copied() ? "Copied" : "Copy"}
+        </button>
+      </figcaption>
+      <pre class="code-pre"><code>{each (token, index, token.id) in tokens()}<span class={tokenClassName(token.kind)}>{token.text}</span>{endeach}</code></pre>
+    </figure>
+  );
+}

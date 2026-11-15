@@ -1,0 +1,7 @@
+export default function VerbatimBlockDemo() {
+  return (
+    <div>
+      {verbatim}Use {each item in list} ... {endeach} to loop.{endverbatim}
+    </div>
+  );
+}

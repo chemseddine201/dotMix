@@ -1,0 +1,72 @@
+.callout {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-medium);
+  background-color: var(--color-surface);
+  min-width: 0;
+}
+
+.callout-note {
+  border-left-color: var(--color-accent);
+  background-color: var(--color-accent-soft);
+}
+
+.callout-tip {
+  border-left-color: var(--color-success);
+  background-color: var(--color-success-soft);
+}
+
+.callout-warning {
+  border-left-color: var(--color-warning);
+  background-color: var(--color-warning-soft);
+}
+
+.callout-mistake {
+  border-left-color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.callout-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.callout-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.callout-note .callout-header {
+  color: var(--color-accent);
+}
+
+.callout-tip .callout-header {
+  color: var(--color-success);
+}
+
+.callout-warning .callout-header {
+  color: var(--color-warning);
+}
+
+.callout-mistake .callout-header {
+  color: var(--color-danger);
+}
+
+.callout-title {
+  font-size: var(--font-size-small);
+  font-weight: 700;
+}
+
+.callout-body {
+  font-size: var(--font-size-small);
+  color: var(--color-text);
+}
+
+.callout-body :deep(p:last-child) {
+  margin-bottom: 0;
+}

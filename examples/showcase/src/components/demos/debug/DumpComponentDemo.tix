@@ -1,0 +1,11 @@
+import { Dump } from "@dotmix/runtime/directives";
+
+export default function DumpComponentDemo() {
+  const currentUser = { name: "Ada", roles: ["admin"] };
+
+  return (
+    <div>
+      <Dump value={currentUser} />
+    </div>
+  );
+}

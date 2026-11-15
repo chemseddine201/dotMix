@@ -1,0 +1,23 @@
+import { Yield, HasSection, SectionMissing } from "@dotmix/runtime/directives";
+
+interface PanelLayoutProps {
+  children?: unknown;
+}
+
+export default function PanelComponentLayout(props: PanelLayoutProps) {
+  return (
+    <section>
+      <Yield name="header">
+        <strong>Default header</strong>
+      </Yield>
+      <slot />
+      <HasSection name="footer">
+        <hr />
+      </HasSection>
+      <Yield name="footer" />
+      <SectionMissing name="footer">
+        <p>No footer supplied</p>
+      </SectionMissing>
+    </section>
+  );
+}

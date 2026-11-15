@@ -1,0 +1,11 @@
+export default function SessionBlockDemo() {
+  return (
+    <div>
+      {session "flash" as message}
+        <p>{message}</p>
+      {else}
+        <p>No flash message</p>
+      {endsession}
+    </div>
+  );
+}

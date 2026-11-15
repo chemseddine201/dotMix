@@ -1,0 +1,41 @@
+import { NavLink } from "@dotmix/router";
+import "./Sidebar.css";
+
+export default function Sidebar() {
+  return (
+    <nav class="app-sidebar">
+      <span class="nav-section-title">Navigation</span>
+      <NavLink to="/" end class="nav-link">
+        📊 Overview
+      </NavLink>
+      <NavLink to="/tasks" class="nav-link">
+        📋 Tasks (LIS Keyed)
+      </NavLink>
+      <NavLink to="/users/lead-architect" class="nav-link">
+        👤 User Route (:id)
+      </NavLink>
+      <NavLink to="/reports/2026/perf.log" class="nav-link">
+        📁 File Splat (*)
+      </NavLink>
+      <NavLink to="/analytics" class="nav-link">
+        🔍 Search Params (?q)
+      </NavLink>
+      <NavLink to="/async" class="nav-link">
+        ⏳ Async Block
+      </NavLink>
+      <NavLink to="/forms" class="nav-link">
+        📝 Forms & Validation
+      </NavLink>
+      <NavLink to="/sync" class="nav-link">
+        ⚡ Offline Sync (CRDT)
+      </NavLink>
+      <NavLink to="/permissions" class="nav-link">
+        🛡️ Permissions (RBAC/ABAC)
+      </NavLink>
+      <NavLink to="/helpers" class="nav-link">
+        🧰 Native Helpers (@dotmix/helpers)
+      </NavLink>
+    </nav>
+  );
+}
+

@@ -1,0 +1,21 @@
+import "./HomeHero.css";
+import { Link } from "@dotmix/router";
+
+export default function HomeHero() {
+  return (
+    <section class="home-hero">
+      <div class="home-hero-heading-row">
+        <h1 class="home-hero-title">dotMix</h1>
+        <span class="home-hero-badge">pre-release</span>
+      </div>
+      <p class="home-hero-lead">
+        A compiler-native UI framework that compiles declarative directives and fine-grained signals directly to DOM operations without a virtual DOM.
+      </p>
+      <div class="home-hero-actions">
+        <Link to="/start/project-structure" class="home-cta-primary">Get started</Link>
+        <Link to="/directives/conditionals" class="home-cta-secondary">Directives</Link>
+      </div>
+    </section>
+  );
+}
+

@@ -1,0 +1,15 @@
+import { signal } from "@dotmix/runtime";
+
+export default function ChildItem(props = {}) {
+  const localCount = signal(props.initialCount || 0);
+  const inc = () => {
+    localCount.set(localCount() + 1);
+  };
+
+  return (
+    <div class="child-item" id={props.id || "child"}>
+      <span class="child-label">{props.name}: {localCount()}</span>
+      <button class="child-btn" onClick={inc}>+1</button>
+    </div>
+  );
+}

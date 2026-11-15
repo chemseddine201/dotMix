@@ -1,0 +1,23 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import CounterDemo from "../../components/demos/start/CounterDemo.tix";
+
+export default function FirstComponentPage() {
+  return (
+    <DocPage title="Your first component" summary="A counter that uses a signal, an event handler and a stylesheet scoped to the component.">
+      <DocSection title="The component">
+        <p>signal creates a reactive value. Reading it with count() inside the template subscribes that part of the DOM, and count.set(next) updates it.</p>
+        <p>The click handler is an ordinary function. There is no render function that runs again.</p>
+        <CodeExample source="start/CounterDemo">
+          <CounterDemo />
+        </CodeExample>
+      </DocSection>
+      <DocSection title="The scoped stylesheet">
+        <p>CounterDemo.css sits next to CounterDemo.tix and is imported as the first line. The compiler scopes its selectors to this component, so the class names cannot collide with other components.</p>
+        <SourceView source="start/CounterDemo.css" title="CounterDemo.css" />
+      </DocSection>
+    </DocPage>
+  );
+}

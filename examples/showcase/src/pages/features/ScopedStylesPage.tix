@@ -1,0 +1,26 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import ScopedStylesDemo from "../../components/demos/styles/ScopedStylesDemo.tix";
+
+export default function ScopedStylesPage() {
+  return (
+    <DocPage title="Scoped styles" summary="A stylesheet imported by a component applies only to that component.">
+      <DocSection title="Rules">
+        <ul>
+          <li>Name the stylesheet like the component and import it first: import "./Name.css".</li>
+          <li>Selectors are scoped automatically; the same class name in two components never collides.</li>
+          <li>:deep(selector) reaches elements rendered by child components.</li>
+          <li>:global(selector) opts out of scoping. This app uses it only in src/styles and in this demo.</li>
+        </ul>
+      </DocSection>
+      <DocSection title="Example">
+        <CodeExample source="styles/ScopedStylesDemo">
+          <ScopedStylesDemo />
+        </CodeExample>
+        <SourceView source="styles/ScopedStylesDemo.css" title="ScopedStylesDemo.css" />
+      </DocSection>
+    </DocPage>
+  );
+}

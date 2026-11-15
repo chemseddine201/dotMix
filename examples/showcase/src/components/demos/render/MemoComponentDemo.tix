@@ -1,0 +1,27 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { Memo } from "@dotmix/runtime/directives";
+
+export default function MemoComponentDemo() {
+  const selectedItem = signal<string>("alpha");
+  const ticks = signal<number>(0);
+  let builds = 0;
+
+  function nextBuild(): number {
+    builds += 1;
+    return builds;
+  }
+
+  return (
+    <div>
+      <ActionButton label="alpha" onPress={() => selectedItem.set("alpha")} active={selectedItem() === "alpha"} />
+      <ActionButton label="beta" onPress={() => selectedItem.set("beta")} active={selectedItem() === "beta"} />
+      <ActionButton label="Tick" onPress={() => ticks.set(ticks() + 1)} />
+
+
+      <Memo on={[selectedItem()]}>
+        <p>Item {selectedItem()}, build #{nextBuild()}, ticks {ticks()}</p>
+      </Memo>
+    </div>
+  );
+}

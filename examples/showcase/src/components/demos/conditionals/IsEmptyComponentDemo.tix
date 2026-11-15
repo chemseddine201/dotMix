@@ -1,0 +1,22 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { IsEmpty, Else } from "@dotmix/runtime/directives";
+
+export default function IsEmptyComponentDemo() {
+  const messages = signal<string[]>([]);
+
+  return (
+    <div>
+      <ActionButton label="Add message" onPress={() => messages.set([...messages(), "Message " + (messages().length + 1)])} />
+      <ActionButton label="Clear" onPress={() => messages.set([])} />
+
+
+      <IsEmpty value={messages()}>
+        <p>No messages yet</p>
+        <Else>
+          <p>{messages().length} message(s)</p>
+        </Else>
+      </IsEmpty>
+    </div>
+  );
+}

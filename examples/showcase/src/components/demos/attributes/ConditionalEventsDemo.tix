@@ -1,0 +1,26 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function ConditionalEventsDemo() {
+  const armed = signal<boolean>(false);
+  const message = signal<string>("");
+
+  return (
+    <div>
+      <ActionButton label="Toggle armed" onPress={() => armed.set(!armed())} />
+
+
+      <button
+        type="button"
+        aria-disabled="true"
+        aria-disabled:unless={armed()}
+        onClick={() => message.set("Fired the main handler")}
+        onClick:if={armed()}
+        onClick:else={() => message.set("Not armed: fallback handler")}
+      >
+        Fire
+      </button>
+      <p>{message()}</p>
+    </div>
+  );
+}

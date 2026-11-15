@@ -1,0 +1,149 @@
+:root {
+  color-scheme: light;
+  --color-page: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #eef2f6;
+  --color-surface-hover: #e4eaf2;
+  --color-border: #d0d7de;
+  --color-border-strong: #9aa5b5;
+  --color-text: #161d27;
+  --color-text-muted: #4b5565;
+  --color-accent: #1852b4;
+  --color-accent-solid: #1852b4;
+  --color-accent-hover: #124191;
+  --color-accent-soft: #e3edfc;
+  --color-on-accent: #ffffff;
+  --color-success: #146c43;
+  --color-success-soft: #dcfce7;
+  --color-warning: #854d0e;
+  --color-warning-soft: #fef3c7;
+  --color-danger: #a82018;
+  --color-danger-soft: #fee2e2;
+  --color-scrim: rgba(15, 23, 42, 0.55);
+
+  --color-code-background: #0f172a;
+  --color-code-header: #162033;
+  --color-code-border: #1e293b;
+  --color-code-text: #e2e8f0;
+  --color-code-muted: #94a3b8;
+  --color-token-keyword: #7dd3fc;
+  --color-token-directive: #c4b5fd;
+  --color-token-string: #86efac;
+  --color-token-comment: #94a3b8;
+  --color-token-number: #fdba74;
+  --color-token-tag: #93c5fd;
+  --color-token-attr: #f9a8d4;
+  --color-token-punct: #cbd5e1;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 38, 0.06);
+  --shadow-modal: 0 18px 42px rgba(15, 23, 42, 0.24);
+
+  --font-body: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, "Liberation Mono", monospace;
+
+  --font-size-caption: 0.75rem;
+  --font-size-small: 0.875rem;
+  --font-size-code: 0.84375rem;
+  --font-size-body: 1rem;
+  --font-size-large: 1.1875rem;
+  --font-size-title: 1.875rem;
+  --font-size-hero: 2.375rem;
+  --line-height-body: 1.65;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 36px;
+
+  --radius-small: 6px;
+  --radius-medium: 10px;
+  --radius-large: 14px;
+  --radius-round: 999px;
+
+  --header-height: 58px;
+  --sidebar-width: 268px;
+  --toc-width: 216px;
+  --content-max-width: 760px;
+
+  --transition-fast: 140ms ease;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #0b101b;
+  --color-surface: #121826;
+  --color-surface-elevated: #172033;
+  --color-surface-muted: #1b2436;
+  --color-surface-hover: #243047;
+  --color-border: #2a364d;
+  --color-border-strong: #465775;
+  --color-text: #eef2f7;
+  --color-text-muted: #a4b1c5;
+  --color-accent: #7ab3ff;
+  --color-accent-solid: #1d5bbf;
+  --color-accent-hover: #256ce0;
+  --color-accent-soft: #1a2d4d;
+  --color-on-accent: #ffffff;
+  --color-success: #5ce09a;
+  --color-success-soft: #123324;
+  --color-warning: #f6c453;
+  --color-warning-soft: #36280d;
+  --color-danger: #f88178;
+  --color-danger-soft: #3b1719;
+  --color-scrim: rgba(2, 6, 15, 0.72);
+
+  --color-code-background: #090e1a;
+  --color-code-header: #111827;
+  --color-code-border: #273244;
+  --color-code-text: #e2e8f0;
+  --color-code-muted: #94a3b8;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 18px 42px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-page: #0b101b;
+    --color-surface: #121826;
+    --color-surface-elevated: #172033;
+    --color-surface-muted: #1b2436;
+    --color-surface-hover: #243047;
+    --color-border: #2a364d;
+    --color-border-strong: #465775;
+    --color-text: #eef2f7;
+    --color-text-muted: #a4b1c5;
+    --color-accent: #7ab3ff;
+    --color-accent-solid: #1d5bbf;
+    --color-accent-hover: #256ce0;
+    --color-accent-soft: #1a2d4d;
+    --color-on-accent: #ffffff;
+    --color-success: #5ce09a;
+    --color-success-soft: #123324;
+    --color-warning: #f6c453;
+    --color-warning-soft: #36280d;
+    --color-danger: #f88178;
+    --color-danger-soft: #3b1719;
+    --color-scrim: rgba(2, 6, 15, 0.72);
+
+    --color-code-background: #090e1a;
+    --color-code-header: #111827;
+    --color-code-border: #273244;
+    --color-code-text: #e2e8f0;
+    --color-code-muted: #94a3b8;
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-modal: 0 18px 42px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms linear;
+  }
+}

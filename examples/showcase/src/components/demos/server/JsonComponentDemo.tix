@@ -1,0 +1,11 @@
+import { Json } from "@dotmix/runtime/directives";
+
+export default function JsonComponentDemo() {
+  const initialState = { user: "ada", unreadCount: 3 };
+
+  return (
+    <div>
+      <Json id="app-state" data={initialState} />
+    </div>
+  );
+}

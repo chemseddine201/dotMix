@@ -1,0 +1,14 @@
+import "./ScopedStylesDemo.css";
+import Badge from "../../ui/Badge.tix";
+
+export default function ScopedStylesDemo() {
+  return (
+    <div class="scoped-panel">
+      <p class="scoped-label">This rule is scoped: it only reaches elements of this component.</p>
+      <p>
+        <Badge tone="info">Styled from outside with :deep</Badge>
+      </p>
+      <p class="demo-global-note">This paragraph is styled by a :global rule.</p>
+    </div>
+  );
+}

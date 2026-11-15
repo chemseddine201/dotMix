@@ -1,0 +1,76 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import ClassStyleDemo from "../../components/demos/attributes/ClassStyleDemo.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import ConditionalAttributesDemo from "../../components/demos/attributes/ConditionalAttributesDemo.tix";
+import ConditionalEventsDemo from "../../components/demos/attributes/ConditionalEventsDemo.tix";
+
+const classStyleRows = [
+  { name: "class={{ name: condition }}", type: "object", description: "Toggles each class by its condition." },
+  { name: "class={[a, cond && b]}", type: "array", description: "Falsy entries are ignored." },
+  { name: "class:name={cond}", type: "boolean", description: "Toggles one class." },
+  { name: "style={{ prop: value }}", type: "object", description: "Sets several properties." },
+  { name: "style:prop={value}", type: "string | number", description: "Sets one property; .px and similar suffixes add a unit." }
+];
+
+const conditionalAttributesRows = [
+  { name: "attr:if / attr:unless", type: "Maybe<unknown>", description: "Apply when the condition holds or does not." },
+  { name: "attr:else", type: "string", description: "Value used otherwise." },
+  { name: "attr:match / attr:case-token", type: "unknown", description: "Compare and pick a value." },
+  { name: "spread:if", type: "Maybe<unknown>", description: "Condition for the adjacent spread." }
+];
+
+const conditionalEventsRows = [
+  { name: "onClick:if", type: "Maybe<unknown>", description: "Attach the handler while truthy." },
+  { name: "onClick:unless", type: "Maybe<unknown>", description: "Attach the handler while falsy." },
+  { name: "onClick:else", type: "handler", description: "Handler used when the condition does not apply." }
+];
+
+export default function AttributesPage() {
+  return (
+    <DocPage title="Attributes, classes, styles and events" summary="Modifiers on attributes and events. They are the same in block and component templates.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Toggle classes and set styles from signals without building strings by hand.</li>
+        <li>Choose an attribute value, or its presence, from a condition.</li>
+        <li>Attach an event listener only while a condition holds.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="Class and style maps">
+      <p>Each key of a class or style map becomes its own reactive update. class:name and style:property set one key. A unit suffix such as style:width.px appends the unit, and style:--name sets a custom property. This is the one place where inline style values are the subject of the demo.</p>
+      <CodeExample source="attributes/ClassStyleDemo">
+        <ClassStyleDemo />
+      </CodeExample>
+      <PropTable rows={classStyleRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Combining a map with a static class attribute is allowed and merged; combining :if and :unless on the same attribute is not.</p>
+        <p><code>MIX_ERR_CONDITIONAL_CONFLICT</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="Conditional attributes">
+      <p>attr:if and attr:unless need a base attribute on the same element. attr:else gives the alternative value. attr:match with attr:case-token picks a value by comparison and needs no base attribute. A spread of an object followed by spread:if spreads attributes conditionally.</p>
+      <CodeExample source="attributes/ConditionalAttributesDemo">
+        <ConditionalAttributesDemo />
+      </CodeExample>
+      <PropTable rows={conditionalAttributesRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Writing attr:if without a base attr, or attr:else without if, unless or match.</p>
+        <p><code>MIX_ERR_CONDITIONAL_WITHOUT_BASE, MIX_ERR_CONDITIONAL_ELSE_ALONE</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="Conditional events">
+      <p>onClick:if attaches the listener only while the condition holds, onClick:unless while it does not, and onClick:else installs another handler otherwise. Listeners never attach before the first evaluation, swap atomically and are removed on unmount. Modifier chains such as on:click.prevent work with the same suffixes.</p>
+      <CodeExample source="attributes/ConditionalEventsDemo">
+        <ConditionalEventsDemo />
+      </CodeExample>
+      <PropTable rows={conditionalEventsRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Putting a conditional click on a button without disabled or aria-disabled.</p>
+        <p><code>MIX_WARN_INERT_INTERACTIVE</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

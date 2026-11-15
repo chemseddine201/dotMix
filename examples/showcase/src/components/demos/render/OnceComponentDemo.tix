@@ -1,0 +1,15 @@
+import { Once } from "@dotmix/runtime/directives";
+
+export default function OnceComponentDemo() {
+  function readClock(): string {
+    return new Date().toLocaleTimeString();
+  }
+
+  return (
+    <div>
+      <Once>
+        <p>Mounted at {readClock()}</p>
+      </Once>
+    </div>
+  );
+}

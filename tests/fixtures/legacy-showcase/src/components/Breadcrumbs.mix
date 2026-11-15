@@ -1,0 +1,31 @@
+import { useNavigate, useLocation } from "@dotmix/router";
+import "./Breadcrumbs.css";
+
+export default function Breadcrumbs(props = {}) {
+  const navigate = useNavigate();
+  const loc = useLocation();
+  const layoutMounts = props.mounts || 1;
+
+  function goBack() {
+    navigate(-1);
+  }
+
+  function goForward() {
+    navigate(1);
+  }
+
+  return (
+    <div class="breadcrumb-bar">
+      <div class="path-display">
+        <span class="pulse-dot">●</span>
+        <span class="loc-label">Active Route:</span>
+        <code class="loc-code">{loc.pathname}{loc.search}</code>
+      </div>
+      <div class="controls-group">
+        <button class="btn-nav" onClick={goBack}>← Back (-1)</button>
+        <button class="btn-nav" onClick={goForward}>Forward (+1) →</button>
+        <span class="mount-counter">Parent Layout Mounts: <strong class="mount-num">{layoutMounts}</strong></span>
+      </div>
+    </div>
+  );
+}

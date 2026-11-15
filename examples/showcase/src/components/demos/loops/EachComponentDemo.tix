@@ -1,0 +1,26 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { Each, Empty } from "@dotmix/runtime/directives";
+
+export default function EachComponentDemo() {
+  const tasks = signal<string[]>(["Write the release notes", "Review the pull request", "Plan the next sprint"]);
+  let nextTaskNumber = 4;
+
+  return (
+    <div>
+      <ActionButton label="Add task" onPress={() => { tasks.set([...tasks(), "New task " + nextTaskNumber]); nextTaskNumber += 1; }} />
+      <ActionButton label="Reverse" onPress={() => tasks.set([...tasks()].reverse())} />
+      <ActionButton label="Clear" onPress={() => tasks.set([])} />
+
+
+      <ul>
+        <Each data={tasks()}>
+          {(task, index) => <li>{index() + 1}. {task}</li>}
+          <Empty>
+            <li>Nothing to do</li>
+          </Empty>
+        </Each>
+      </ul>
+    </div>
+  );
+}

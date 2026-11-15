@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "packages/diagnostics" },
+    { "path": "packages/ast" },
+    { "path": "packages/compiler-frontend" },
+    { "path": "packages/compiler-semantic" },
+    { "path": "packages/compiler-css" },
+    { "path": "packages/compiler-codegen" },
+    { "path": "packages/runtime" },
+    { "path": "packages/router" },
+    { "path": "packages/compiler-ssr" },
+    { "path": "packages/vite-plugin" },
+    { "path": "packages/cli" },
+    { "path": "packages/language-server" },
+    { "path": "packages/sync" },
+    { "path": "packages/interop" },
+    { "path": "packages/stream" },
+    { "path": "packages/sanitizer-dompurify" },
+    { "path": "packages/server-node" },
+    { "path": "packages/helpers" },
+    { "path": "editors/vscode-mix" },
+    { "path": "tools/d137-reference" },
+    { "path": "tools/d137-coordinator" }
+  ]
+}
+

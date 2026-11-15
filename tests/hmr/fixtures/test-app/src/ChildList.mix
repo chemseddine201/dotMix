@@ -1,0 +1,20 @@
+import ChildItem from "./ChildItem.mix";
+
+export default function ChildList() {
+  const items = [
+    { id: "item-1", name: "Alpha", val: 10 },
+    { id: "item-2", name: "Beta", val: 20 }
+  ];
+
+  return (
+    <div class="child-list-container" id="child-list-container">
+      <h3 class="list-title">Children Section</h3>
+      <ChildItem id="unkeyed-child" name="StaticChild" initialCount={5} />
+      <div class="keyed-group">
+        {each (item, idx) in items}
+          <ChildItem id={item.id} name={item.name} initialCount={item.val} />
+        {endeach}
+      </div>
+    </div>
+  );
+}

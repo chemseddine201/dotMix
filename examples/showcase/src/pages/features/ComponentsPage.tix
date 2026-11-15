@@ -1,0 +1,36 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import CodeText from "../../components/ui/CodeText.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import ProfileCardDemo from "../../components/demos/components/ProfileCardDemo.tix";
+
+const code1 = [
+  "export default func" + "tion ProfileCard(props) {",
+  "  return (",
+  "    <section class=\"profile-card\">",
+  "      <h3>{props.name}</h3>",
+  "      <p>{props.role ?? \"Member\"}</p>",
+  "      <slot />",
+  "    </section>",
+  "  );",
+  "}"
+].join(String.fromCharCode(10));
+
+export default function ComponentsPage() {
+  return (
+    <DocPage title="Components and props" summary="A component is a function that receives props and returns a template. Tix adds TypeScript types; Mix is the same without them.">
+      <DocSection title="A typed Tix component">
+        <p>Props are described by an interface. Content passed between the tags of a component is rendered where the component places a slot.</p>
+        <CodeExample source="components/ProfileCardDemo">
+          <ProfileCardDemo />
+        </CodeExample>
+        <SourceView source="components/ProfileCard.tix" title="ProfileCard.tix" />
+      </DocSection>
+      <DocSection title="The same component in Mix">
+        <p>A .mix file uses the same template syntax with plain JavaScript. It is shown here as text only; this app uses Tix everywhere.</p>
+        <CodeText code={code1} title="ProfileCard.mix" />
+      </DocSection>
+    </DocPage>
+  );
+}

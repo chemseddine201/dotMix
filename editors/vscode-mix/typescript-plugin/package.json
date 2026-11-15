@@ -1,0 +1,8 @@
+{
+  "name": "mix-typescript-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript server plugin bundled with the dotMix VS Code extension: resolves .tix and .mix component imports in .ts files.",
+  "license": "MIT",
+  "main": "index.cjs"
+}

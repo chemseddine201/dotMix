@@ -1,0 +1,39 @@
+import "./CodeExample.css";
+import { computed, signal } from "@dotmix/runtime";
+import SourceView from "./SourceView.tix";
+
+interface CodeExampleProps {
+  source: string;
+  title?: string;
+  children?: unknown;
+}
+
+export default function CodeExample(props: CodeExampleProps) {
+  const resetEpoch = signal<number>(0);
+  const activeEpochs = computed<number[]>(() => [resetEpoch()]);
+
+  function handleReset(): void {
+    resetEpoch.set(resetEpoch() + 1);
+  }
+
+  return (
+    <div class="code-example">
+      <section class="code-example-preview" aria-label={props.title ? `Live result: ${props.title}` : "Live result"}>
+        <header class="code-example-preview-header">
+          <span class="code-example-preview-label">Live result</span>
+          <button type="button" class="code-example-reset" onClick={handleReset}>
+            Reset
+          </button>
+        </header>
+        <div class="code-example-live">
+          {each (epoch, index, epoch) in activeEpochs()}
+            {props.children}
+          {endeach}
+        </div>
+      </section>
+      <div class="code-example-source">
+        <SourceView source={props.source} title={props.title ?? `${props.source.split("/").pop() ?? props.source}.tix`} />
+      </div>
+    </div>
+  );
+}

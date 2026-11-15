@@ -1,0 +1,21 @@
+interface PanelLayoutProps {
+  children?: unknown;
+}
+
+export default function PanelBlockLayout(props: PanelLayoutProps) {
+  return (
+    <section>
+      {yield "header"}
+        <strong>Default header</strong>
+      {endyield}
+      <slot />
+      {hassection "footer"}
+        <hr />
+      {endhassection}
+      {yield "footer"}{endyield}
+      {sectionmissing "footer"}
+        <p>No footer supplied</p>
+      {endsectionmissing}
+    </section>
+  );
+}

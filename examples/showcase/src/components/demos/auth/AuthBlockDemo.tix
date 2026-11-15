@@ -1,0 +1,26 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { AuthProvider } from "@dotmix/runtime";
+import { accountAuth, currentAccount } from "../../../permissions/accountAuth.js";
+
+export default function AuthBlockDemo() {
+  return (
+    <div>
+      <ActionButton label="Sign out" onPress={() => currentAccount.set(null)} />
+      <ActionButton label="Sign in as Robin" onPress={() => currentAccount.set("Robin")} />
+      <ActionButton label="Sign in as Alex (admin)" onPress={() => currentAccount.set("Alex")} />
+
+
+      <AuthProvider value={accountAuth}>
+        {auth "web" as account}
+          <p>Welcome back, {account}.</p>
+        {endauth}
+        {auth "web" role "admin"}
+          <Badge tone="danger">Administrator tools</Badge>
+        {else}
+          <Badge>Administrator tools are hidden</Badge>
+        {endauth}
+      </AuthProvider>
+    </div>
+  );
+}

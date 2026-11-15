@@ -1,0 +1,54 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import DumpBlockDemo from "../../components/demos/debug/DumpBlockDemo.tix";
+import DumpComponentDemo from "../../components/demos/debug/DumpComponentDemo.tix";
+import VerbatimBlockDemo from "../../components/demos/debug/VerbatimBlockDemo.tix";
+import VerbatimComponentDemo from "../../components/demos/debug/VerbatimComponentDemo.tix";
+
+const dumpRows = [
+  { name: "value", type: "unknown", description: "The value to print." }
+];
+
+const verbatimRows = [
+  { name: "children", type: "raw text", description: "Text that is output unchanged." }
+];
+
+export default function DebugTextPage() {
+  return (
+    <DocPage title="Debug and text" summary="Print a value while developing, and write template syntax as plain text.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Inspect a value in development without adding temporary code.</li>
+        <li>Document template syntax inside a template.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="dump">
+      <p>Renders a collapsible JSON view in development mode. It is removed completely from production output, so a production build of this page shows nothing here.</p>
+      <FormTabs blockSource="debug/DumpBlockDemo" componentSource="debug/DumpComponentDemo">
+        <div slot="block"><DumpBlockDemo /></div>
+        <div slot="component"><DumpComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={dumpRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Leaving dump in code that must not expose data. It is stripped from production builds, but it is visible in every development build.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="verbatim">
+      <p>Raw-text mode: nothing inside is parsed as template syntax. Verbatim as a component is recognized from the import binding before the template.</p>
+      <FormTabs blockSource="debug/VerbatimBlockDemo" componentSource="debug/VerbatimComponentDemo">
+        <div slot="block"><VerbatimBlockDemo /></div>
+        <div slot="component"><VerbatimComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={verbatimRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Writing the text without verbatim: the braces are parsed as template syntax and the build fails.</p>
+        <p><code>MIX_ERR_PARSE_SYNTAX</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

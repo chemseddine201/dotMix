@@ -1,0 +1,28 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { AuthProvider } from "@dotmix/runtime";
+import { accountAuth, currentAccount } from "../../../permissions/accountAuth.js";
+import { Auth, Else } from "@dotmix/runtime/directives";
+
+export default function AuthComponentDemo() {
+  return (
+    <div>
+      <ActionButton label="Sign out" onPress={() => currentAccount.set(null)} />
+      <ActionButton label="Sign in as Robin" onPress={() => currentAccount.set("Robin")} />
+      <ActionButton label="Sign in as Alex (admin)" onPress={() => currentAccount.set("Alex")} />
+
+
+      <AuthProvider value={accountAuth}>
+        <Auth guard="web">
+          {(account) => <p>Welcome back, {account()}.</p>}
+        </Auth>
+        <Auth guard="web" role={["admin"]}>
+          <Badge tone="danger">Administrator tools</Badge>
+          <Else>
+            <Badge>Administrator tools are hidden</Badge>
+          </Else>
+        </Auth>
+      </AuthProvider>
+    </div>
+  );
+}

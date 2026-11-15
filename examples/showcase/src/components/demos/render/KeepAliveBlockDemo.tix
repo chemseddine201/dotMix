@@ -1,0 +1,20 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function KeepAliveBlockDemo() {
+  const activeTab = signal<string>("notes");
+
+  return (
+    <div>
+      <ActionButton label="notes" onPress={() => activeTab.set("notes")} active={activeTab() === "notes"} />
+      <ActionButton label="tasks" onPress={() => activeTab.set("tasks")} active={activeTab() === "tasks"} />
+      <ActionButton label="files" onPress={() => activeTab.set("files")} active={activeTab() === "files"} />
+      <p>Active tab: {activeTab()}</p>
+
+
+      {keepalive activeTab() max 5}
+        <label>Draft: <input type="text" /></label>
+      {endkeepalive}
+    </div>
+  );
+}

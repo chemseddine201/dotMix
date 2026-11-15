@@ -1,0 +1,17 @@
+import { signal } from "@dotmix/runtime";
+import ProfileCard from "./ProfileCard.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+
+export default function ProfileCardDemo() {
+  const followers = signal<number>(0);
+
+  return (
+    <div>
+      <ProfileCard name="Ada Lovelace" role="Engineer">
+        <ActionButton label="Follow" onPress={() => followers.set(followers() + 1)} />
+        <span>Followers: {followers()}</span>
+      </ProfileCard>
+      <ProfileCard name="Grace Hopper" />
+    </div>
+  );
+}

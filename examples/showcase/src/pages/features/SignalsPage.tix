@@ -1,0 +1,28 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import SignalsDemo from "../../components/demos/signals/SignalsDemo.tix";
+
+const rows0 = [
+  { name: "signal(initial)", type: "Signal<T>", description: "Read with current(), write with current.set(value) or current.set(previous => next), read without tracking with current.peek()." },
+  { name: "computed(derive)", type: "Computed<T>", description: "A cached value derived from other signals." },
+  { name: "createEffect(effect)", type: "void", description: "Runs again when a signal it read changes. Runs once initially." },
+  { name: "batch(action)", type: "T", description: "Groups several writes so dependents update once." }
+];
+
+export default function SignalsPage() {
+  return (
+    <DocPage title="Signals and reactivity" summary="Signals hold state. Computed values and effects depend on the signals they read.">
+      <DocSection title="Primitives">
+        <PropTable rows={rows0} />
+      </DocSection>
+      <DocSection title="Example">
+        <p>The total is a computed value. The effect counter shows that the batched update runs the effect once, while two separate writes would run it twice.</p>
+        <CodeExample source="signals/SignalsDemo">
+          <SignalsDemo />
+        </CodeExample>
+      </DocSection>
+    </DocPage>
+  );
+}

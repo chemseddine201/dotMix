@@ -1,0 +1,12 @@
+interface Task {
+  id: number;
+  title: string;
+}
+
+interface TaskLineProps {
+  task: Task;
+}
+
+export default function TaskLine(props: TaskLineProps) {
+  return <p>{props.task.title}</p>;
+}

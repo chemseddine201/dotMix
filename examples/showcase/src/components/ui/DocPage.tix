@@ -1,0 +1,52 @@
+import "./DocPage.css";
+import { provideContext } from "@dotmix/runtime";
+import { Head, Title } from "@dotmix/runtime/directives";
+import { createTocController, scrollToSection, TocContext } from "./tocContext.js";
+
+interface DocPageProps {
+  title: string;
+  summary?: string;
+  hideHeader?: boolean;
+}
+
+export default function DocPage(props: DocPageProps) {
+  const toc = createTocController();
+  provideContext(TocContext, toc);
+
+  return (
+    <article class="doc-page">
+      <Head>
+        <Title>{`${props.title} · dotMix`}</Title>
+      </Head>
+      <div class="doc-article-column">
+        {if (!props.hideHeader)}
+          <header class="doc-page-header">
+            <h1>{props.title}</h1>
+            {if (props.summary)}
+              <p class="doc-page-summary">{props.summary}</p>
+            {endif}
+          </header>
+        {endif}
+        <slot />
+      </div>
+      {if (toc.entries().length > 0)}
+        <aside class="doc-toc" aria-label="On this page">
+          <h2 class="doc-toc-title">On this page</h2>
+          <ul class="doc-toc-list">
+            {each (entry, index, entry.id) in toc.entries()}
+              <li>
+                <button
+                  type="button"
+                  class="doc-toc-link"
+                  onClick={() => scrollToSection(entry.id)}
+                >
+                  {entry.title}
+                </button>
+              </li>
+            {endeach}
+          </ul>
+        </aside>
+      {endif}
+    </article>
+  );
+}

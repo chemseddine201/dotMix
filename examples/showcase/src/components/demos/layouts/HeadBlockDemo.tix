@@ -1,0 +1,23 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function HeadBlockDemo() {
+  const useBlockForm = signal<boolean>(false);
+  const readTitle = signal<string>("");
+
+  return (
+    <div>
+      <ActionButton label="Switch form" onPress={() => useBlockForm.set(!useBlockForm())} />
+      <ActionButton label="Read document.title" onPress={() => readTitle.set(document.title)} />
+      <p>document.title: {readTitle()}</p>
+
+
+      {if useBlockForm()}
+        {push "head"}
+          <title>Head set by the block form</title>
+          <meta name="description" content="Set with the block form" />
+        {endpush}
+      {endif}
+    </div>
+  );
+}

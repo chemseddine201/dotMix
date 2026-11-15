@@ -1,0 +1,81 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import SectionsBlockDemo from "../../components/demos/layouts/SectionsBlockDemo.tix";
+import SectionsComponentDemo from "../../components/demos/layouts/SectionsComponentDemo.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import StacksBlockDemo from "../../components/demos/layouts/StacksBlockDemo.tix";
+import StacksComponentDemo from "../../components/demos/layouts/StacksComponentDemo.tix";
+import HeadBlockDemo from "../../components/demos/layouts/HeadBlockDemo.tix";
+import HeadComponentDemo from "../../components/demos/layouts/HeadComponentDemo.tix";
+
+const sectionsRows = [
+  { name: "name", type: "string", description: "Section, Yield, HasSection and SectionMissing: the region name." },
+  { name: "children", type: "Children", description: "Region content; for Yield the default content." }
+];
+
+const stacksRows = [
+  { name: "to", type: "string", description: "Push and Prepend: the stack name." },
+  { name: "once", type: "string", description: "Optional id; only the first entry with this id is kept." },
+  { name: "name", type: "string", description: "Stack: the stack to render." }
+];
+
+const headRows = [
+  { name: "Title", type: "children: string", description: "Sets document.title; the last one wins." },
+  { name: "Meta", type: "name | property | http-equiv, content", description: "De-duplicated by its key attribute." },
+  { name: "Link", type: "rel, href", description: "De-duplicated by rel and href." }
+];
+
+export default function LayoutsPage() {
+  return (
+    <DocPage title="Layouts, sections, stacks and head" summary="Compose a page from named regions, collect content in stacks and manage the document head.">
+    <DocSection title="When to use">
+      <ul>
+        <li>A layout component should let its caller fill named regions such as a header or footer.</li>
+        <li>Components deep in the tree need to contribute content to one place, such as scripts or notices.</li>
+        <li>A page sets its own title and meta tags and restores the previous ones when it unmounts.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="section, yield, hassection, sectionmissing">
+      <p>The layout declares regions with yield, which renders the caller content or its own default. The caller fills a region with section. hassection and sectionmissing render only when a region was, or was not, supplied. Content outside any section goes to the default slot.</p>
+      <FormTabs blockSource="layouts/SectionsBlockDemo" componentSource="layouts/SectionsComponentDemo">
+        <div slot="block"><SectionsBlockDemo /></div>
+        <div slot="component"><SectionsComponentDemo /></div>
+      </FormTabs>
+      <SourceView source="layouts/PanelBlockLayout" title="Layout component, block form" />
+      <SourceView source="layouts/PanelComponentLayout" title="Layout component, component form" />
+      <PropTable rows={sectionsRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Placing a yield inside a hassection body. The slot is not available there when the content is created later, so keep yield next to it, as in the layout sources above.</p>
+        <p><code>no diagnostic: the region renders empty</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="push, prepend, stack">
+      <p>stack marks where collected content appears. push and prepend add content from any component. Prepended entries come first, then pushed entries, each group in mount order. once keeps only the first entry with that id, and an entry is removed when its component unmounts.</p>
+      <FormTabs blockSource="layouts/StacksBlockDemo" componentSource="layouts/StacksComponentDemo">
+        <div slot="block"><StacksBlockDemo /></div>
+        <div slot="component"><StacksComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={stacksRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Using a different stack name in push and stack, so the content is collected but never rendered.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="head: title, meta, link">
+      <p>push to head with title, meta and link elements (component form: Head with Title, Meta and Link) updates the document head. The last title wins, meta tags are de-duplicated by name, property or http-equiv, links by rel and href, and the previous tags are restored on unmount. On the server the tags are written into the head of the document.</p>
+      <FormTabs blockSource="layouts/HeadBlockDemo" componentSource="layouts/HeadComponentDemo">
+        <div slot="block"><HeadBlockDemo /></div>
+        <div slot="component"><HeadComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={headRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Expecting two components that set the title to merge. The last one mounted wins; the earlier title returns when it unmounts.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

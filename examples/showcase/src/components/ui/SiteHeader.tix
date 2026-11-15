@@ -1,0 +1,117 @@
+import "./SiteHeader.css";
+import type { RefObject } from "@dotmix/runtime";
+import { Link } from "@dotmix/router";
+import { setTheme, themeChoice } from "../../stores/themeStore.js";
+import Logo from "./Logo.tix";
+
+const GITHUB_URL = "https://github.com/chemseddine201/dotMix";
+
+interface SiteHeaderProps {
+  drawerOpen: boolean;
+  desktopCollapsed: boolean;
+  toggleDrawer: () => void;
+  toggleSidebar: () => void;
+  triggerSearch: () => void;
+  mobileMenuRef: RefObject<HTMLButtonElement>;
+  searchButtonRef: RefObject<HTMLButtonElement>;
+}
+
+export default function SiteHeader(props: SiteHeaderProps) {
+  return (
+    <header class="site-header">
+      <div class="site-header-inner">
+        <div class="header-left">
+          <button
+            ref={props.mobileMenuRef}
+            type="button"
+            class="icon-button mobile-menu-button"
+            aria-label="Open navigation menu"
+            aria-expanded={props.drawerOpen ? "true" : "false"}
+            aria-controls="site-sidebar"
+            onClick={() => props.toggleDrawer()}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M3 5H17M3 10H17M3 15H17" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="desktop-sidebar-toggle"
+            aria-label="Toggle sidebar navigation"
+            aria-expanded={props.desktopCollapsed ? "false" : "true"}
+            aria-controls="site-sidebar"
+            onClick={() => props.toggleSidebar()}
+          >
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+              <path d="M8 3.5V16.5" />
+            </svg>
+          </button>
+
+          <Link to="/" class="header-brand">
+            <Logo size={22} />
+            <span>dotMix</span>
+          </Link>
+          <span class="header-release-badge">pre-release</span>
+        </div>
+
+        <div class="header-right">
+          <button
+            ref={props.searchButtonRef}
+            type="button"
+            class="search-trigger"
+            aria-label="Search documentation"
+            onClick={() => props.triggerSearch()}
+          >
+            <svg viewBox="0 0 18 18" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="5.5" />
+              <path d="M12.2 12.2L15.8 15.8" />
+            </svg>
+            <span class="search-trigger-label">Search</span>
+            <kbd class="search-trigger-kbd">/</kbd>
+          </button>
+
+          <div class="theme-switch" role="group" aria-label="Color theme">
+            <button
+              type="button"
+              class={{ "theme-option": true, "theme-option-active": themeChoice() === "light" }}
+              aria-pressed={themeChoice() === "light" ? "true" : "false"}
+              onClick={() => setTheme("light")}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              class={{ "theme-option": true, "theme-option-active": themeChoice() === "dark" }}
+              aria-pressed={themeChoice() === "dark" ? "true" : "false"}
+              onClick={() => setTheme("dark")}
+            >
+              Dark
+            </button>
+            <button
+              type="button"
+              class={{ "theme-option": true, "theme-option-active": themeChoice() === "system" }}
+              aria-pressed={themeChoice() === "system" ? "true" : "false"}
+              onClick={() => setTheme("system")}
+            >
+              System
+            </button>
+          </div>
+
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="github-link"
+            aria-label="GitHub repository"
+          >
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M10 1.8a8.2 8.2 0 0 0-2.59 15.98c.41.08.56-.18.56-.4 0-.2-.01-.85-.01-1.54-2.06.38-2.59-.5-2.75-.96-.09-.24-.49-.96-.84-1.15-.29-.16-.7-.54-.01-.55.65-.01 1.11.6 1.26.85.74 1.24 1.92.89 2.39.68.07-.53.29-.89.52-1.1-1.83-.21-3.74-.92-3.74-4.07 0-.9.32-1.64.85-2.21-.09-.21-.37-1.05.08-2.18 0 0 .69-.22 2.26.84a7.8 7.8 0 0 1 4.1 0c1.57-1.06 2.26-.84 2.26-.84.45 1.13.17 1.97.08 2.18.53.57.85 1.31.85 2.21 0 3.16-1.92 3.86-3.75 4.07.3.26.56.76.56 1.54 0 1.11-.01 2.01-.01 2.29 0 .22.15.48.56.4A8.2 8.2 0 0 0 10 1.8z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+  );
+}

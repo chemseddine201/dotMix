@@ -1,0 +1,260 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(__dirname, "../..");
+
+test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async () => {
+  const packagesDir = path.join(rootDir, "packages");
+  const packageFolders = fs.readdirSync(packagesDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+
+  const adjacencyList = new Map();
+
+  for (const folder of packageFolders) {
+    const pkgJsonPath = path.join(packagesDir, folder, "package.json");
+    if (!fs.existsSync(pkgJsonPath)) continue;
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
+    const deps = Object.keys(pkgJson.dependencies || {});
+    adjacencyList.set(pkgJson.name, deps);
+  }
+
+  const visited = new Set();
+  const inStack = new Set();
+
+  function hasCycle(node, pathStack = []) {
+    visited.add(node);
+    inStack.add(node);
+    pathStack.push(node);
+
+    const neighbors = adjacencyList.get(node) || [];
+    for (const neighbor of neighbors) {
+      if (!adjacencyList.has(neighbor)) continue;
+      if (!visited.has(neighbor)) {
+        if (hasCycle(neighbor, pathStack)) return true;
+      } else if (inStack.has(neighbor)) {
+        pathStack.push(neighbor);
+        return true;
+      }
+    }
+
+    inStack.delete(node);
+    pathStack.pop();
+    return false;
+  }
+
+  for (const pkg of adjacencyList.keys()) {
+    if (!visited.has(pkg)) {
+      const cycleStack = [];
+      const cycle = hasCycle(pkg, cycleStack);
+      assert.strictEqual(cycle, false, `Cycle detected in workspace package dependencies: ${cycleStack.join(" -> ")}`);
+    }
+  }
+});
+
+test("Foundation 2: Layer boundaries, zero runtime in compiler, and router boundaries (Gate 12 / D-115)", async () => {
+  const packagesDir = path.join(rootDir, "packages");
+
+  // Router boundary checks (Gate 12 / D-115):
+  if (fs.existsSync(path.join(packagesDir, "router"))) {
+    const routerPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "router", "package.json"), "utf-8"));
+    assert.strictEqual(
+      routerPkg.dependencies?.["@dotmix/runtime"],
+      "0.1.0",
+      "@dotmix/router must depend only on @dotmix/runtime"
+    );
+    const nonMixRuntimeDeps = Object.keys(routerPkg.dependencies || {}).filter(
+      (dep) => dep !== "@dotmix/runtime"
+    );
+    assert.deepStrictEqual(
+      nonMixRuntimeDeps,
+      [],
+      "@dotmix/router must declare ZERO external runtime dependencies"
+    );
+  }
+
+  const diagPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "diagnostics", "package.json"), "utf-8"));
+  assert.deepStrictEqual(diagPkg.dependencies, {}, "@dotmix/diagnostics must declare zero dependencies");
+
+  const compilerPackages = ["ast", "compiler-frontend", "compiler-semantic", "compiler-css", "compiler-codegen"];
+  for (const pkg of compilerPackages) {
+    const pkgPath = path.join(packagesDir, pkg, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const json = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      const allDeps = { ...(json.dependencies || {}), ...(json.devDependencies || {}) };
+      assert.strictEqual(
+        "@dotmix/runtime" in allDeps,
+        false,
+        `Package ${pkg} must not depend on @dotmix/runtime`
+      );
+    }
+  }
+});
+
+test("Foundation 3: @dotmix/runtime zero-dependency boundary and import type erasure in dist", async () => {
+  const runtimePkg = JSON.parse(fs.readFileSync(path.join(rootDir, "packages/runtime/package.json"), "utf-8"));
+  assert.deepStrictEqual(
+    runtimePkg.dependencies,
+    {},
+    "@dotmix/runtime package.json must declare 'dependencies': {}"
+  );
+
+  const runtimeDist = path.join(rootDir, "packages/runtime/dist");
+  assert.strictEqual(
+    fs.existsSync(runtimeDist),
+    true,
+    "packages/runtime/dist must exist (run 'npm run build' before testing)"
+  );
+
+  function checkDir(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        checkDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith(".js") || entry.name.endsWith(".d.ts"))) {
+        const content = fs.readFileSync(fullPath, "utf-8");
+        assert.strictEqual(
+          /from\s+["']@dotmix\/diagnostics["']/.test(content),
+          false,
+          `Compiled runtime artifact ${entry.name} must not contain imports from @dotmix/diagnostics`
+        );
+        assert.strictEqual(
+          /require\s*\(\s*["']@dotmix\/diagnostics["']\s*\)/.test(content),
+          false,
+          `Compiled runtime artifact ${entry.name} must not contain require("@dotmix/diagnostics")`
+        );
+      }
+    }
+  }
+  checkDir(runtimeDist);
+
+  const astDts = path.join(rootDir, "packages/ast/dist/index.d.ts");
+  assert.strictEqual(fs.existsSync(astDts), true, "packages/ast/dist/index.d.ts must exist");
+  const astDtsContent = fs.readFileSync(astDts, "utf-8");
+  assert.strictEqual(
+    /from\s+["'](?!@dotmix\/diagnostics["'])[^."']/.test(astDtsContent),
+    false,
+    "@dotmix/ast index.d.ts must not leak external third-party package imports"
+  );
+});
+
+test("Foundation 4: Runtime and Diagnostics MixError and code parity", async () => {
+  const diagModule = await import("../../node_modules/@dotmix/diagnostics/dist/index.js");
+  const runtimeModule = await import("../../node_modules/@dotmix/runtime/dist/errors.js");
+
+  assert.ok(diagModule.DiagnosticCodes, "@dotmix/diagnostics must export DiagnosticCodes");
+  assert.ok(runtimeModule.DiagnosticCodes, "@dotmix/runtime must export DiagnosticCodes");
+
+  for (const [key, val] of Object.entries(diagModule.DiagnosticCodes)) {
+    assert.strictEqual(
+      runtimeModule.DiagnosticCodes[key],
+      val,
+      `Diagnostic code mismatch for ${key}`
+    );
+  }
+
+  const err1 = new diagModule.MixError(diagModule.DiagnosticCodes.MIX_ERR_DUPLICATE_KEY, "test");
+  const err2 = new runtimeModule.MixError(runtimeModule.DiagnosticCodes.MIX_ERR_DUPLICATE_KEY, "test");
+
+  assert.strictEqual(err1.code, err2.code);
+  assert.strictEqual(err1.message, err2.message);
+  assert.strictEqual(err1.name, err2.name);
+});
+
+test("Foundation 5: Exact version pins across all package manifests (no ^, ~, *, or >=)", async () => {
+  const manifests = [
+    path.join(rootDir, "package.json"),
+    ...fs.readdirSync(path.join(rootDir, "packages"), { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => path.join(rootDir, "packages", d.name, "package.json"))
+  ];
+
+  const semverRangeRegex = /^[\^~*]|>=/;
+
+  for (const manifestPath of manifests) {
+    if (!fs.existsSync(manifestPath)) continue;
+    const json = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    const pkgName = json.name;
+
+    for (const depType of ["dependencies", "devDependencies"]) {
+      const deps = json[depType] || {};
+      for (const [dep, ver] of Object.entries(deps)) {
+        assert.strictEqual(
+          semverRangeRegex.test(ver),
+          false,
+          `Package ${pkgName} ${depType}["${dep}"] = "${ver}" must be an exact pin, not a range`
+        );
+      }
+    }
+  }
+});
+
+test("Foundation 6: All 10 canonical specs and SOURCE_PROVENANCE.md exist without stubs", async () => {
+  const expectedSpecs = [
+    "LANGUAGE.md",
+    "AST.md",
+    "SEMANTICS.md",
+    "RUNTIME_API.md",
+    "CSS_SCOPING.md",
+    "DIAGNOSTICS.md",
+    "SECURITY.md",
+    "TESTING.md",
+    "PERFORMANCE.md",
+    "COMPATIBILITY.md",
+    "SOURCE_PROVENANCE.md",
+    "README.md"
+  ];
+
+  for (const specFile of expectedSpecs) {
+    const specPath = path.join(rootDir, "spec", specFile);
+    assert.strictEqual(fs.existsSync(specPath), true, `spec/${specFile} must exist`);
+    const content = fs.readFileSync(specPath, "utf-8");
+    assert.ok(content.length > 200, `spec/${specFile} must not be empty or a stub`);
+    assert.strictEqual(
+      content.includes("TODO") || content.includes("[Placeholder]") || content.includes("TBD"),
+      false,
+      `spec/${specFile} must not contain placeholder stubs`
+    );
+  }
+});
+
+test("Foundation 7: Guardrail J — No source file in packages/*/src exceeds 500 lines and no no-explicit-any disables", async () => {
+  const packagesDir = path.join(rootDir, "packages");
+  const pkgEntries = fs.readdirSync(packagesDir, { withFileTypes: true }).filter(d => d.isDirectory());
+
+  const walkTsFiles = (dir, out = []) => {
+    if (!fs.existsSync(dir)) return out;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walkTsFiles(fullPath, out);
+      } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+        out.push(fullPath);
+      }
+    }
+    return out;
+  };
+
+  for (const pkg of pkgEntries) {
+    const srcDir = path.join(packagesDir, pkg.name, "src");
+    const tsFiles = walkTsFiles(srcDir);
+    for (const filePath of tsFiles) {
+      const relPath = path.relative(rootDir, filePath).split(path.sep).join("/");
+      const content = fs.readFileSync(filePath, "utf-8");
+      const lineCount = content.split(/\r?\n/).length;
+      assert.ok(
+        lineCount <= 500,
+        `${relPath} has ${lineCount} lines, exceeding the strict 500-line ceiling (Guardrail J)`
+      );
+      assert.strictEqual(
+        content.includes("@typescript-eslint/no-explicit-any"),
+        false,
+        `${relPath} must not disable @typescript-eslint/no-explicit-any (Guardrail J)`
+      );
+    }
+  }
+});

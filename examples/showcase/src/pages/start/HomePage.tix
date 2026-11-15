@@ -1,0 +1,70 @@
+import CounterDemo from "../../components/demos/start/CounterDemo.tix";
+import Callout from "../../components/ui/Callout.tix";
+import CodeBlock from "../../components/ui/CodeBlock.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FeatureGrid, { type FeatureCardItem } from "../../components/ui/FeatureGrid.tix";
+import HomeHero from "../../components/ui/HomeHero.tix";
+
+const FEATURES: readonly FeatureCardItem[] = [
+  {
+    title: "Signals",
+    to: "/features/signals",
+    description: "Signal, computed, memo and effect primitives wired to surgical DOM bindings."
+  },
+  {
+    title: "Directives",
+    to: "/directives/conditionals",
+    description: "Block and component syntax lowered at compile time to static runtime helpers."
+  },
+  {
+    title: "Scoped styles",
+    to: "/features/scoped-styles",
+    description: "Component CSS scoped at compile time with :deep and :global selectors."
+  },
+  {
+    title: "Router",
+    to: "/features/router",
+    description: "Hash and browser history routers with nested layouts, guards and Outlet views."
+  },
+  {
+    title: "Permissions",
+    to: "/features/permissions",
+    description: "Role and policy checks enforced across directives, components and route guards."
+  },
+  {
+    title: "Offline sync",
+    to: "/features/sync",
+    description: "Local-first collections backed by IndexedDB with optimistic updates and conflict handlers."
+  }
+];
+
+const CLI_SNIPPET = `npx -p @dotmix/cli mix create my-app --ts --css
+cd my-app
+npm run dev`;
+
+export default function HomePage() {
+  return (
+    <DocPage title="Home" hideHeader={true}>
+      <HomeHero />
+
+      <DocSection title="Reactivity at a glance">
+        <CodeExample source="start/CounterDemo" title="CounterDemo.tix">
+          <CounterDemo />
+        </CodeExample>
+      </DocSection>
+
+      <DocSection title="Capabilities">
+        <FeatureGrid items={FEATURES} />
+      </DocSection>
+
+      <DocSection title="Create a project">
+        <CodeBlock title="Terminal" language="bash" code={CLI_SNIPPET} />
+        <Callout title="Pre-release package status" tone="note">
+          <p>Packages under the <code>@dotmix/*</code> scope are not yet published to npm. Run CLI, build, and showcase commands inside this workspace checkout.</p>
+        </Callout>
+      </DocSection>
+    </DocPage>
+  );
+}

@@ -1,0 +1,19 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function IsSetBlockDemo() {
+  const member = signal<string | null>(null);
+
+  return (
+    <div>
+      <ActionButton label="Toggle sign-in" onPress={() => member.set(member() === null ? "Ada Lovelace" : null)} />
+
+
+      {isset member() as current}
+        <p>Signed in as {current}</p>
+      {else}
+        <p>Not signed in</p>
+      {endisset}
+    </div>
+  );
+}

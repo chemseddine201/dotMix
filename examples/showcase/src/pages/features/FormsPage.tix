@@ -1,0 +1,21 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import FormsDemo from "../../components/demos/forms/FormsDemo.tix";
+
+export default function FormsPage() {
+  return (
+    <DocPage title="Forms" summary="A form controller tracks values, validation errors, touched and dirty state for every field.">
+      <DocSection title="The form">
+        <p>createForm receives initial values and validators. Errors are shown once a field has been touched or the form was submitted.</p>
+        <SourceView source="stores/signupForm.ts" title="src/stores/signupForm.ts" />
+      </DocSection>
+      <DocSection title="Example">
+        <CodeExample source="forms/FormsDemo">
+          <FormsDemo />
+        </CodeExample>
+      </DocSection>
+    </DocPage>
+  );
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@dotmix/compiler-css",
+  "version": "0.1.0",
+  "description": "Scoped CSS compiler for dotMix components (:global, :deep, preprocessors)",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/compiler-css"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@dotmix/diagnostics": "0.1.0",
+    "@dotmix/ast": "0.1.0",
+    "css-tree": "3.1.0"
+  },
+  "peerDependencies": {
+    "sass": "^1.80.6",
+    "less": "^4.2.1",
+    "postcss": "^8.4.49"
+  },
+  "peerDependenciesMeta": {
+    "sass": {
+      "optional": true
+    },
+    "less": {
+      "optional": true
+    },
+    "postcss": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
+}

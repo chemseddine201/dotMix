@@ -1,0 +1,26 @@
+import "./FeatureGrid.css";
+import { Link } from "@dotmix/router";
+
+export interface FeatureCardItem {
+  title: string;
+  to: string;
+  description: string;
+}
+
+interface FeatureGridProps {
+  items: readonly FeatureCardItem[];
+}
+
+export default function FeatureGrid(props: FeatureGridProps) {
+  return (
+    <div class="feature-grid">
+      {each (item, index, item.to) in props.items}
+        <Link to={item.to} class="feature-card">
+          <h3 class="feature-card-title">{item.title}</h3>
+          <p class="feature-card-body">{item.description}</p>
+        </Link>
+      {endeach}
+    </div>
+  );
+}
+

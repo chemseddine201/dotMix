@@ -1,0 +1,138 @@
+import { syncCollection, getDefaultSyncEngine, BroadcastChannelTransport } from "@dotmix/sync";
+import "./TasksPage.css";
+
+export default function TasksPage() {
+  const engine = getDefaultSyncEngine();
+  if (typeof window !== "undefined" && !window.__MIX_TEST_ENV__ && !window.__mix_tasks_channel_set) {
+    window.__mix_tasks_channel_set = true;
+    engine.setChannel(new BroadcastChannelTransport("mix_showcase_tasks"));
+  }
+
+  const taskStore = syncCollection("showcase-tasks", {
+    driver: "indexeddb",
+    initialItems: [
+      { id: "t-1", title: "Compile AST directly to surgical DOM", done: true, priority: 1 },
+      { id: "t-2", title: "Verify O(N log N) LIS minimal DOM movement", done: true, priority: 2 },
+      { id: "t-3", title: "Ship React Router v6/v7 Parity Engine", done: true, priority: 1 },
+      { id: "t-4", title: "Ship Local-First Offline CRDT Sync Engine (@dotmix/sync)", done: false, priority: 1 }
+    ]
+  });
+
+  const tasks = taskStore.items;
+  const draftTitle = signal("");
+  const filter = signal("all");
+
+  const total = computed(() => tasks().length);
+  const completed = computed(() => tasks().filter((t) => t.done).length);
+  const pending = computed(() => total() - completed());
+
+  const visibleTasks = computed(() => {
+    const f = filter();
+    const list = tasks();
+    if (f === "active") return list.filter((t) => !t.done);
+    if (f === "done") return list.filter((t) => t.done);
+    return list;
+  });
+
+  function handleInput(e) {
+    draftTitle.set(e.target.value);
+  }
+
+  let taskSequence = 0;
+  function generateTaskId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return `t-${crypto.randomUUID()}`;
+    }
+    return `t-${Date.now()}-${++taskSequence}`;
+  }
+
+  function addTask() {
+    const title = draftTitle().trim() || `Sprint Task #${total() + 1}`;
+    taskStore.insert({ id: generateTaskId(), title, done: false, priority: 1 });
+    draftTitle.set("");
+    filter.set("all");
+  }
+
+  function toggleTask(id) {
+    const t = tasks().find((item) => item.id === id);
+    if (t) {
+      taskStore.update(id, { done: !t.done });
+    }
+  }
+
+  function deleteTask(id, e) {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
+    taskStore.delete(id);
+  }
+
+  function rotateList() {
+    const list = tasks();
+    if (list.length > 1) {
+      taskStore.reorder(0, list.length - 1);
+    }
+  }
+
+  function toggleNetwork() {
+    if (engine.isOnline()) {
+      engine.goOffline();
+    } else {
+      engine.goOnline();
+    }
+  }
+
+  return (
+    <div class="page-tasks">
+      <div class="tasks-header">
+        <div class="header-titles">
+          <h2>📋 Local-First Task Board (@dotmix/sync CRDT)</h2>
+          <p>Instant 0ms mutations, IndexedDB persistence, cross-tab BroadcastChannel, and LIS minimal DOM movements.</p>
+        </div>
+        <div class="sync-banner">
+          <div class="sync-status">
+            <span class={"status-indicator " + engine.status()}></span>
+            <span class="status-label">
+              Network: <strong>{engine.isOnline() ? "Online" : "Simulated Offline"}</strong>
+              {" · Store: "}
+              <span class={"sync-badge " + taskStore.status()}>{taskStore.status().toUpperCase()}</span>
+              {taskStore.pendingCount() > 0 ? ` (${taskStore.pendingCount()} buffered in DB)` : ""}
+            </span>
+          </div>
+          <button class={"btn-network " + (engine.isOnline() ? "btn-disconnect" : "btn-connect")} onClick={toggleNetwork}>
+            {engine.isOnline() ? "🔌 Disconnect (Simulate Offline)" : "⚡ Reconnect & Flush Queue"}
+          </button>
+        </div>
+      </div>
+
+      <div class="composer-bar">
+        <input
+          class="task-input"
+          type="text"
+          value={draftTitle()}
+          placeholder="New sprint task title..."
+          onInput={handleInput}
+        />
+        <button class="btn-primary" onClick={addTask}>+ Add Task</button>
+        <button class="btn-secondary" onClick={rotateList}>Rotate Order (LIS)</button>
+      </div>
+
+      <div class="filter-bar">
+        <button class={"tab-btn " + (filter() === "all" ? "active" : "")} onClick={() => filter.set("all")}>All ({total()})</button>
+        <button class={"tab-btn " + (filter() === "active" ? "active" : "")} onClick={() => filter.set("active")}>Active ({pending()})</button>
+        <button class={"tab-btn " + (filter() === "done" ? "active" : "")} onClick={() => filter.set("done")}>Done ({completed()})</button>
+      </div>
+
+      <ul class="task-list">
+        {each (task, idx) in visibleTasks()}
+          <li class={"task-item " + (task.done ? "is-done" : "")} data-id={task.id} onClick={() => toggleTask(task.id)}>
+            <span class="task-num">#{idx + 1}</span>
+            <span class="task-text">{task.title}</span>
+            <span class="task-status">{task.done ? "✓ Done" : "○ Pending"}</span>
+            <button class="btn-delete" onClick={(e) => deleteTask(task.id, e)} title="Delete task">×</button>
+          </li>
+        {endeach}
+      </ul>
+    </div>
+  );
+}

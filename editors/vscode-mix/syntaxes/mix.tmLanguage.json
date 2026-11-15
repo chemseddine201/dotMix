@@ -1,0 +1,247 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Mix",
+  "scopeName": "source.mix",
+  "patterns": [
+    {
+      "include": "#script-tag"
+    },
+    {
+      "include": "#style-tag"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#control-flow"
+    },
+    {
+      "include": "#dynamic-element"
+    },
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#builtin-components"
+    },
+    {
+      "include": "#functional-js-ts"
+    }
+  ],
+  "injections": {
+    "source.mix, source.tsx, source.js.jsx": {
+      "patterns": [
+        {
+          "include": "#control-flow"
+        },
+        {
+          "include": "#dynamic-element"
+        },
+        {
+          "include": "#directives"
+        },
+        {
+          "include": "#builtin-components"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.html",
+          "begin": "<!--",
+          "end": "-->"
+        }
+      ]
+    },
+    "script-tag": {
+      "begin": "(<)(script)(?![a-zA-Z0-9_-])([^>]*)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.html" },
+        "3": { "name": "meta.tag.attributes.html" },
+        "4": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "end": "(</)(script)(>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.html" },
+        "3": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "patterns": [
+        {
+          "include": "source.tsx"
+        },
+        {
+          "include": "source.ts"
+        },
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "style-tag": {
+      "begin": "(<)(style)(?![a-zA-Z0-9_-])([^>]*)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.html" },
+        "3": { "name": "meta.tag.attributes.html" },
+        "4": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "end": "(</)(style)(>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.html" },
+        "3": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "patterns": [
+        {
+          "include": "source.css.scss"
+        },
+        {
+          "include": "source.css.less"
+        },
+        {
+          "include": "source.css"
+        }
+      ]
+    },
+    "control-flow": {
+      "patterns": [
+        {
+          "name": "keyword.control.mix",
+          "match": "\\{(?:if|elseif|else|endif|each|endeach|await|then|catch|endawait|unless|endunless|isset|endisset|isempty|endisempty|switch|case|default|endswitch|empty|for|endfor|auth|endauth|guest|endguest|can|elsecan|endcan|cannot|endcannot|canany|endcanany|dev|enddev|production|endproduction|env|endenv|context|endcontext|error|enderror|errors|enderrors|valid|endvalid|csrf|method|section|endsection|yield|endyield|hassection|endhassection|sectionmissing|endsectionmissing|push|endpush|prepend|endprepend|stack|include|includefirst|endincludefirst|once|endonce|memo|endmemo|lazy|endlazy|keepalive|endkeepalive|session|endsession|partial|endpartial|json|dump|verbatim|endverbatim)(?=[\\s}])"
+        },
+        {
+          "name": "keyword.control.mix",
+          "match": "\\{(?:continue|break)\\s+if(?=[\\s(])"
+        },
+        {
+          "name": "keyword.control.legacy.mix",
+          "match": "\\{(?:#(?:if|each|await)|:(?:else|then|catch)|\\/(?:if|each|await))(?=[\\s}])"
+        },
+        {
+          "name": "keyword.operator.iteration.mix",
+          "match": "\\b(in|as|on|if|unless|from|to|step|times|role|render|with|once|by|field|max|visible|idle)\\b"
+        }
+      ]
+    },
+    "dynamic-element": {
+      "patterns": [
+        {
+          "name": "tag.dynamic.mix",
+          "begin": "(</?\\$)([$a-zA-Z0-9_.-]+|\\{[^}]+\\})",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.tag.begin.mix" },
+            "2": { "name": "entity.name.tag.dynamic.mix" }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.tag.end.mix" }
+          },
+          "patterns": [
+            {
+              "include": "#directives"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "name": "tag.dynamic.legacy.mix",
+          "begin": "(</?~)([^>\\s]+)",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.tag.begin.legacy.mix" },
+            "2": { "name": "entity.name.tag.dynamic.legacy.mix" }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.tag.end.mix" }
+          },
+          "patterns": [
+            {
+              "include": "#directives"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "name": "entity.name.tag.dynamic.mix",
+          "match": "<\\/?\\$[a-zA-Z0-9_$.]+(?:\\s*\\/)?>"
+        },
+        {
+          "name": "entity.name.tag.dynamic.expr.mix",
+          "match": "<\\/?\\$\\{[^}]+\\}(?:\\s*\\/)?>"
+        },
+        {
+          "name": "entity.name.tag.dynamic.legacy.mix",
+          "match": "<\\/?\\~[^>]+>"
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "name": "support.type.directive.modifier.mix",
+          "match": "(?:spread:if\\b|(?:@[a-zA-Z0-9_.-]+|on:[a-zA-Z0-9_.-]+):(?:if|unless|else)\\b|[a-zA-Z_$][a-zA-Z0-9_$-]*:(?:if|unless|else|match|case-[a-zA-Z0-9_]+)\\b)"
+        },
+        {
+          "name": "support.type.directive.mix",
+          "match": "(?:bind:[a-zA-Z0-9_-]+|class:[a-zA-Z0-9_-]+|style:[a-zA-Z0-9_-]+|on:[a-zA-Z0-9_.-]+|@[a-zA-Z0-9_.-]+)"
+        }
+      ]
+    },
+    "builtin-components": {
+      "patterns": [
+        {
+          "name": "support.class.component.mix",
+          "match": "<\\/?(If|ElseIf|Else|Unless|IsSet|IsEmpty|Switch|Case|Default|Each|Empty|For|Await|Auth|AuthProvider|Guest|Can|ElseCan|Cannot|CanAny|Dev|Production|Env|Context|FieldError|FormErrors|FieldValid|Csrf|Method|Section|Yield|HasSection|SectionMissing|Push|Prepend|Stack|Head|Title|Meta|Link|Include|IncludeFirst|Once|Memo|Lazy|KeepAlive|Session|Partial|Json|Dump|Verbatim|RouterView|Outlet|Teleport|Transition)\\b"
+        }
+      ]
+    },
+    "interpolations": {
+      "patterns": [
+        {
+          "include": "#control-flow"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "html-tags": {
+      "patterns": [
+        {
+          "include": "#dynamic-element"
+        },
+        {
+          "include": "#builtin-components"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "functional-js-ts": {
+      "patterns": [
+        {
+          "include": "source.tsx"
+        },
+        {
+          "include": "source.ts"
+        },
+        {
+          "include": "source.js.jsx"
+        },
+        {
+          "include": "source.js"
+        }
+      ]
+    }
+  }
+}

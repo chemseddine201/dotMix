@@ -1,0 +1,28 @@
+{
+  "name": "@dotmix/language-server",
+  "version": "0.1.0",
+  "description": "Language Server Protocol implementation for Mix/Tix",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/language-server"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "dotmix-lsp": "bin/dotmix-lsp.js",
+    "mix-lsp": "bin/dotmix-lsp.js"
+  },
+  "dependencies": {
+    "@dotmix/compiler-frontend": "0.1.0",
+    "@dotmix/compiler-semantic": "0.1.0",
+    "@dotmix/diagnostics": "0.1.0",
+    "typescript": "6.0.3"
+  },
+  "license": "MIT"
+}

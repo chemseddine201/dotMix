@@ -1,0 +1,25 @@
+{
+  "name": "@dotmix/diagnostics",
+  "version": "0.1.0",
+  "description": "Shared diagnostic classes, codes and source spans for the dotMix toolchain",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/diagnostics"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {},
+  "license": "MIT"
+}

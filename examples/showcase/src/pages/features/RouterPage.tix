@@ -1,0 +1,35 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import RouterDemo from "../../components/demos/router/RouterDemo.tix";
+
+const rows2 = [
+  { name: "path", type: "string", description: "The pattern. :id captures a parameter and * a remainder." },
+  { name: "component", type: "Component", description: "The component rendered for the route." },
+  { name: "loader", type: "(context) => data", description: "Runs before the route renders. Read with useLoaderData." },
+  { name: "beforeEnter", type: "(to, from) => boolean | string", description: "Return false to cancel or a path to redirect." },
+  { name: "permissions", type: "{ action, subject, redirectTo }", description: "Checked against the router ability before entering." },
+  { name: "meta", type: "object", description: "Free data on the route. This app stores the page title, section and order." }
+];
+
+export default function RouterPage() {
+  return (
+    <DocPage title="Router" summary="Routes map paths to components. Loaders fetch data before a route renders and guards can redirect navigation.">
+      <DocSection title="This app's routes">
+        <p>routes.ts is the route table of this very site. The sidebar is generated from the meta of each route.</p>
+        <SourceView source="routes.ts" title="src/routes.ts" />
+      </DocSection>
+      <DocSection title="Loaders and guards">
+        <p>The demo below runs its own in-memory router. The profile route has a loader that returns data for the component. The admin route has a guard that redirects to the home route until access is granted.</p>
+        <CodeExample source="router/RouterDemo">
+          <RouterDemo />
+        </CodeExample>
+      </DocSection>
+      <DocSection title="Route options">
+        <PropTable rows={rows2} />
+      </DocSection>
+    </DocPage>
+  );
+}

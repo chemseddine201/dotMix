@@ -1,0 +1,13 @@
+import "./Badge.css";
+
+interface BadgeProps {
+  tone?: "neutral" | "success" | "warning" | "danger" | "info";
+}
+
+export default function Badge(props: BadgeProps) {
+  return (
+    <span class={["badge", "badge-" + (props.tone ?? "neutral")]}>
+      <slot />
+    </span>
+  );
+}

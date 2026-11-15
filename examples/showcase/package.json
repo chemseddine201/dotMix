@@ -1,0 +1,11 @@
+{
+  "name": "dotmix-showcase",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/copy-demo-sources.mjs && mix dev",
+    "build": "node scripts/copy-demo-sources.mjs && mix build src dist --clean",
+    "check": "mix check src"
+  }
+}

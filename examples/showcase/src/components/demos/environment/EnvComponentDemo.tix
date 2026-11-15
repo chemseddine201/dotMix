@@ -1,0 +1,21 @@
+import Badge from "../../ui/Badge.tix";
+import { Dev, Production, Env, Else } from "@dotmix/runtime/directives";
+
+export default function EnvComponentDemo() {
+  return (
+    <div>
+      <Dev>
+        <Badge tone="warning">Development build</Badge>
+      </Dev>
+      <Production>
+        <Badge tone="success">Production build</Badge>
+      </Production>
+      <Env is={["development", "staging"]}>
+        <Badge tone="info">Pre-release environment</Badge>
+        <Else>
+          <Badge>Release environment</Badge>
+        </Else>
+      </Env>
+    </div>
+  );
+}

@@ -1,0 +1,209 @@
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--header-height);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header-inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.icon-button,
+.desktop-sidebar-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.icon-button:hover,
+.desktop-sidebar-toggle:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.desktop-sidebar-toggle {
+  display: none;
+}
+
+.header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: var(--font-size-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-brand:hover {
+  text-decoration: none;
+}
+
+.header-release-badge {
+  display: none;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-round);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.search-trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 32px;
+  min-width: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.search-trigger:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.search-trigger-label,
+.search-trigger-kbd {
+  display: none;
+}
+
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background-color: var(--color-surface-muted);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.theme-option {
+  appearance: none;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--color-text-muted);
+  padding: 3px 5px;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.theme-option:hover {
+  color: var(--color-text);
+}
+
+.theme-option-active {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  color: var(--color-text);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.github-link:hover {
+  background-color: var(--color-surface-hover);
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .site-header-inner {
+    padding: 0 var(--space-4);
+  }
+
+  .header-left,
+  .header-right {
+    gap: var(--space-2);
+  }
+
+  .header-release-badge {
+    display: inline-block;
+  }
+
+  .search-trigger {
+    padding: 0 var(--space-3);
+  }
+
+  .search-trigger-label {
+    display: inline;
+  }
+
+  .search-trigger-kbd {
+    display: inline-block;
+    padding: 0 5px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: var(--color-surface);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-caption);
+  }
+
+  .theme-option {
+    padding: 3px var(--space-2);
+  }
+}
+
+@media (min-width: 900px) {
+  .mobile-menu-button {
+    display: none;
+  }
+
+  .desktop-sidebar-toggle {
+    display: inline-flex;
+  }
+}
+

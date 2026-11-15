@@ -1,0 +1,31 @@
+import { signal, computed, createEffect, batch } from "@dotmix/runtime";
+import ActionButton from "../../ui/ActionButton.tix";
+
+export default function SignalsDemo() {
+  const price = signal<number>(20);
+  const quantity = signal<number>(2);
+  const total = computed(() => price() * quantity());
+  const effectRuns = signal<number>(0);
+
+  createEffect(() => {
+    total();
+    effectRuns.set(effectRuns.peek() + 1);
+  });
+
+  function applyBulkOrder(): void {
+    batch(() => {
+      price.set(15);
+      quantity.set(10);
+    });
+  }
+
+  return (
+    <div>
+      <ActionButton label="Price +5" onPress={() => price.set(price() + 5)} />
+      <ActionButton label="Quantity +1" onPress={() => quantity.set(quantity() + 1)} />
+      <ActionButton label="Bulk order (batched)" onPress={applyBulkOrder} />
+      <p>Price {price()} * quantity {quantity()} = total {total()}</p>
+      <p>The effect has run {effectRuns()} time(s).</p>
+    </div>
+  );
+}

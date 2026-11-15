@@ -1,0 +1,177 @@
+import "./SearchModal.css";
+import { computed, createEffect, createRef, signal } from "@dotmix/runtime";
+import { useNavigate } from "@dotmix/router";
+import { filterNavigationRoutes, type NavEntry } from "../../layouts/navigation.js";
+import { routes } from "../../routes.js";
+
+interface SearchModalProps {
+  onClose: () => void;
+}
+
+export default function SearchModal(props: SearchModalProps) {
+  const navigate = useNavigate();
+  const query = signal<string>("");
+  const selectedIndex = signal<number>(0);
+  const inputRef = createRef<HTMLInputElement>();
+  const closeButtonRef = createRef<HTMLButtonElement>();
+  const listRef = createRef<HTMLUListElement>();
+
+  const results = computed<NavEntry[]>(() => filterNavigationRoutes(routes, query()));
+
+  createEffect(() => {
+    const len = results().length;
+    if (len === 0) {
+      selectedIndex.set(0);
+    } else if (selectedIndex() >= len) {
+      selectedIndex.set(0);
+    }
+  });
+
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(() => {
+      inputRef.current?.focus();
+    });
+  }
+
+  function selectEntry(entry: NavEntry): void {
+    navigate(entry.path);
+    props.onClose();
+  }
+
+  function scrollSelectedIntoView(index: number): void {
+    const items = listRef.current?.querySelectorAll("button");
+    const target = items?.[index];
+    if (target && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function handleDialogKeyDown(event: KeyboardEvent): void {
+    const list = results();
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onClose();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (list.length > 0) {
+        const next = (selectedIndex() + 1) % list.length;
+        selectedIndex.set(next);
+        scrollSelectedIntoView(next);
+      }
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (list.length > 0) {
+        const next = (selectedIndex() - 1 + list.length) % list.length;
+        selectedIndex.set(next);
+        scrollSelectedIntoView(next);
+      }
+      return;
+    }
+    if (event.key === "Enter") {
+      const target = list[selectedIndex()];
+      if (target && document.activeElement === inputRef.current) {
+        event.preventDefault();
+        selectEntry(target);
+      }
+      return;
+    }
+    if (event.key === "Tab") {
+      const inputEl = inputRef.current;
+      const closeEl = closeButtonRef.current;
+      if (event.shiftKey && document.activeElement === inputEl) {
+        event.preventDefault();
+        closeEl?.focus();
+      } else if (!event.shiftKey && document.activeElement === closeEl) {
+        event.preventDefault();
+        inputEl?.focus();
+      }
+    }
+  }
+
+  function handleBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      props.onClose();
+    }
+  }
+
+  return (
+    <div class="search-backdrop" onClick={handleBackdropClick}>
+      <div
+        class="search-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search documentation"
+        onKeyDown={handleDialogKeyDown}
+      >
+        <div class="search-input-row">
+          <svg
+            class="search-input-icon"
+            viewBox="0 0 18 18"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="8" cy="8" r="5.5" />
+            <path d="M12.2 12.2L15.8 15.8" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            class="search-input"
+            placeholder="Search pages, directives, or features..."
+            aria-label="Search documentation"
+            value={query()}
+            onInput={(event: Event) => {
+              const target = event.target as HTMLInputElement;
+              query.set(target.value);
+              selectedIndex.set(0);
+            }}
+          />
+          <button
+            ref={closeButtonRef}
+            type="button"
+            class="search-close-button"
+            onClick={() => props.onClose()}
+          >
+            Esc
+          </button>
+        </div>
+
+        {if (results().length > 0)}
+          <ul ref={listRef} class="search-results" role="listbox" aria-label="Search results">
+            {each (entry, index, entry.path) in results()}
+              <li role="option" aria-selected={index === selectedIndex() ? "true" : "false"}>
+                <button
+                  type="button"
+                  class={{ "search-result-button": true, "search-result-selected": index === selectedIndex() }}
+                  onClick={() => selectEntry(entry)}
+                >
+                  <span class="search-result-title">{entry.title}</span>
+                  <span class="search-result-section">{entry.section}</span>
+                </button>
+              </li>
+            {endeach}
+          </ul>
+        {else}
+          <p class="search-empty">No matching showcase pages found.</p>
+        {endif}
+
+        <div class="search-footer">
+          <span>Use Up and Down to navigate</span>
+          <span>Enter to open</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+

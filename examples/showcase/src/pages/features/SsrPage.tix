@@ -1,0 +1,47 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import CodeText from "../../components/ui/CodeText.tix";
+
+const code0 = [
+  "import { renderToString } from \"@dotmix/server-node\";",
+  "import App from \"./dist-ssr/App.js\";",
+  "",
+  "const page = renderToString(App, { props: { title: \"Home\" } });",
+  "const fragment = renderToString(App, { partial: \"task-row\" });"
+].join(String.fromCharCode(10));
+
+const code1 = [
+  "import { createSsrServer } from \"@dotmix/server-node\";",
+  "",
+  "const handle = await createSsrServer({",
+  "  port: 3000,",
+  "  title: \"dotMix\",",
+  "  render: (context) => renderApp(context.url)",
+  "});"
+].join(String.fromCharCode(10));
+
+const code2 = [
+  "import { renderToWebStream } from \"@dotmix/stream\";",
+  "",
+  "const stream = renderToWebStream({ title: \"dotMix\" }, webContext);",
+  "return new Response(stream, { headers: { \"Content-Type\": \"text/html; charset=utf-8\" } });"
+].join(String.fromCharCode(10));
+
+export default function SsrPage() {
+  return (
+    <DocPage title="SSR and streaming" summary="Components can be rendered to HTML on the server and streamed to the client. Code only; this site runs in the browser.">
+      <DocSection title="Render to a string">
+        <p>renderToString from @dotmix/server-node renders a compiled server component. The partial option returns only the region named by a partial directive.</p>
+        <CodeText code={code0} title="Server" />
+      </DocSection>
+      <DocSection title="HTTP server">
+        <p>createSsrServer starts a server that renders on every request and can provide a request context with the session and the CSRF token.</p>
+        <CodeText code={code1} title="Server" />
+      </DocSection>
+      <DocSection title="Streaming">
+        <p>renderToWebStream from @dotmix/stream produces a standard ReadableStream of HTML chunks, for example for an edge runtime.</p>
+        <CodeText code={code2} title="Edge" />
+      </DocSection>
+    </DocPage>
+  );
+}

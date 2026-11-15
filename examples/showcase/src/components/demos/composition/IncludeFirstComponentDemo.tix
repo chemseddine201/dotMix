@@ -1,0 +1,27 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal, computed } from "@dotmix/runtime";
+import StatusCard from "./StatusCard.tix";
+import AlternateCard from "./AlternateCard.tix";
+import { IncludeFirst, Else } from "@dotmix/runtime/directives";
+
+export default function IncludeFirstComponentDemo() {
+  function loaderFor(component: unknown): () => unknown {
+    return () => component;
+  }
+
+  const preferAlternate = signal<boolean>(false);
+  const candidates = computed(() => [loaderFor(preferAlternate() ? AlternateCard : null), loaderFor(StatusCard)]);
+
+  return (
+    <div>
+      <ActionButton label="Toggle preference" onPress={() => preferAlternate.set(!preferAlternate())} />
+
+
+      <IncludeFirst candidates={candidates()} props={{ title: "First available" }} pending={<p>Loading...</p>}>
+        <Else>
+          <p>No component available</p>
+        </Else>
+      </IncludeFirst>
+    </div>
+  );
+}

@@ -1,0 +1,9 @@
+import { Verbatim } from "@dotmix/runtime/directives";
+
+export default function VerbatimComponentDemo() {
+  return (
+    <div>
+      <Verbatim>Use {each item in list} ... {endeach} to loop.</Verbatim>
+    </div>
+  );
+}

@@ -1,0 +1,54 @@
+import "./PropTable.css";
+
+export interface PropRow {
+  name: string;
+  type: string;
+  required?: boolean;
+  defaultValue?: string;
+  description: string;
+}
+
+interface PropTableProps {
+  rows: PropRow[];
+}
+
+export default function PropTable(props: PropTableProps) {
+  return (
+    <div class="prop-table-wrap">
+      <table class="prop-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {each (row, index, row.name) in props.rows}
+            <tr>
+              <td><code class="prop-name">{row.name}</code></td>
+              <td><code class="prop-type">{row.type}</code></td>
+              <td>
+                {if (row.required)}
+                  <span class="prop-required">Required</span>
+                {else}
+                  <span class="prop-optional">Optional</span>
+                {endif}
+              </td>
+              <td>
+                {if (row.defaultValue)}
+                  <code>{row.defaultValue}</code>
+                {else}
+                  <span class="prop-empty">-</span>
+                {endif}
+              </td>
+              <td>{row.description}</td>
+            </tr>
+          {endeach}
+        </tbody>
+      </table>
+    </div>
+  );
+}

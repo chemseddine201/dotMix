@@ -1,0 +1,176 @@
+{
+  "dotMix Functional Component (TypeScript)": {
+    "prefix": ["tix-comp", "mix-comp-ts"],
+    "body": [
+      "import { createSignal } from \"@dotmix/runtime\";",
+      "",
+      "export interface ${TM_FILENAME_BASE}Props {",
+      "  ${1:title}: ${2:string};",
+      "}",
+      "",
+      "export default function ${TM_FILENAME_BASE}(props: ${TM_FILENAME_BASE}Props) {",
+      "  const ${3:count} = createSignal(${4:0});",
+      "",
+      "  return (",
+      "    <div class=\"${5:${TM_FILENAME_BASE/(.*)/${1:/downcase}/}}\">",
+      "      <h2>{props.${1:title}}</h2>",
+      "      <p>Count: {${3:count}()}</p>",
+      "      $0",
+      "    </div>",
+      "  );",
+      "}"
+    ],
+    "description": "Create a dotMix Functional Component with TypeScript Props interface"
+  },
+  "dotMix Functional Component (JavaScript)": {
+    "prefix": ["mix-comp", "mix-comp-js"],
+    "body": [
+      "import { createSignal } from \"@dotmix/runtime\";",
+      "",
+      "export default function ${TM_FILENAME_BASE}(props) {",
+      "  const ${1:count} = createSignal(${2:0});",
+      "",
+      "  return (",
+      "    <div class=\"${3:${TM_FILENAME_BASE/(.*)/${1:/downcase}/}}\">",
+      "      <h2>{props.${4:title} || \"${TM_FILENAME_BASE}\"}</h2>",
+      "      <p>Count: {${1:count}()}</p>",
+      "      $0",
+      "    </div>",
+      "  );",
+      "}"
+    ],
+    "description": "Create a dotMix Functional Component in JavaScript"
+  },
+  "dotMix Single File Component": {
+    "prefix": ["mix-sfc"],
+    "body": [
+      "<script>",
+      "  import { createSignal } from \"@dotmix/runtime\";",
+      "  const ${1:count} = createSignal(${2:0});",
+      "</script>",
+      "",
+      "<div class=\"${3:container}\">",
+      "  <button onClick={() => ${1:count}.set(c => c + 1)}>Count: {${1:count}()}</button>",
+      "  $0",
+      "</div>",
+      "",
+      "<style>",
+      "  .${3:container} {",
+      "    display: flex;",
+      "    gap: 0.5rem;",
+      "  }",
+      "</style>"
+    ],
+    "description": "Create a dotMix Single File Component with script, template, and style"
+  },
+  "createSignal": {
+    "prefix": ["signal", "mix-signal"],
+    "body": [
+      "const ${1:state} = createSignal(${2:initialValue});"
+    ],
+    "description": "Create a reactive signal"
+  },
+  "createComputed": {
+    "prefix": ["computed", "mix-computed"],
+    "body": [
+      "const ${1:derived} = createComputed(() => ${2:expression});"
+    ],
+    "description": "Create a derived computed signal"
+  },
+  "createEffect": {
+    "prefix": ["effect", "mix-effect"],
+    "body": [
+      "createEffect(() => {",
+      "  $0",
+      "});"
+    ],
+    "description": "Create a reactive side-effect"
+  },
+  "Conditional Block": {
+    "prefix": ["if", "mix-if"],
+    "body": [
+      "{if ${1:condition}}",
+      "  $0",
+      "{endif}"
+    ],
+    "description": "dotMix {if} conditional block"
+  },
+  "Conditional Else Block": {
+    "prefix": ["ifelse", "mix-ifelse"],
+    "body": [
+      "{if ${1:condition}}",
+      "  $2",
+      "{else}",
+      "  $0",
+      "{endif}"
+    ],
+    "description": "dotMix {if ...} {else} {endif} conditional block"
+  },
+  "Conditional ElseIf Block": {
+    "prefix": ["ifelseif", "mix-ifelseif"],
+    "body": [
+      "{if ${1:condition}}",
+      "  $2",
+      "{elseif ${3:condition2}}",
+      "  $4",
+      "{else}",
+      "  $0",
+      "{endif}"
+    ],
+    "description": "dotMix {if ...} {elseif ...} {else} {endif} conditional block"
+  },
+  "Each Loop Block": {
+    "prefix": ["each", "mix-each"],
+    "body": [
+      "{each (${1:item}, ${2:idx}) in ${3:list}}",
+      "  $0",
+      "{endeach}"
+    ],
+    "description": "dotMix {each ... in ...} iteration block"
+  },
+  "Await Async Block": {
+    "prefix": ["await", "mix-await"],
+    "body": [
+      "{await ${1:promise}}",
+      "  <p class=\"loading\">Loading...</p>",
+      "{then ${2:data}}",
+      "  $0",
+      "{catch ${3:error}}",
+      "  <p class=\"error\">{${3:error}.message}</p>",
+      "{endawait}"
+    ],
+    "description": "dotMix {await ...} {then ...} {catch ...} {endawait} async block"
+  },
+  "Permission Can Gate": {
+    "prefix": ["can", "mix-can"],
+    "body": [
+      "<Can I=\"${1:edit}\" this={${2:subject}} fallback={<span class=\"badge\">Read Only</span>}>",
+      "  $0",
+      "</Can>"
+    ],
+    "description": "dotMix <Can> fine-grained reactive permission gate"
+  },
+  "Dynamic Element Tag": {
+    "prefix": ["dyn", "mix-dyn"],
+    "body": [
+      "<$${1:tagName} class=\"$2\">",
+      "  $0",
+      "</$${1:tagName}>"
+    ],
+    "description": "dotMix <$tagName> dynamic element"
+  },
+  "Two-Way Input Value Binding": {
+    "prefix": ["bind-value", "bind:value"],
+    "body": [
+      "bind:value={${1:signal}}"
+    ],
+    "description": "dotMix two-way input value binding"
+  },
+  "Two-Way Checkbox Checked Binding": {
+    "prefix": ["bind-checked", "bind:checked"],
+    "body": [
+      "bind:checked={${1:signal}}"
+    ],
+    "description": "dotMix two-way checkbox checked binding"
+  }
+}

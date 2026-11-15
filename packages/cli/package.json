@@ -1,0 +1,47 @@
+{
+  "name": "@dotmix/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for Mix/Tix framework",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/cli"
+  },
+  "type": "module",
+  "bin": {
+    "mix": "dist/bin.js",
+    "dotmix": "dist/bin.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@dotmix/compiler-frontend": "0.1.0",
+    "@dotmix/compiler-semantic": "0.1.0",
+    "@dotmix/compiler-codegen": "0.1.0",
+    "@dotmix/compiler-css": "0.1.0",
+    "@dotmix/diagnostics": "0.1.0",
+    "@dotmix/vite-plugin": "0.1.0"
+  },
+  "peerDependencies": {
+    "sass": "^1.80.6",
+    "less": "^4.2.1",
+    "postcss": "^8.4.49"
+  },
+  "peerDependenciesMeta": {
+    "sass": {
+      "optional": true
+    },
+    "less": {
+      "optional": true
+    },
+    "postcss": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,22 @@
+import { signal } from "@dotmix/runtime";
+
+export default function Counter(props = {}) {
+  const count = signal(0);
+  const inc = () => {
+    count.set(count() + 1);
+  };
+
+  return (
+    <div class="counter-box" id={props.id || "counter"}>
+      <span class="count-value">Count: {count()}</span>
+      <button class="inc-btn" onClick={inc}>Increment</button>
+    </div>
+  );
+}
+
+<style>
+  .counter-box {
+    padding: 10px;
+    border: 1px solid #ccc;
+  }
+</style>

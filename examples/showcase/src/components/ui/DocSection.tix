@@ -1,0 +1,29 @@
+import "./DocSection.css";
+import { onCleanup, useContext } from "@dotmix/runtime";
+import { createSectionId, TocContext } from "./tocContext.js";
+
+interface DocSectionProps {
+  title: string;
+}
+
+let fallbackSectionSeq = 1;
+
+export default function DocSection(props: DocSectionProps) {
+  const toc = useContext(TocContext);
+  const entry = toc
+    ? toc.register(props.title)
+    : { id: createSectionId(props.title, fallbackSectionSeq++), title: props.title };
+
+  if (toc) {
+    onCleanup(() => {
+      toc.unregister(entry.id);
+    });
+  }
+
+  return (
+    <section id={entry.id} class="doc-section">
+      <h2 class="doc-section-heading">{props.title}</h2>
+      <slot />
+    </section>
+  );
+}

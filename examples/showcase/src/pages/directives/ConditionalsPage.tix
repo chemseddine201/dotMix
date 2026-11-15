@@ -1,0 +1,97 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import IfBlockDemo from "../../components/demos/conditionals/IfBlockDemo.tix";
+import IfComponentDemo from "../../components/demos/conditionals/IfComponentDemo.tix";
+import UnlessBlockDemo from "../../components/demos/conditionals/UnlessBlockDemo.tix";
+import UnlessComponentDemo from "../../components/demos/conditionals/UnlessComponentDemo.tix";
+import IsSetBlockDemo from "../../components/demos/conditionals/IsSetBlockDemo.tix";
+import IsSetComponentDemo from "../../components/demos/conditionals/IsSetComponentDemo.tix";
+import IsEmptyBlockDemo from "../../components/demos/conditionals/IsEmptyBlockDemo.tix";
+import IsEmptyComponentDemo from "../../components/demos/conditionals/IsEmptyComponentDemo.tix";
+
+const ifRows = [
+  { name: "condition", type: "Maybe<unknown>", description: "If and ElseIf: the branch renders when the value is truthy." },
+  { name: "children", type: "Children", description: "The markup of the branch. ElseIf and Else are nested inside If." }
+];
+
+const unlessRows = [
+  { name: "condition", type: "Maybe<unknown>", description: "The children render when the value is falsy." },
+  { name: "else", type: "Children", description: "Optional fallback rendered when the condition is truthy." }
+];
+
+const isSetRows = [
+  { name: "value", type: "Maybe<T | null | undefined>", description: "The inspected value." },
+  { name: "else", type: "Children", description: "Optional fallback." },
+  { name: "children", type: "Children | (value: NonNullable<T>) => Children", description: "Markup, or a function receiving the narrowed value." }
+];
+
+const isEmptyRows = [
+  { name: "value", type: "Maybe<unknown>", description: "The inspected value." },
+  { name: "else", type: "Children", description: "Optional fallback rendered when the value is not empty." },
+  { name: "children", type: "Children", description: "Rendered when the value is empty." }
+];
+
+export default function ConditionalsPage() {
+  return (
+    <DocPage title="Conditionals" summary="Render markup only when a condition, a value or a collection allows it.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Show one of several views depending on state, such as stock levels or a signed-in user.</li>
+        <li>Hide an element completely instead of styling it as hidden.</li>
+        <li>Handle the empty and the missing-value case without optional chaining in the markup.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="if, elseif, else">
+      <p>Renders the first branch whose condition is truthy. Only the active branch exists in the DOM.</p>
+      <FormTabs blockSource="conditionals/IfBlockDemo" componentSource="conditionals/IfComponentDemo">
+        <div slot="block"><IfBlockDemo /></div>
+        <div slot="component"><IfComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={ifRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Writing ElseIf or Else outside an If, or placing Else before ElseIf, is rejected at compile time.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ORPHAN_BRANCH, MIX_ERR_DIRECTIVE_BRANCH_ORDER</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="unless">
+      <p>Renders when the condition is falsy. An optional else branch renders when it is truthy.</p>
+      <FormTabs blockSource="conditionals/UnlessBlockDemo" componentSource="conditionals/UnlessComponentDemo">
+        <div slot="block"><UnlessBlockDemo /></div>
+        <div slot="component"><UnlessComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={unlessRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Supplying both the else prop and an Else child on the same directive is rejected.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="isset">
+      <p>Renders when the value is neither null nor undefined. The exposed name is narrowed to a non-null type.</p>
+      <FormTabs blockSource="conditionals/IsSetBlockDemo" componentSource="conditionals/IsSetComponentDemo">
+        <div slot="block"><IsSetBlockDemo /></div>
+        <div slot="component"><IsSetComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={isSetRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Reading properties of a nullable value inside a plain if body needs optional chaining. Use isset to narrow it once.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT when both else and Else are supplied</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="isempty">
+      <p>Renders when the value is null, undefined, an empty string, an empty array, an empty Map or Set, or an object without own keys. The number 0 and false are not empty.</p>
+      <FormTabs blockSource="conditionals/IsEmptyBlockDemo" componentSource="conditionals/IsEmptyComponentDemo">
+        <div slot="block"><IsEmptyBlockDemo /></div>
+        <div slot="component"><IsEmptyComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={isEmptyRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Expecting 0 or false to count as empty. They do not; use unless for a falsy check.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT when both else and Else are supplied</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

@@ -1,0 +1,26 @@
+.counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.counter-value {
+  min-width: 3ch;
+  text-align: center;
+  font-size: var(--font-size-large);
+  font-weight: 600;
+}
+
+.counter-button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.counter-button:hover {
+  background: var(--color-accent-soft);
+}

@@ -1,0 +1,20 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { AuthProvider } from "@dotmix/runtime";
+import { accountAuth, currentAccount } from "../../../permissions/accountAuth.js";
+import { Guest } from "@dotmix/runtime/directives";
+
+export default function GuestComponentDemo() {
+  return (
+    <div>
+      <ActionButton label="Sign out" onPress={() => currentAccount.set(null)} />
+      <ActionButton label="Sign in as Robin" onPress={() => currentAccount.set("Robin")} />
+
+
+      <AuthProvider value={accountAuth}>
+        <Guest>
+          <a href="#/directives/authentication">Sign in</a>
+        </Guest>
+      </AuthProvider>
+    </div>
+  );
+}

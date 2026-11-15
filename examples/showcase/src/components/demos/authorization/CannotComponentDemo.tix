@@ -1,0 +1,24 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal, computed, provideContext } from "@dotmix/runtime";
+import { PermissionContext } from "@dotmix/runtime/permissions";
+import { definePostAbility, samplePost } from "../../../permissions/postPolicy.js";
+import type { PostRole } from "../../../permissions/postPolicy.js";
+import { Cannot } from "@dotmix/runtime/directives";
+
+export default function CannotComponentDemo() {
+  const role = signal<PostRole>("editor");
+  const ability = computed(() => definePostAbility(role()));
+  provideContext(PermissionContext, ability);
+
+  return (
+    <div>
+      <ActionButton label="editor" onPress={() => role.set("editor")} active={role() === "editor"} />
+      <ActionButton label="admin" onPress={() => role.set("admin")} active={role() === "admin"} />
+
+
+        <Cannot I="delete" this={samplePost}>
+          <p>Only administrators can delete this post.</p>
+        </Cannot>
+    </div>
+  );
+}

@@ -1,0 +1,39 @@
+import { signal, computed } from "@dotmix/runtime";
+import { subject } from "@dotmix/runtime/permissions";
+import ActionButton from "../../ui/ActionButton.tix";
+import { defineArticleAbility, sampleArticle } from "../../../permissions/articlePolicy.js";
+import type { ArticleRole } from "../../../permissions/articlePolicy.js";
+
+interface CheckRow {
+  id: string;
+  label: string;
+  allowed: boolean;
+}
+
+export default function PermissionsDemo() {
+  const role = signal<ArticleRole>("author");
+  const locked = signal<boolean>(false);
+  const ability = computed(() => defineArticleAbility(role(), 101));
+
+  const rows = computed<CheckRow[]>(() => [
+    { id: "read", label: "Read the article", allowed: ability().can("read", sampleArticle) },
+    { id: "edit", label: "Edit the article (own, not locked)", allowed: ability().can("edit", subject("Article", { ...sampleArticle, locked: locked() })) },
+    { id: "title", label: "Update the title field", allowed: ability().can("update", sampleArticle, "title") },
+    { id: "status", label: "Update the status field", allowed: ability().can("update", sampleArticle, "status") },
+    { id: "delete", label: "Delete the article", allowed: ability().can("delete", sampleArticle) }
+  ]);
+
+  return (
+    <div>
+      <ActionButton label="author" onPress={() => role.set("author")} active={role() === "author"} />
+      <ActionButton label="editor" onPress={() => role.set("editor")} active={role() === "editor"} />
+      <ActionButton label="admin" onPress={() => role.set("admin")} active={role() === "admin"} />
+      <ActionButton label={locked() ? "Unlock article" : "Lock article"} onPress={() => locked.set(!locked())} />
+      <ul>
+        {each (row, index, row.id) in rows()}
+          <li>{row.label}: {row.allowed ? "allowed" : "denied"}</li>
+        {endeach}
+      </ul>
+    </div>
+  );
+}

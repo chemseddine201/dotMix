@@ -1,0 +1,27 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function StacksBlockDemo() {
+  const showWarning = signal<boolean>(false);
+  const showTip = signal<boolean>(false);
+
+  return (
+    <div>
+      <ActionButton label="Toggle warning (push)" onPress={() => showWarning.set(!showWarning())} />
+      <ActionButton label="Toggle tip (prepend)" onPress={() => showTip.set(!showTip())} />
+
+
+      {stack "block-notices"}
+      {if showWarning()}
+        {push "block-notices" once "warning"}
+          <p>Warning</p>
+        {endpush}
+      {endif}
+      {if showTip()}
+        {prepend "block-notices"}
+          <p>Tip (always first)</p>
+        {endprepend}
+      {endif}
+    </div>
+  );
+}

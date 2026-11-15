@@ -1,0 +1,4 @@
+# Built in place by `tsc -b` (root tsconfig reference)
+*.js
+*.d.ts
+*.tsbuildinfo

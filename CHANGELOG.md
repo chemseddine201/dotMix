@@ -1,0 +1,91 @@
+# Changelog — dotMix Framework
+
+All notable changes to the dotMix compiler-native web framework will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.1.0] — 2026-11-16
+
+### Added
+- **Compiler Core (`@dotmix/compiler-frontend`, `@dotmix/compiler-semantic`, `@dotmix/compiler-codegen`):**
+  - Compiler-native ahead-of-time (AOT) pipeline compiling declarative `.mix` (JavaScript) and `.tix` (TypeScript) templates to JavaScript that creates and updates real DOM nodes directly.
+  - No virtual DOM and no runtime tree diffing.
+  - Strict static verification for `.tix` components via official TypeScript 6 Compiler API (`typecheckTix`) resolving against real package `.d.ts` declarations.
+  - AST construction with accurate source spans, expression boundary extraction, and deterministic code generation.
+
+- **Reactive Runtime (`@dotmix/runtime`):**
+  - Push-Pull fine-grained reactivity kernel featuring signals (`signal` / `createSignal`), computeds (`computed` / `createMemo`), and effects (`createEffect`).
+  - Explicit ownership tree and deterministic disposal lifecycles (`createRoot`, `onCleanup`, owner hierarchy).
+  - DOM adapter that keeps persistent text nodes and attribute bindings, with no runtime dependencies.
+  - Atomic keyed collection reconciler rejecting duplicate keys upfront without DOM corruption.
+  - Component lifecycle and placement primitives (`onCleanup`, `KeepAlive`, `createPortal` / `Teleport`).
+  - Isomorphic RBAC/ABAC permissions engine (`<Can>`, `defineAbility`, `createAbility`, reactive capability checks, asynchronous permission cancellation).
+
+- **Radix-Trie Router (`@dotmix/router`):**
+  - Zero-dependency client-side router with radix-trie route matching and nested layout support (`<Outlet />`).
+  - Pre-loader security guards checking route-level permissions prior to data loading.
+  - Parallel route data loaders, actions, and declarative navigation primitives (`<Link>`, `<NavLink>`).
+
+- **Multi-Preprocessor Scoped Stylesheets (`@dotmix/compiler-css`):**
+  - First-class compilation for `.scss`, `.sass`, `.less`, `.pcss` (PostCSS), and standard `.css`.
+  - Compile-time CSS property validation, AST-level parent selector resolution, and deterministic component attribute scoping.
+  - Strict security validation rejecting unsafe expressions, property injections, and unverified at-rules.
+
+- **Zero-Dependency Standard Library (`@dotmix/helpers`):**
+  - `@dotmix/helpers/datetime`: IANA timezone conversions and humanized date formatting using native browser `Intl` APIs without external tzdata bundles.
+  - `@dotmix/helpers/http`: Resilient HTTP client with automatic retries, exponential backoff, request deduplication, cache controls, and reactive `useHttp` signal hook.
+  - `@dotmix/helpers/data`: Immutable nested object utilities (`dot.get`, `dot.set`), deep equality, and data transforms.
+  - `@dotmix/helpers/async`: Promise pooling, debouncing, throttling, and concurrency queues.
+  - `@dotmix/helpers/web`: Zero-dependency web browser utilities (clipboard, storage, intersection observers).
+
+- **Distributed CRDT Synchronization Engine (`@dotmix/sync`):**
+  - Local-first synchronization engine with Lamport timestamps, fractional indexing, vector clocks, and cryptographic signing.
+  - Durable persistence adapters for IndexedDB and Origin Private File System (OPFS).
+  - Multi-tab lease coordination via BroadcastChannel and automated lease failover.
+  - Storage bounds enforcement and incremental checkpointing.
+
+- **Server-Side Rendering & Edge Streams (`@dotmix/compiler-ssr`, `@dotmix/stream`, `@dotmix/server-node`):**
+  - Ahead-of-time SSR code generation with automated signal evaluation.
+  - Streaming SSR adapter supporting WinterCG Web Streams (`ReadableStream`, `Response`) for edge runtimes (Cloudflare Workers, Deno, Bun).
+  - Node.js streaming HTTP server (`@dotmix/server-node`) with per-request cryptographic Content Security Policy (CSP) nonces.
+
+- **Developer Tooling & CLI (`@dotmix/cli`, `@dotmix/vite-plugin`):**
+  - CLI (`mix` / `dotmix`) built on native Node.js 22+ modules; the compiler packages it uses depend only on `typescript`, `css-tree` and `acorn` (with `@sveltejs/acorn-typescript`).
+  - `mix create`: Project scaffolding supporting TypeScript (`.tix`) and JavaScript (`.mix`), stylesheet preprocessors (`scss`, `sass`, `less`, `pcss`, `css`), and modular templates (`minimal`, `standard`, `sync-crdt`, `showcase`).
+  - `mix dev`: Development server with Server-Sent Events (SSE) HMR transport, stable CSS scoping, and state-retaining re-instantiation.
+  - `mix build`: Production build with one content-hashed ES module per source module, an import map with modulepreload, one merged stylesheet, and a bundle report.
+  - `mix check` & `mix lint`: Static typechecking of `.tix` components and `.ts` modules, with stylish error formatting; `mix lint --fix` applies automatic fixes.
+  - `mix doctor` & `mix info`: Diagnostic utilities running automated configuration checks.
+  - `mix upgrade`: Safe dependency lifecycle manager with automated codemod migrations.
+  - `mix test`: Native test runner utilizing `node:test` and zero-dependency Chrome DevTools Protocol (CDP) client.
+  - `@dotmix/vite-plugin`: Vite integration plugin with HMR and bare workspace resolution.
+
+- **Developer Experience & Editor Support (`@dotmix/language-server`, `vscode-mix`):**
+  - Language Server Protocol implementation providing syntax highlighting, hover documentation, completions, and live diagnostics.
+  - Official Visual Studio Code extension (`vscode-mix`) supporting `.mix` and `.tix` files.
+
+- **Verification & Test Harnesses (`tools/browser-matrix`):**
+  - Real headless browser matrix runner executing zero-dependency test scenarios across Google Chrome, Microsoft Edge, and Mozilla Firefox.
+  - Automated bundle size measurement and budget enforcement (`tools/release/measure-size.mjs`).
+
+### Changed
+- npm packages are published under the `@dotmix` scope (`@dotmix/runtime`, `@dotmix/cli`, `@dotmix/helpers` ...). The `mix` command and the `.mix` / `.tix` extensions keep their names.
+- `mix build` emits one ES module per source module (`dist/assets/<path>-<hash>.js`), maps the specifiers to the hashed files with an import map, and preloads the entry graph with `modulepreload`. Shared modules exist once, so a store imported by two lazy pages has one state.
+- `mix build` writes a deployable `dist/`: `index.html` with the import map, the runtime packages under `vendor/`, and the files of `public/`.
+- `mix create` and `mix add` generate a sibling stylesheet imported by the component instead of a `<style>` block.
+- `mix check` also type-checks the project's `.ts` files with its `tsconfig.json`.
+- Scoped packages declare `publishConfig.access: public`.
+- `createAuth` is typed per guard. The `user` of `{auth}`, `<Auth>` and `useAuth()` is resolved from an annotated callback parameter, then the same-file `<AuthProvider>`, then the application's `Register.auth` (module augmentation), otherwise `unknown` with a hint. New exported types: `Register`, `RegisteredAuth`, `AuthInstanceOf`, `GuardUser`, `AuthGuards`.
+
+### Fixed
+- The production build no longer strips comments, imports or line content with regular expressions; string literals, template literals and regular expressions are emitted unchanged.
+- The standard `mix create` template includes `index.html` with the `#root` mount point and, for TypeScript, `src/env.d.ts`; the published `@dotmix/cli` package includes its templates.
+- VS Code extension: a packager builds a self-contained `.vsix` (language server and TypeScript plugin included); the TypeScript plugin resolves `.tix` / `.mix` imports in `.ts` files; Ctrl+click opens imported paths.
+- HMR: a hot-swapped component keeps the contexts provided above the replaced instance (for example the router context).
+- `createForm` reads `initialValues` for field names; `typecheckTix` no longer duplicates diagnostics when given a descriptor.
+- Imports of `createAuth`, `AuthProvider`, `useAuth` and `createKeepAlive` from `@dotmix/runtime/directives` are kept in compiled output.
+- Loop variables of `{each}` with `{continue if}`, `{break if}` or `{empty}` are typed from the collection.
+- `{keepalive ... as key}` and `{isset ... as value}` bindings are typed; `PermissionProvider` children are optional; `useLoaderData()` returns the data of routes with parameters.

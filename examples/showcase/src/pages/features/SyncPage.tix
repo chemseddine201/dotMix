@@ -1,0 +1,27 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import TaskListDemo from "../../components/demos/sync/TaskListDemo.tix";
+
+export default function SyncPage() {
+  return (
+    <DocPage title="Offline sync" summary="An offline collection keeps a list in IndexedDB and records changes as mutations that can be synchronized later.">
+      <DocSection title="What to try">
+        <ul>
+          <li>Add, edit, check off, reorder and delete items.</li>
+          <li>Reload the page: the list is restored from IndexedDB.</li>
+          <li>Watch the status, error code and pending mutation count above the list.</li>
+        </ul>
+      </DocSection>
+      <DocSection title="The collection">
+        <SourceView source="stores/taskCollection.ts" title="src/stores/taskCollection.ts" />
+      </DocSection>
+      <DocSection title="Example">
+        <CodeExample source="sync/TaskListDemo">
+          <TaskListDemo />
+        </CodeExample>
+      </DocSection>
+    </DocPage>
+  );
+}

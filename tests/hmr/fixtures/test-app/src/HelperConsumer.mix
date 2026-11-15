@@ -1,0 +1,10 @@
+import { getGreeting } from "./helper.js";
+
+export default function HelperConsumer() {
+  const msg = getGreeting();
+  return (
+    <div class="helper-consumer" id="helper-consumer">
+      <span id="helper-msg">{msg}</span>
+    </div>
+  );
+}

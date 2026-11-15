@@ -1,0 +1,30 @@
+{
+  "name": "@dotmix/compiler-frontend",
+  "version": "0.1.0",
+  "description": "Lexer and template parser for dotMix .mix and .tix components",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/compiler-frontend"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@dotmix/diagnostics": "0.1.0",
+    "@dotmix/ast": "0.1.0",
+    "acorn": "8.14.0",
+    "@sveltejs/acorn-typescript": "1.0.13"
+  },
+  "license": "MIT"
+}

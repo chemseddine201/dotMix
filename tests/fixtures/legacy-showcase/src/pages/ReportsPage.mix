@@ -1,0 +1,31 @@
+import { useParams, useNavigate } from "@dotmix/router";
+import "./ReportsPage.css";
+
+export default function ReportsPage() {
+  const params = useParams();
+  const navigate = useNavigate();
+
+  function goToPath(subpath) {
+    navigate(`/reports/${subpath}`);
+  }
+
+  return (
+    <div class="page-reports">
+      <div class="card-header">
+        <h2>📁 Wildcard Route Splat Catch-All (*)</h2>
+        <p>Pattern <code>/reports/*</code> captures any multi-segment subpath into <code>params["*"]</code>.</p>
+      </div>
+
+      <div class="splat-box">
+        <span class="box-label">Captured Rest Path:</span>
+        <code class="splat-code">params["*"] = "{params()["*"] || params["*"]}"</code>
+      </div>
+
+      <div class="switch-row">
+        <span>Test subpaths:</span>
+        <button class="chip-btn" onClick={() => goToPath("benchmarks/dom-render.json")}>/reports/benchmarks/dom-render.json</button>
+        <button class="chip-btn" onClick={() => goToPath("audit/security-report.md")}>/reports/audit/security-report.md</button>
+      </div>
+    </div>
+  );
+}

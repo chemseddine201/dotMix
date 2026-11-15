@@ -1,0 +1,11 @@
+export default function CsrfBlockDemo() {
+  return (
+    <div>
+      <form method="post" action="/tasks/7">
+        {csrf}
+        {method "PUT"}
+        <p>Hidden inputs _token and _method are part of this form.</p>
+      </form>
+    </div>
+  );
+}

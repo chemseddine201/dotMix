@@ -1,0 +1,56 @@
+import "./TasksPage.{{styleExt}}";
+import { taskStore, type TaskRecord } from "../stores/taskSyncStore.js";
+import TaskItem from "../components/domain/TaskItem.tix";
+import SyncStatusPill from "../components/domain/SyncStatusPill.tix";
+import Button from "../components/common/Button.tix";
+
+export default function TasksPage() {
+  const items = taskStore.items;
+  const newTitle = signal("");
+
+  function addTask() {
+    const val = newTitle().trim();
+    if (!val) return;
+    taskStore.insert({
+      id: `task-${Date.now()}`,
+      title: val,
+      completed: false,
+      ownerId: 1
+    });
+    newTitle.set("");
+  }
+
+  function toggleTask(id: string) {
+    const found = items().find((t: TaskRecord) => t.id === id);
+    if (found) {
+      taskStore.update(id, { completed: !found.completed });
+    }
+  }
+
+  function deleteTask(id: string) {
+    taskStore.delete(id);
+  }
+
+  return (
+    <div class="tasks-page">
+      <div class="tasks-header">
+        <h2>Offline-First CRDT Tasks</h2>
+        <SyncStatusPill pendingCount={taskStore.pendingCount()} />
+      </div>
+      <div class="task-input-bar">
+        <input
+          class="task-input"
+          value={newTitle()}
+          placeholder="What needs to be done?"
+          @input={(e: Event) => newTitle.set((e.target as HTMLInputElement).value)}
+        />
+        <Button variant="primary" onClick={addTask}>Add Task</Button>
+      </div>
+      <ul class="task-list">
+        {each (task, idx) in items()}
+          <TaskItem task={task} onToggle={toggleTask} onDelete={deleteTask} />
+        {endeach}
+      </ul>
+    </div>
+  );
+}

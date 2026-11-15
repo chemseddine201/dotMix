@@ -1,0 +1,39 @@
+import { signal } from "@dotmix/runtime";
+import ActionButton from "../../ui/ActionButton.tix";
+import Badge from "../../ui/Badge.tix";
+import { createSignupForm } from "../../../stores/signupForm.js";
+
+export default function FormsDemo() {
+  const signupForm = createSignupForm();
+  const submitted = signal<string>("");
+
+  async function submit(event: Event): Promise<void> {
+    event.preventDefault();
+    const accepted = await signupForm.handleSubmit();
+    submitted.set(accepted ? "Submitted " + JSON.stringify(signupForm.values()) : "The form has errors");
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <p>
+        <input type="text" placeholder="Email" value={signupForm.fields.email.value()} onInput={(event: Event) => signupForm.fields.email.setValue((event.target as HTMLInputElement).value)} onBlur={() => signupForm.fields.email.blur()} />
+      </p>
+      {error "email" in signupForm as message}
+        <p>{message}</p>
+      {enderror}
+      <p>
+        <input type="text" placeholder="Name" value={signupForm.fields.name.value()} onInput={(event: Event) => signupForm.fields.name.setValue((event.target as HTMLInputElement).value)} onBlur={() => signupForm.fields.name.blur()} />
+      </p>
+      {error "name" in signupForm as message}
+        <p>{message}</p>
+      {enderror}
+      <p>
+        <Badge tone={signupForm.isValid() ? "success" : "warning"}>{signupForm.isValid() ? "Valid" : "Invalid"}</Badge>
+        <Badge tone={signupForm.isDirty() ? "info" : "neutral"}>{signupForm.isDirty() ? "Dirty" : "Pristine"}</Badge>
+      </p>
+      <button type="submit">Submit</button>
+      <ActionButton label="Reset" onPress={() => signupForm.reset()} />
+      <p>{submitted()}</p>
+    </form>
+  );
+}

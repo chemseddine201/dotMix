@@ -1,0 +1,78 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import CanBlockDemo from "../../components/demos/authorization/CanBlockDemo.tix";
+import CanComponentDemo from "../../components/demos/authorization/CanComponentDemo.tix";
+import CannotBlockDemo from "../../components/demos/authorization/CannotBlockDemo.tix";
+import CannotComponentDemo from "../../components/demos/authorization/CannotComponentDemo.tix";
+import CanAnyBlockDemo from "../../components/demos/authorization/CanAnyBlockDemo.tix";
+import CanAnyComponentDemo from "../../components/demos/authorization/CanAnyComponentDemo.tix";
+
+const canRows = [
+  { name: "I", type: "string", description: "The action to check." },
+  { name: "this", type: "object", description: "The subject. The type name comes from subject(type, object)." },
+  { name: "field", type: "string", description: "Optional field to narrow the check." },
+  { name: "fallback", type: "Children", description: "A plain Can without ElseCan or Else children keeps this prop." }
+];
+
+const cannotRows = [
+  { name: "I", type: "string", description: "The action to check." },
+  { name: "this", type: "object", description: "The subject." }
+];
+
+const canAnyRows = [
+  { name: "I", type: "string[]", description: "The actions to check." },
+  { name: "this", type: "object", description: "The subject." }
+];
+
+export default function AuthorizationPage() {
+  return (
+    <DocPage title="Authorization" summary="Render markup depending on what the current user may do with a subject.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Show or hide actions such as edit and delete.</li>
+        <li>Offer a read-only view as a fallback for users who cannot edit.</li>
+        <li>Keep the rules in one policy in src/permissions.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="can, elsecan, else">
+      <p>can renders when the action is allowed, each elsecan adds another check and else is the final fallback. They read the ability from the permission context, which a PermissionProvider or provideContext(PermissionContext, ability) sets.</p>
+      <FormTabs blockSource="authorization/CanBlockDemo" componentSource="authorization/CanComponentDemo">
+        <div slot="block"><CanBlockDemo /></div>
+        <div slot="component"><CanComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={canRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Putting Else before ElseCan, or using ElseCan outside a Can.</p>
+        <p><code>MIX_ERR_DIRECTIVE_BRANCH_ORDER, MIX_ERR_DIRECTIVE_ORPHAN_BRANCH</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="cannot">
+      <p>Renders when the action is not allowed.</p>
+      <FormTabs blockSource="authorization/CannotBlockDemo" componentSource="authorization/CannotComponentDemo">
+        <div slot="block"><CannotBlockDemo /></div>
+        <div slot="component"><CannotComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={cannotRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Checking an action that no rule mentions. Anything without a matching rule is denied.</p>
+        <p><code>no diagnostic: the check simply returns false</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="canany">
+      <p>Renders when at least one of the listed actions is allowed.</p>
+      <FormTabs blockSource="authorization/CanAnyBlockDemo" componentSource="authorization/CanAnyComponentDemo">
+        <div slot="block"><CanAnyBlockDemo /></div>
+        <div slot="component"><CanAnyComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={canAnyRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Passing a single action string where a list is expected.</p>
+        <p><code>type error reported by mix check</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

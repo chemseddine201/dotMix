@@ -1,0 +1,19 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function ForBlockDemo() {
+  const upperBound = signal<number>(5);
+  const repeatCount = signal<number>(3);
+
+  return (
+    <div>
+      <ActionButton label="Range +1" onPress={() => upperBound.set(upperBound() + 1)} />
+      <ActionButton label="Repeat +1" onPress={() => repeatCount.set(repeatCount() + 1)} />
+
+
+      <p>{for page from 1 to upperBound()}<Badge tone="info">{page}</Badge> {endfor}</p>
+      <p>{for position times repeatCount()}<Badge>#{position}</Badge> {endfor}</p>
+    </div>
+  );
+}

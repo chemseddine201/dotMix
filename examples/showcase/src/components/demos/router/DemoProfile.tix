@@ -1,0 +1,11 @@
+import { useLoaderData } from "@dotmix/router";
+
+interface ProfileData {
+  name: string;
+}
+
+export default function DemoProfile() {
+  const profile = useLoaderData<ProfileData>("profile");
+
+  return <p>Loader data: {profile?.name ?? "loading"}</p>;
+}

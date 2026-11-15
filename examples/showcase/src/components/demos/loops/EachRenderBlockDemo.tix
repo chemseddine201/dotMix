@@ -1,0 +1,20 @@
+import { signal } from "@dotmix/runtime";
+import TaskLine from "./TaskLine.tix";
+
+interface Task {
+  id: number;
+  title: string;
+}
+
+export default function EachRenderBlockDemo() {
+  const tasks = signal<Task[]>([
+    { id: 1, title: "Write the release notes" },
+    { id: 2, title: "Review the pull request" }
+  ]);
+
+  return (
+    <div>
+      {each task in tasks() render TaskLine}{empty}<p>No tasks.</p>{endeach}
+    </div>
+  );
+}

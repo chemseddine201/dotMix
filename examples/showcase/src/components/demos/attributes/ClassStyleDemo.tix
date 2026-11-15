@@ -1,0 +1,26 @@
+import "./ClassStyleDemo.css";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function ClassStyleDemo() {
+  const active = signal<boolean>(true);
+  const large = signal<boolean>(false);
+  const color = signal<string>("#1d5bbf");
+  const gap = signal<number>(8);
+
+  return (
+    <div>
+      <ActionButton label="Toggle active" onPress={() => active.set(!active())} />
+      <ActionButton label="Toggle large" onPress={() => large.set(!large())} />
+      <ActionButton label="Change color" onPress={() => color.set(color() === "#1d5bbf" ? "#b0261d" : "#1d5bbf")} />
+      <ActionButton label="Widen" onPress={() => gap.set(gap() + 8)} />
+
+
+      <p class={{ "is-active": active(), "is-large": large() }}>Class object map</p>
+      <p class={["note", large() && "is-large"]}>Class array</p>
+      <p class:is-active={active()}>Class directive</p>
+      <p style={{ color: color(), "--gap": gap() + "px" }}>Style object map</p>
+      <p style:color={color()} style:width.px={gap() * 4}>Style directives</p>
+    </div>
+  );
+}

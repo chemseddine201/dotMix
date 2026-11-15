@@ -1,0 +1,9 @@
+import Badge from "../../ui/Badge.tix";
+
+interface AlternateCardProps {
+  title?: string;
+}
+
+export default function AlternateCard(props: AlternateCardProps) {
+  return <Badge tone="warning">Alternate: {props.title ?? "Untitled"}</Badge>;
+}

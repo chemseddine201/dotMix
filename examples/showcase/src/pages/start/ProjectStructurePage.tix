@@ -1,0 +1,42 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import SourceView from "../../components/ui/SourceView.tix";
+
+const rows0 = [
+  { name: "index.html", type: "file", description: "The HTML shell: the mount element and the entry script." },
+  { name: "public/", type: "folder", description: "Static files served as they are, such as sample.json." },
+  { name: "src/main.ts", type: "file", description: "Entry point: imports the global styles, creates the router and mounts App." },
+  { name: "src/App.tix", type: "file", description: "Root component: provides the router and renders the layout." },
+  { name: "src/routes.ts", type: "file", description: "The only route table. Each route carries meta (title, section, order) that the sidebar is built from." },
+  { name: "src/layouts/", type: "folder", description: "Page frames: header, sidebar and the content outlet." },
+  { name: "src/pages/", type: "folder", description: "One file per route with the explanation and the composition of components." },
+  { name: "src/components/ui/", type: "folder", description: "Reusable showcase components such as CodeExample and FormTabs." },
+  { name: "src/components/demos/", type: "folder", description: "One live demo component per example, grouped by topic." },
+  { name: "src/stores/", type: "folder", description: "Signals, forms and offline collections shared by demos." },
+  { name: "src/permissions/", type: "folder", description: "Access policies used by the authentication and permission demos." },
+  { name: "src/styles/", type: "folder", description: "Global design tokens and the base reset. Everything else is styled by a stylesheet next to its component." }
+];
+
+export default function ProjectStructurePage() {
+  return (
+    <DocPage title="Project structure" summary="Every folder of this app has one responsibility, and imports only flow in one direction.">
+      <DocSection title="Folders">
+        <PropTable rows={rows0} />
+      </DocSection>
+      <DocSection title="Import direction">
+        <ul>
+          <li>Pages import components, stores and permissions.</li>
+          <li>Layouts import components/ui.</li>
+          <li>Components import stores and permissions, never pages.</li>
+          <li>Stores and permissions import no UI.</li>
+          <li>Only routes.ts imports pages.</li>
+        </ul>
+      </DocSection>
+      <DocSection title="The route table">
+        <p>This is the real routes.ts of this app.</p>
+        <SourceView source="routes.ts" title="src/routes.ts" />
+      </DocSection>
+    </DocPage>
+  );
+}

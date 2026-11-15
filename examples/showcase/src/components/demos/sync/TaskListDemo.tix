@@ -1,0 +1,64 @@
+import "./TaskListDemo.css";
+import { signal } from "@dotmix/runtime";
+import ActionButton from "../../ui/ActionButton.tix";
+import Badge from "../../ui/Badge.tix";
+import { taskCollection, readTaskErrorCode, createTaskId } from "../../../stores/taskCollection.js";
+
+export default function TaskListDemo() {
+  const draftTitle = signal<string>("");
+  const editingId = signal<string>("");
+  const editingTitle = signal<string>("");
+
+  function addTask(): void {
+    const title = draftTitle().trim();
+    if (title === "") return;
+    void taskCollection.insert({ id: createTaskId(), title, done: false });
+    draftTitle.set("");
+  }
+
+  function moveTask(fromIndex: number, toIndex: number): void {
+    if (toIndex < 0 || toIndex >= taskCollection.items().length) return;
+    void taskCollection.reorder(fromIndex, toIndex);
+  }
+
+  function startEditing(id: string, title: string): void {
+    editingId.set(id);
+    editingTitle.set(title);
+  }
+
+  function saveEditing(): void {
+    void taskCollection.update(editingId(), { title: editingTitle() });
+    editingId.set("");
+  }
+
+  return (
+    <div class="task-demo">
+      <p>
+        Status <Badge tone="info">{taskCollection.status()}</Badge>
+        Error code <Badge>{readTaskErrorCode()}</Badge>
+        Pending mutations <Badge>{taskCollection.pendingCount()}</Badge>
+      </p>
+      <p>
+        <input type="text" placeholder="New task" value={draftTitle()} onInput={(event: Event) => draftTitle.set((event.target as HTMLInputElement).value)} />
+        <ActionButton label="Add" onPress={addTask} />
+      </p>
+      <ul class="task-list">
+        {each (task, index, task.id) in taskCollection.items()}
+          <li class="task-row">
+            <input type="checkbox" checked={task.done} onChange={() => void taskCollection.update(task.id, { done: !task.done })} />
+            {if editingId() === task.id}
+              <input type="text" value={editingTitle()} onInput={(event: Event) => editingTitle.set((event.target as HTMLInputElement).value)} />
+              <ActionButton label="Save" onPress={saveEditing} />
+            {else}
+              <span class="task-title">{task.title}</span>
+              <ActionButton label="Edit" onPress={() => startEditing(task.id, task.title)} />
+            {endif}
+            <ActionButton label="Up" onPress={() => moveTask(index, index - 1)} />
+            <ActionButton label="Down" onPress={() => moveTask(index, index + 1)} />
+            <ActionButton label="Delete" onPress={() => void taskCollection.delete(task.id)} />
+          </li>
+        {endeach}
+      </ul>
+    </div>
+  );
+}

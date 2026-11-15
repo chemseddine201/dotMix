@@ -1,0 +1,57 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import FieldErrorBlockDemo from "../../components/demos/forms/FieldErrorBlockDemo.tix";
+import FieldErrorComponentDemo from "../../components/demos/forms/FieldErrorComponentDemo.tix";
+import CsrfBlockDemo from "../../components/demos/forms/CsrfBlockDemo.tix";
+import CsrfComponentDemo from "../../components/demos/forms/CsrfComponentDemo.tix";
+
+const fieldErrorRows = [
+  { name: "form", type: "FormController", description: "The form controller." },
+  { name: "name", type: "string", description: "The field name. A static unknown name is a compile error." },
+  { name: "children", type: "(message: () => string) => Children", description: "Row template." }
+];
+
+const csrfRows = [
+  { name: "value", type: "'PUT' | 'PATCH' | 'DELETE'", description: "Method: the override value." }
+];
+
+export default function FormsDirectivesPage() {
+  return (
+    <DocPage title="Forms" summary="Show validation feedback from a form controller, and add hidden fields for form posts.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Display a field error after the user has touched the field.</li>
+        <li>List all visible errors in one place.</li>
+        <li>Add a CSRF token or a method override to a classic HTML form post.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="error, errors, valid">
+      <p>Errors are visible when the field has an error and has been touched. handleSubmit marks every field as touched. valid renders when the field is touched, has no error and is not validating.</p>
+      <FormTabs blockSource="forms/FieldErrorBlockDemo" componentSource="forms/FieldErrorComponentDemo">
+        <div slot="block"><FieldErrorBlockDemo /></div>
+        <div slot="component"><FieldErrorComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={fieldErrorRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Naming a field that the form does not have.</p>
+        <p><code>MIX_ERR_FORM_FIELD_UNKNOWN</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="csrf and method">
+      <p>csrf adds a hidden _token input. The value comes from the request context on the server, or from a csrf-token meta tag in the browser. method adds a hidden _method input for PUT, PATCH or DELETE.</p>
+      <FormTabs blockSource="forms/CsrfBlockDemo" componentSource="forms/CsrfComponentDemo">
+        <div slot="block"><CsrfBlockDemo /></div>
+        <div slot="component"><CsrfComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={csrfRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Expecting a token without a request context or a csrf-token meta tag. The field is rendered with an empty value.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

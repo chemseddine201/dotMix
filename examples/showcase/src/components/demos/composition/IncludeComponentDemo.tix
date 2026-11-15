@@ -1,0 +1,17 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import StatusCard from "./StatusCard.tix";
+import { Include } from "@dotmix/runtime/directives";
+
+export default function IncludeComponentDemo() {
+  const showCard = signal<boolean>(true);
+
+  return (
+    <div>
+      <ActionButton label="Toggle card" onPress={() => showCard.set(!showCard())} />
+
+
+      <Include component={StatusCard} props={{ title: "Included card" }} condition={showCard()} />
+    </div>
+  );
+}

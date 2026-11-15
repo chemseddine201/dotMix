@@ -1,0 +1,23 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function EachControlsBlockDemo() {
+  const entries = signal<string[]>(["Draft", "Archived report", "Summary", "Appendix", "Notes"]);
+  const limit = signal<number>(3);
+
+  return (
+    <div>
+      <ActionButton label="Show at most 2" onPress={() => limit.set(2)} />
+      <ActionButton label="Show at most 4" onPress={() => limit.set(4)} />
+
+
+      <ul>
+        {each (entry, position) in entries()}
+          {continue if String(entry).startsWith("Archived")}
+          {break if position >= limit()}
+          <li>{entry}</li>
+        {endeach}
+      </ul>
+    </div>
+  );
+}

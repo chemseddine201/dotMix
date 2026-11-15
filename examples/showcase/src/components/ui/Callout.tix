@@ -1,0 +1,46 @@
+import "./Callout.css";
+
+export type CalloutTone = "note" | "tip" | "warning" | "mistake";
+
+interface CalloutProps {
+  title: string;
+  tone?: CalloutTone;
+}
+
+export default function Callout(props: CalloutProps) {
+  const tone = props.tone ?? "note";
+
+  return (
+    <aside class={`callout callout-${tone}`}>
+      <div class="callout-header">
+        <span class="callout-icon" aria-hidden="true">
+          {if (tone === "tip")}
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6.25" />
+              <path d="M5.5 8.2L7.2 9.9L10.7 6.4" />
+            </svg>
+          {elseif (tone === "warning")}
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2.2L14.2 13.2H1.8L8 2.2Z" />
+              <path d="M8 6.4V9.4" />
+              <circle cx="8" cy="11.4" r="0.6" fill="currentColor" stroke="none" />
+            </svg>
+          {elseif (tone === "mistake")}
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6.25" />
+              <path d="M5.8 5.8L10.2 10.2M10.2 5.8L5.8 10.2" />
+            </svg>
+          {else}
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6.25" />
+              <path d="M8 7.4V11.2" />
+              <circle cx="8" cy="5.2" r="0.6" fill="currentColor" stroke="none" />
+            </svg>
+          {endif}
+        </span>
+        <strong class="callout-title">{props.title}</strong>
+      </div>
+      <div class="callout-body"><slot /></div>
+    </aside>
+  );
+}

@@ -1,0 +1,11 @@
+import { Partial } from "@dotmix/runtime/directives";
+
+export default function PartialComponentDemo() {
+  return (
+    <div>
+      <Partial name="task-row">
+        <p>One task row</p>
+      </Partial>
+    </div>
+  );
+}

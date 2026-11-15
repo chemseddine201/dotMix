@@ -1,0 +1,25 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal, computed, provideContext } from "@dotmix/runtime";
+import { PermissionContext } from "@dotmix/runtime/permissions";
+import { definePostAbility, samplePost } from "../../../permissions/postPolicy.js";
+import type { PostRole } from "../../../permissions/postPolicy.js";
+import { CanAny } from "@dotmix/runtime/directives";
+
+export default function CanAnyComponentDemo() {
+  const role = signal<PostRole>("viewer");
+  const ability = computed(() => definePostAbility(role()));
+  provideContext(PermissionContext, ability);
+
+  return (
+    <div>
+      <ActionButton label="viewer" onPress={() => role.set("viewer")} active={role() === "viewer"} />
+      <ActionButton label="editor" onPress={() => role.set("editor")} active={role() === "editor"} />
+
+
+        <CanAny I={["publish", "archive"]} this={samplePost}>
+          <Badge tone="info">Publishing menu</Badge>
+        </CanAny>
+    </div>
+  );
+}

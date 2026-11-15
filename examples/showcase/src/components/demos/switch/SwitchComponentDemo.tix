@@ -1,0 +1,42 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { Switch, Case, Default } from "@dotmix/runtime/directives";
+
+export default function SwitchComponentDemo() {
+  const role = signal<string>("editor");
+  const daysLeft = signal<number>(5);
+
+  return (
+    <div>
+      <ActionButton label="admin" onPress={() => role.set("admin")} active={role() === "admin"} />
+      <ActionButton label="editor" onPress={() => role.set("editor")} active={role() === "editor"} />
+      <ActionButton label="viewer" onPress={() => role.set("viewer")} active={role() === "viewer"} />
+      <ActionButton label="Trial: one day less" onPress={() => daysLeft.set(daysLeft() - 1)} />
+
+
+      <Switch on={role()}>
+        <Case is={["admin", "owner"]}>
+          <Badge tone="danger">Full access</Badge>
+        </Case>
+        <Case is="editor">
+          <Badge tone="warning">Can edit</Badge>
+        </Case>
+        <Default>
+          <Badge>Read only</Badge>
+        </Default>
+      </Switch>
+      <Switch>
+        <Case condition={daysLeft() <= 0}>
+          <Badge tone="danger">Trial ended</Badge>
+        </Case>
+        <Case condition={daysLeft() <= 3}>
+          <Badge tone="warning">Trial ends soon</Badge>
+        </Case>
+        <Default>
+          <Badge tone="success">Trial running</Badge>
+        </Default>
+      </Switch>
+    </div>
+  );
+}

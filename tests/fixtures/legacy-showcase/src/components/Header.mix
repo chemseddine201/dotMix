@@ -1,0 +1,25 @@
+import "./Header.css";
+
+export default function Header(props = {}) {
+  const title = props.title || "⚡ Mix / Tix Compiler-Native Framework";
+  const theme = props.theme || "light";
+
+  return (
+    <header class="app-header">
+      <div class="brand-group">
+        <span class="brand-logo">⚡</span>
+        <div>
+          <h1 class="brand-title">{title}</h1>
+          <span class="brand-badge">Zero Virtual DOM · Surgical Push-Pull Reactivity</span>
+        </div>
+      </div>
+      <div class="header-tools">
+        {if props.onToggleTheme}
+          <button class="btn-theme" onClick={props.onToggleTheme}>
+            Theme: {theme}
+          </button>
+        {endif}
+      </div>
+    </header>
+  );
+}

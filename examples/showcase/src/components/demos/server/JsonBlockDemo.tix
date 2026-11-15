@@ -1,0 +1,9 @@
+export default function JsonBlockDemo() {
+  const initialState = { user: "ada", unreadCount: 3 };
+
+  return (
+    <div>
+      {json initialState as "app-state"}
+    </div>
+  );
+}

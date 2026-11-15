@@ -1,0 +1,26 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import CodeExample from "../../components/ui/CodeExample.tix";
+import HelpersDemo from "../../components/demos/helpers/HelpersDemo.tix";
+
+const rows0 = [
+  { name: "@dotmix/helpers/data", type: "dot", description: "Path access such as dot.get(object, 'a.b.c', fallback), and collection helpers." },
+  { name: "@dotmix/helpers/datetime", type: "dateTime", description: "Parsing, formatting and arithmetic on dates." },
+  { name: "@dotmix/helpers/http", type: "http", description: "A request client. The example fetches public/sample.json." }
+];
+
+export default function HelpersPage() {
+  return (
+    <DocPage title="@dotmix/helpers" summary="Small standard-library modules for data access, dates and HTTP requests, imported by subpath.">
+      <DocSection title="Modules used">
+        <PropTable rows={rows0} />
+      </DocSection>
+      <DocSection title="Example">
+        <CodeExample source="helpers/HelpersDemo">
+          <HelpersDemo />
+        </CodeExample>
+      </DocSection>
+    </DocPage>
+  );
+}

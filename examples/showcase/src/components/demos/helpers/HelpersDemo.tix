@@ -1,0 +1,38 @@
+import { signal } from "@dotmix/runtime";
+import { dot } from "@dotmix/helpers/data";
+import { dateTime } from "@dotmix/helpers/datetime";
+import { http } from "@dotmix/helpers/http";
+import ActionButton from "../../ui/ActionButton.tix";
+
+interface Release {
+  version: string;
+  date: string;
+  notes: string;
+}
+
+interface SampleDocument {
+  project: string;
+  releases: Release[];
+}
+
+export default function HelpersDemo() {
+  const settings = { user: { profile: { theme: "light" } } };
+  const theme = dot.get(settings, "user.profile.theme", "none");
+  const launch = dateTime("2026-05-20T12:00:00Z");
+  const releaseSummary = signal<string>("Not loaded yet");
+
+  async function loadReleases(): Promise<void> {
+    const response = await http.get<SampleDocument>(new URL("sample.json", document.baseURI).href);
+    const latest = response.data.releases[response.data.releases.length - 1];
+    releaseSummary.set(response.data.project + " " + latest.version + " (" + latest.notes + ")");
+  }
+
+  return (
+    <div>
+      <p>data: dot.get reads the theme as {theme}.</p>
+      <p>datetime: {launch.format("YYYY-MM-DD")} plus 30 days is {launch.add(30, "day").format("YYYY-MM-DD")}.</p>
+      <ActionButton label="Fetch public/sample.json" onPress={() => void loadReleases()} />
+      <p>http: {releaseSummary()}</p>
+    </div>
+  );
+}

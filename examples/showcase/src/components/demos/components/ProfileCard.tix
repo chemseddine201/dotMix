@@ -1,0 +1,18 @@
+import "./ProfileCard.css";
+
+interface ProfileCardProps {
+  name: string;
+  role?: string;
+}
+
+export default function ProfileCard(props: ProfileCardProps) {
+  return (
+    <section class="profile-card">
+      <h3 class="profile-name">{props.name}</h3>
+      <p class="profile-role">{props.role ?? "Member"}</p>
+      <div class="profile-actions">
+        <slot />
+      </div>
+    </section>
+  );
+}

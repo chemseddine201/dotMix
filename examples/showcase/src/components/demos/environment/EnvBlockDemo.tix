@@ -1,0 +1,19 @@
+import Badge from "../../ui/Badge.tix";
+
+export default function EnvBlockDemo() {
+  return (
+    <div>
+      {dev}
+        <Badge tone="warning">Development build</Badge>
+      {enddev}
+      {production}
+        <Badge tone="success">Production build</Badge>
+      {endproduction}
+      {env "development", "staging"}
+        <Badge tone="info">Pre-release environment</Badge>
+      {else}
+        <Badge>Release environment</Badge>
+      {endenv}
+    </div>
+  );
+}

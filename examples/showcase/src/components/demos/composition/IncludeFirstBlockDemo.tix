@@ -1,0 +1,26 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal, computed } from "@dotmix/runtime";
+import StatusCard from "./StatusCard.tix";
+import AlternateCard from "./AlternateCard.tix";
+
+export default function IncludeFirstBlockDemo() {
+  function loaderFor(component: unknown): () => unknown {
+    return () => component;
+  }
+
+  const preferAlternate = signal<boolean>(false);
+  const candidates = computed(() => [loaderFor(preferAlternate() ? AlternateCard : null), loaderFor(StatusCard)]);
+
+  return (
+    <div>
+      <ActionButton label="Toggle preference" onPress={() => preferAlternate.set(!preferAlternate())} />
+
+
+      {includefirst candidates() with { title: "First available" }}
+        <p>Loading...</p>
+      {else}
+        <p>No component available</p>
+      {endincludefirst}
+    </div>
+  );
+}

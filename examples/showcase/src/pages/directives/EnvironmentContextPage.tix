@@ -1,0 +1,59 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import EnvBlockDemo from "../../components/demos/environment/EnvBlockDemo.tix";
+import EnvComponentDemo from "../../components/demos/environment/EnvComponentDemo.tix";
+import ContextBlockDemo from "../../components/demos/environment/ContextBlockDemo.tix";
+import ContextComponentDemo from "../../components/demos/environment/ContextComponentDemo.tix";
+
+const envRows = [
+  { name: "is", type: "string | string[]", description: "Env: the mode names. Must be static strings." },
+  { name: "else", type: "Children", description: "Optional fallback of Env." },
+  { name: "children", type: "Children", description: "The markup for the matching mode." }
+];
+
+const contextRows = [
+  { name: "of", type: "Context<T>", description: "The context to read." },
+  { name: "else", type: "Children", description: "Optional fallback when no value is provided." },
+  { name: "children", type: "Children | (value: () => T) => Children", description: "Markup, or a function receiving the value." }
+];
+
+export default function EnvironmentContextPage() {
+  return (
+    <DocPage title="Environment and context" summary="Include markup by build mode, and read values provided by an ancestor component.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Show a debug toolbar only in development builds.</li>
+        <li>Remove markup from production output completely.</li>
+        <li>Read a shared value such as a theme without passing it through every component.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="dev, production, env">
+      <p>Resolved by the compiler from the build mode: development for mix dev, production for mix build, or the value of --mode. Branches that do not match are not present in the output. The result below is for the mode this page was built with.</p>
+      <FormTabs blockSource="environment/EnvBlockDemo" componentSource="environment/EnvComponentDemo">
+        <div slot="block"><EnvBlockDemo /></div>
+        <div slot="component"><EnvComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={envRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Passing a value that is not a static string to Env.</p>
+        <p><code>MIX_ERR_ENV_NOT_STATIC</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="context">
+      <p>Reads the nearest provided value of a context and renders when it is not null or undefined. The exposed name is narrowed to a non-null type. The value is read when the component is created and is not reactive.</p>
+      <FormTabs blockSource="environment/ContextBlockDemo" componentSource="environment/ContextComponentDemo">
+        <div slot="block"><ContextBlockDemo /></div>
+        <div slot="component"><ContextComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={contextRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Expecting the directive to update when the provider value changes. The value is read once, when the component is created.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

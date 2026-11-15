@@ -1,0 +1,100 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import EachBlockDemo from "../../components/demos/loops/EachBlockDemo.tix";
+import EachComponentDemo from "../../components/demos/loops/EachComponentDemo.tix";
+import EachControlsBlockDemo from "../../components/demos/loops/EachControlsBlockDemo.tix";
+import EachControlsComponentDemo from "../../components/demos/loops/EachControlsComponentDemo.tix";
+import EachRenderBlockDemo from "../../components/demos/loops/EachRenderBlockDemo.tix";
+import EachRenderComponentDemo from "../../components/demos/loops/EachRenderComponentDemo.tix";
+import ForBlockDemo from "../../components/demos/loops/ForBlockDemo.tix";
+import ForComponentDemo from "../../components/demos/loops/ForComponentDemo.tix";
+
+const eachRows = [
+  { name: "data", type: "Maybe<readonly T[]>", description: "The collection." },
+  { name: "key", type: "(item: T, index: number) => unknown", description: "Optional key function." },
+  { name: "fallback", type: "Children", description: "Rendered when the collection is empty. Use this or an Empty child." },
+  { name: "children", type: "(item: T, index: () => number) => Children", description: "Row template. The index is a getter." }
+];
+
+const eachControlsRows = [
+  { name: "skip", type: "(item: T, index: number) => boolean", description: "Items for which it returns true are not rendered." },
+  { name: "stop", type: "(item: T, index: number) => boolean", description: "Rendering ends before the first item for which it returns true." }
+];
+
+const eachRenderRows = [
+  { name: "render", type: "Component", description: "The component mounted for every item." },
+  { name: "as", type: "string", description: "The prop name that receives the item. Default: item." },
+  { name: "fallback", type: "Children", description: "Rendered when the collection is empty." }
+];
+
+const forRows = [
+  { name: "from, to", type: "Maybe<number>", description: "Range bounds. to is inclusive." },
+  { name: "step", type: "Maybe<number>", description: "Optional step." },
+  { name: "times", type: "Maybe<number>", description: "Counted loop, 0 to n - 1." },
+  { name: "children", type: "(value: () => number) => Children", description: "Template receiving the current number." }
+];
+
+export default function LoopsPage() {
+  return (
+    <DocPage title="Loops" summary="Render lists with keyed iteration, and numeric ranges with for.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Render a collection that changes: only added, removed and moved rows are touched.</li>
+        <li>Skip or stop at items without filtering the data first.</li>
+        <li>Repeat markup a fixed number of times or over a number range.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="each and empty">
+      <p>Keyed reactive iteration. The key is item.id, then item.key, then the item itself; pass an explicit key for other shapes. Duplicate keys are rejected at runtime.</p>
+      <FormTabs blockSource="loops/EachBlockDemo" componentSource="loops/EachComponentDemo">
+        <div slot="block"><EachBlockDemo /></div>
+        <div slot="component"><EachComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={eachRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Objects without id or key cannot be used as keys. Pass a key expression, for example (task, index, task.slug) in the block form.</p>
+        <p><code>MIX_ERR_DUPLICATE_KEY (runtime)</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="continue if and break if">
+      <p>Skip matching items or stop at the first matching item (the match is excluded). They must be the first statements in the each body, before any markup.</p>
+      <FormTabs blockSource="loops/EachControlsBlockDemo" componentSource="loops/EachControlsComponentDemo">
+        <div slot="block"><EachControlsBlockDemo /></div>
+        <div slot="component"><EachControlsComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={eachControlsRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Placing continue if or break if after markup in the each body.</p>
+        <p><code>MIX_ERR_LOOP_CONTROL_POSITION</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="each ... render">
+      <p>Renders a component once per item. The item is passed under the loop variable name in the block form, or under the as prop (default item) in the component form.</p>
+      <FormTabs blockSource="loops/EachRenderBlockDemo" componentSource="loops/EachRenderComponentDemo">
+        <div slot="block"><EachRenderBlockDemo /></div>
+        <div slot="component"><EachRenderComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={eachRenderRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Combining the render prop with a child row template.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT applies when both fallback and Empty are supplied</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="for">
+      <p>A bounded numeric range (the upper bound is included; the step is 1, or -1 when from is greater than to) or a counted times loop from 0 to n - 1.</p>
+      <FormTabs blockSource="loops/ForBlockDemo" componentSource="loops/ForComponentDemo">
+        <div slot="block"><ForBlockDemo /></div>
+        <div slot="component"><ForComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={forRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>A step of 0, or a range of more than 100,000 items, throws at runtime.</p>
+        <p><code>MIX_ERR_FOR_STEP_ZERO, MIX_ERR_FOR_RANGE_TOO_LARGE</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

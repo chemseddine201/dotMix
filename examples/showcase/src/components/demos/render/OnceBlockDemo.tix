@@ -1,0 +1,13 @@
+export default function OnceBlockDemo() {
+  function readClock(): string {
+    return new Date().toLocaleTimeString();
+  }
+
+  return (
+    <div>
+      {once}
+        <p>Mounted at {readClock()}</p>
+      {endonce}
+    </div>
+  );
+}

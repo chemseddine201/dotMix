@@ -1,0 +1,66 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+
+const sessionRows = [
+  { name: "key", type: "string", description: "The session key." },
+  { name: "else", type: "Children", description: "Optional fallback." }
+];
+
+const partialRows = [
+  { name: "name", type: "string", description: "The region name used by renderToString." }
+];
+
+const jsonRows = [
+  { name: "id", type: "string", description: "The id of the script element." },
+  { name: "data", type: "unknown", description: "The value to serialize." }
+];
+
+export default function ServerRenderingPage() {
+  return (
+    <DocPage title="Server rendering" summary="Directives that read the server request. The examples run on the server; this page shows their source only.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Read a flash message or other session value while rendering on the server.</li>
+        <li>Render only a named region of a page, for example to answer a request for a fragment.</li>
+        <li>Embed initial state as JSON that is safe to place inside HTML.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="session">
+      <p>Reads a value from the server session through the request context. The else branch renders when no value exists.</p>
+      <FormTabs blockSource="server/SessionBlockDemo" componentSource="server/SessionComponentDemo">
+
+      </FormTabs>
+      <PropTable rows={sessionRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Using session where no request context is available, for example in a static build.</p>
+        <p><code>no diagnostic: the else branch renders</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="partial">
+      <p>Names a region. Calling renderToString on the app with the partial option set to the region name renders only that region on the server. In the browser the content renders as usual.</p>
+      <FormTabs blockSource="server/PartialBlockDemo" componentSource="server/PartialComponentDemo">
+
+      </FormTabs>
+      <PropTable rows={partialRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Requesting a partial name that does not exist in the rendered tree.</p>
+        <p><code>no diagnostic: nothing is rendered</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="json">
+      <p>Embeds a value as a script element of type application/json. The output escapes the closing script tag, the comment opener and the line separator characters so it is safe inside HTML.</p>
+      <FormTabs blockSource="server/JsonBlockDemo" componentSource="server/JsonComponentDemo">
+
+      </FormTabs>
+      <PropTable rows={jsonRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Building the script element by hand with string concatenation, which can be broken by a closing script tag inside the data.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

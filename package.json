@@ -1,0 +1,35 @@
+{
+  "name": "dotmix-framework",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "editors/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint .",
+    "test": "node --test tests/**/*.test.mjs",
+    "test:perf": "node --test --test-concurrency=1 tests/perf/",
+    "test:golden": "node --test tests/golden/golden-path.test.mjs",
+    "test:browser": "node tools/browser-matrix/run.mjs",
+    "test:e2e": "node tools/browser-matrix/e2e/run.mjs",
+    "measure:sync": "node tools/sync-measure/run.mjs",
+    "serve": "node examples/showcase/serve.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "26.0.0",
+    "eslint": "9.39.5",
+    "happy-dom": "15.11.7",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

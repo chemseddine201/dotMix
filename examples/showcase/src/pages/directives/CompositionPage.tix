@@ -1,0 +1,61 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import IncludeBlockDemo from "../../components/demos/composition/IncludeBlockDemo.tix";
+import IncludeComponentDemo from "../../components/demos/composition/IncludeComponentDemo.tix";
+import IncludeFirstBlockDemo from "../../components/demos/composition/IncludeFirstBlockDemo.tix";
+import IncludeFirstComponentDemo from "../../components/demos/composition/IncludeFirstComponentDemo.tix";
+
+const includeRows = [
+  { name: "component", type: "Component | loader", description: "The component, or a loader such as () => import('./X.tix')." },
+  { name: "props", type: "object", description: "The props passed to the component." },
+  { name: "condition / unless", type: "Maybe<unknown>", description: "Optional gates." },
+  { name: "pending / fallback", type: "Children", description: "Shown while a loader runs, or when it yields no component." }
+];
+
+const includeFirstRows = [
+  { name: "candidates", type: "Array<() => Component | Promise<Component>>", description: "Loaders, tried in order." },
+  { name: "props", type: "object", description: "Props passed to the mounted component." },
+  { name: "pending", type: "Children", description: "Shown while loaders run." },
+  { name: "fallback", type: "Children", description: "Shown when no loader yields a component. Use this or an Else child." }
+];
+
+export default function CompositionPage() {
+  return (
+    <DocPage title="Composition" summary="Mount a component chosen by an expression, with optional lazy loading and fallbacks.">
+    <DocSection title="When to use">
+      <ul>
+        <li>The component to render is decided at runtime, for example a theme or a plug-in.</li>
+        <li>A component should be loaded with a dynamic import only when needed.</li>
+        <li>Several candidates exist and the first available one should win.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="include">
+      <p>Mounts a component with a props object. An if or unless suffix (condition or unless in the component form) makes it conditional.</p>
+      <FormTabs blockSource="composition/IncludeBlockDemo" componentSource="composition/IncludeComponentDemo">
+        <div slot="block"><IncludeBlockDemo /></div>
+        <div slot="component"><IncludeComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={includeRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Passing a value that is neither a component nor a loader returning one: nothing is mounted and the fallback is used.</p>
+        <p><code>no diagnostic</code></p>
+      </Callout>
+    </DocSection>
+    <DocSection title="includefirst">
+      <p>Takes a list of candidate loaders. A loader is a function that returns a component, a module with a default export or a promise of one. The first loader that yields a component is mounted. The pending content shows while loaders run, and the else branch renders when none yields a component.</p>
+      <FormTabs blockSource="composition/IncludeFirstBlockDemo" componentSource="composition/IncludeFirstComponentDemo">
+        <div slot="block"><IncludeFirstBlockDemo /></div>
+        <div slot="component"><IncludeFirstComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={includeFirstRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Listing components instead of loaders. A candidate must be a function that returns the component.</p>
+        <p><code>no diagnostic: the candidate is skipped</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

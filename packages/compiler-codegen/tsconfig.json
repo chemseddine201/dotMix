@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "references": [
+    { "path": "../diagnostics" },
+    { "path": "../ast" },
+    { "path": "../compiler-semantic" },
+    { "path": "../compiler-css" }
+  ],
+  "include": ["src/**/*"]
+}
+

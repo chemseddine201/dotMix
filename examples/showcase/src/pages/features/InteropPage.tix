@@ -1,0 +1,37 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import CodeText from "../../components/ui/CodeText.tix";
+
+const code0 = [
+  "import { defineMixCustomElement } from \"@dotmix/interop\";",
+  "import ProfileCard from \"./components/demos/components/ProfileCard.tix\";",
+  "",
+  "defineMixCustomElement(\"profile-card\", ProfileCard, { observedProps: [\"name\", \"role\"] });",
+  "",
+  "// In any HTML page:",
+  "// <profile-card name=\"Ada Lovelace\" role=\"Engineer\"></profile-card>"
+].join(String.fromCharCode(10));
+
+const code1 = [
+  "import { signal } from \"@dotmix/runtime\";",
+  "import { toTc39Signal, fromTc39Signal } from \"@dotmix/interop\";",
+  "",
+  "const count = signal<number>(0);",
+  "const foreignCount = toTc39Signal(count);",
+  "const backAgain = fromTc39Signal<number>(foreignCount, 0);"
+].join(String.fromCharCode(10));
+
+export default function InteropPage() {
+  return (
+    <DocPage title="Interop" summary="Use Mix and Tix components as custom elements and exchange signals with the TC39 signals proposal. Code only.">
+      <DocSection title="Custom element">
+        <p>defineMixCustomElement registers a standard custom element that mounts a component. It uses the light DOM by default.</p>
+        <CodeText code={code0} title="Custom element" />
+      </DocSection>
+      <DocSection title="Signals">
+        <p>toTc39Signal wraps a signal for code that follows the TC39 interface, and fromTc39Signal does the reverse.</p>
+        <CodeText code={code1} title="TC39 signals" />
+      </DocSection>
+    </DocPage>
+  );
+}

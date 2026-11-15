@@ -1,0 +1,20 @@
+import Badge from "../../ui/Badge.tix";
+import ThemeScope from "./ThemeScope.tix";
+import { ThemeContext } from "../../../stores/themeContext.js";
+
+export default function ContextBlockDemo() {
+  return (
+    <div>
+      <ThemeScope theme="dark">
+        {context ThemeContext as theme}
+          <Badge tone="info">Theme: {theme}</Badge>
+        {endcontext}
+      </ThemeScope>
+      {context ThemeContext as theme}
+        <Badge tone="info">Theme: {theme}</Badge>
+      {else}
+        <Badge>Outside any provider</Badge>
+      {endcontext}
+    </div>
+  );
+}

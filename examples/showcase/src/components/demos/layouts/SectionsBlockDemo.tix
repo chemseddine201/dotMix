@@ -1,0 +1,20 @@
+import PanelBlockLayout from "./PanelBlockLayout.tix";
+
+export default function SectionsBlockDemo() {
+  return (
+    <div>
+      <PanelBlockLayout>
+        {section "header"}
+          <strong>Custom header</strong>
+        {endsection}
+        <p>Body content</p>
+        {section "footer"}
+          <small>Footer text</small>
+        {endsection}
+      </PanelBlockLayout>
+      <PanelBlockLayout>
+        <p>Body only</p>
+      </PanelBlockLayout>
+    </div>
+  );
+}

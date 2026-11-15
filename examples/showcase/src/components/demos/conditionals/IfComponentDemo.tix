@@ -1,0 +1,28 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { If, ElseIf, Else } from "@dotmix/runtime/directives";
+
+export default function IfComponentDemo() {
+  const stock = signal<number>(12);
+
+  return (
+    <div>
+      <ActionButton label="Remove 5" onPress={() => stock.set(stock() - 5)} />
+      <ActionButton label="Add 5" onPress={() => stock.set(stock() + 5)} />
+      <ActionButton label="Sell out" onPress={() => stock.set(0)} />
+      <p>Items in stock: {stock()}</p>
+
+
+      <If condition={stock() > 10}>
+        <Badge tone="success">In stock</Badge>
+        <ElseIf condition={stock() > 0}>
+          <Badge tone="warning">Low stock</Badge>
+        </ElseIf>
+        <Else>
+          <Badge tone="danger">Sold out</Badge>
+        </Else>
+      </If>
+    </div>
+  );
+}

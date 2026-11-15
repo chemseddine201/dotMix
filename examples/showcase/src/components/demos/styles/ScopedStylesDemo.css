@@ -1,0 +1,20 @@
+.scoped-panel {
+  padding: var(--space-3);
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-medium);
+}
+
+.scoped-label {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.scoped-panel :deep(.badge) {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:global(.demo-global-note) {
+  color: var(--color-success);
+  font-style: italic;
+}

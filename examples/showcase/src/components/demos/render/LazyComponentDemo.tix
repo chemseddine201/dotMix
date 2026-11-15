@@ -1,0 +1,15 @@
+import Badge from "../../ui/Badge.tix";
+import { Lazy, Else } from "@dotmix/runtime/directives";
+
+export default function LazyComponentDemo() {
+  return (
+    <div>
+      <Lazy trigger="idle">
+        <Badge tone="success">Mounted when the browser was idle</Badge>
+        <Else>
+          <p>Waiting for idle time...</p>
+        </Else>
+      </Lazy>
+    </div>
+  );
+}

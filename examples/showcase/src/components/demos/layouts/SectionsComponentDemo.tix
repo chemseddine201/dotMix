@@ -1,0 +1,21 @@
+import { Section } from "@dotmix/runtime/directives";
+import PanelComponentLayout from "./PanelComponentLayout.tix";
+
+export default function SectionsComponentDemo() {
+  return (
+    <div>
+      <PanelComponentLayout>
+        <Section name="header">
+          <strong>Custom header</strong>
+        </Section>
+        <p>Body content</p>
+        <Section name="footer">
+          <small>Footer text</small>
+        </Section>
+      </PanelComponentLayout>
+      <PanelComponentLayout>
+        <p>Body only</p>
+      </PanelComponentLayout>
+    </div>
+  );
+}

@@ -1,0 +1,20 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { For } from "@dotmix/runtime/directives";
+
+export default function ForComponentDemo() {
+  const upperBound = signal<number>(5);
+  const repeatCount = signal<number>(3);
+
+  return (
+    <div>
+      <ActionButton label="Range +1" onPress={() => upperBound.set(upperBound() + 1)} />
+      <ActionButton label="Repeat +1" onPress={() => repeatCount.set(repeatCount() + 1)} />
+
+
+      <p><For from={1} to={upperBound()}>{(page) => <Badge tone="info">{page()}</Badge>}</For></p>
+      <p><For times={repeatCount()}>{(position) => <Badge>#{position()}</Badge>}</For></p>
+    </div>
+  );
+}

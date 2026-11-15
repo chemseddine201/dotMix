@@ -1,0 +1,7 @@
+export default function Crashable() {
+  return (
+    <div class="crashable-box" id="crashable-box">
+      Crashable OK
+    </div>
+  );
+}

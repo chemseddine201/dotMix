@@ -1,0 +1,63 @@
+import "./NavSection.css";
+import { createEffect, signal } from "@dotmix/runtime";
+import { NavLink } from "@dotmix/router";
+import type { NavEntry } from "../../layouts/navigation.js";
+
+interface NavSectionProps {
+  title: string;
+  items: NavEntry[];
+  activePath: string;
+  onNavigate?: () => void;
+}
+
+export default function NavSection(props: NavSectionProps) {
+  const expanded = signal<boolean>(true);
+
+  createEffect(() => {
+    const current = props.activePath;
+    if (props.items.some((item) => item.path === current)) {
+      expanded.set(true);
+    }
+  });
+
+  function handleListClick(event: MouseEvent): void {
+    const target = event.target;
+    if (target instanceof Element && target.closest("a") && props.onNavigate) {
+      props.onNavigate();
+    }
+  }
+
+  return (
+    <section class="nav-section">
+      <button
+        type="button"
+        class="nav-section-toggle"
+        aria-expanded={expanded() ? "true" : "false"}
+        onClick={() => expanded.set(!expanded())}
+      >
+        <span>{props.title}</span>
+        <svg
+          class={{ "nav-chevron": true, "nav-chevron-collapsed": !expanded() }}
+          viewBox="0 0 16 16"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 6L8 10L12 6" />
+        </svg>
+      </button>
+      <ul class="nav-section-list" hidden={!expanded()} onClick={handleListClick}>
+        {each (item, index, item.path) in props.items}
+          <li>
+            <NavLink class="nav-link" to={item.path}>{item.title}</NavLink>
+          </li>
+        {endeach}
+      </ul>
+    </section>
+  );
+}

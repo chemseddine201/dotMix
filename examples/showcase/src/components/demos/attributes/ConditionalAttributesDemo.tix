@@ -1,0 +1,26 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function ConditionalAttributesDemo() {
+  const canEdit = signal<boolean>(true);
+  const plan = signal<string>("pro");
+  const extraAttributes = { "data-origin": "spread", role: "note" };
+
+  return (
+    <div>
+      <ActionButton label="Toggle permission" onPress={() => canEdit.set(!canEdit())} />
+      <ActionButton label="Plan: pro" onPress={() => plan.set("pro")} />
+      <ActionButton label="Plan: team" onPress={() => plan.set("team")} />
+      <ActionButton label="Plan: free" onPress={() => plan.set("free")} />
+
+
+      <button type="button" title="Edit this item" title:if={canEdit()} title:else="You cannot edit this item" aria-disabled="true" aria-disabled:unless={canEdit()}>
+        Edit
+      </button>
+      <p data-tier:match={plan()} data-tier:case-pro="professional" data-tier:case-team="team" data-tier:else="starter">
+        Plan: {plan()}
+      </p>
+      <p {...extraAttributes} spread:if={canEdit()}>Spread attributes</p>
+    </div>
+  );
+}

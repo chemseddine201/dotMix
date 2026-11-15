@@ -1,0 +1,21 @@
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+import { IsSet, Else } from "@dotmix/runtime/directives";
+
+export default function IsSetComponentDemo() {
+  const member = signal<string | null>(null);
+
+  return (
+    <div>
+      <ActionButton label="Toggle sign-in" onPress={() => member.set(member() === null ? "Ada Lovelace" : null)} />
+
+
+      <IsSet value={member()}>
+        {(current) => <p>Signed in as {current()}</p>}
+        <Else>
+          <p>Not signed in</p>
+        </Else>
+      </IsSet>
+    </div>
+  );
+}

@@ -1,0 +1,40 @@
+import DocPage from "../../components/ui/DocPage.tix";
+import DocSection from "../../components/ui/DocSection.tix";
+import FormTabs from "../../components/ui/FormTabs.tix";
+import PropTable from "../../components/ui/PropTable.tix";
+import Callout from "../../components/ui/Callout.tix";
+import AwaitBlockDemo from "../../components/demos/async/AwaitBlockDemo.tix";
+import AwaitComponentDemo from "../../components/demos/async/AwaitComponentDemo.tix";
+
+const awaitRows = [
+  { name: "promise", type: "Maybe<Promise<T>>", description: "The promise to render." },
+  { name: "pending", type: "Children", description: "Shown while the promise is unresolved." },
+  { name: "catch", type: "(error: () => unknown) => Children", description: "Shown when the promise rejects." },
+  { name: "children", type: "(value: () => T) => Children", description: "Shown with the resolved value." }
+];
+
+export default function AsyncPage() {
+  return (
+    <DocPage title="Async" summary="Render a promise declaratively: pending, resolved and failed states.">
+    <DocSection title="When to use">
+      <ul>
+        <li>Show data that is fetched once and displayed.</li>
+        <li>Replace the view when a new promise arrives, ignoring results of older promises.</li>
+        <li>Avoid writing loading and error flags by hand.</li>
+      </ul>
+    </DocSection>
+    <DocSection title="await, then, catch">
+      <p>Tracks the identity of the promise. When the expression yields a new promise the pending view returns and the earlier result is ignored.</p>
+      <FormTabs blockSource="async/AwaitBlockDemo" componentSource="async/AwaitComponentDemo">
+        <div slot="block"><AwaitBlockDemo /></div>
+        <div slot="component"><AwaitComponentDemo /></div>
+      </FormTabs>
+      <PropTable rows={awaitRows} />
+      <Callout title="Common mistake" tone="mistake">
+        <p>Supplying both the pending prop and a pending child branch, or the catch prop together with a catch child, is rejected.</p>
+        <p><code>MIX_ERR_DIRECTIVE_ELSE_CONFLICT</code></p>
+      </Callout>
+    </DocSection>
+    </DocPage>
+  );
+}

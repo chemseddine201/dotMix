@@ -1,0 +1,35 @@
+import Badge from "../../ui/Badge.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+import { signal } from "@dotmix/runtime";
+
+export default function AwaitBlockDemo() {
+  function loadProfile(userId: number): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      setTimeout(() => {
+        if (userId < 0) {
+          reject(new Error("User " + userId + " does not exist"));
+        } else {
+          resolve("User " + userId);
+        }
+      }, 500);
+    });
+  }
+
+  const request = signal<Promise<string>>(loadProfile(1));
+
+  return (
+    <div>
+      <ActionButton label="Load user 7" onPress={() => { request.set(loadProfile(7)); }} />
+      <ActionButton label="Load a missing user" onPress={() => { request.set(loadProfile(-1)); }} />
+
+
+      {await request()}
+        <p>Loading profile...</p>
+      {then profile}
+        <Badge tone="success">{profile}</Badge>
+      {catch failure}
+        <Badge tone="danger">{String(failure)}</Badge>
+      {endawait}
+    </div>
+  );
+}

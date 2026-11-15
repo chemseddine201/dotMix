@@ -1,0 +1,13 @@
+import { Csrf, Method } from "@dotmix/runtime/directives";
+
+export default function CsrfComponentDemo() {
+  return (
+    <div>
+      <form method="post" action="/tasks/7">
+        <Csrf />
+        <Method value="PUT" />
+        <p>Hidden inputs _token and _method are part of this form.</p>
+      </form>
+    </div>
+  );
+}

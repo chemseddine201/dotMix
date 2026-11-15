@@ -1,0 +1,19 @@
+import Counter from "./Counter.mix";
+import StyledBox from "./StyledBox.mix";
+import HelperConsumer from "./HelperConsumer.mix";
+import ChildList from "./ChildList.mix";
+import Crashable from "./Crashable.mix";
+
+export default function App() {
+  return (
+    <div class="app-root">
+      <h1 id="app-title">HMR Fixture App</h1>
+      <Counter id="counter-1" />
+      <Counter id="counter-2" />
+      <StyledBox />
+      <HelperConsumer />
+      <ChildList />
+      <Crashable />
+    </div>
+  );
+}

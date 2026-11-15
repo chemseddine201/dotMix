@@ -1,0 +1,16 @@
+import { provideContext } from "@dotmix/runtime";
+import { ThemeContext } from "../../../stores/themeContext.js";
+
+interface ThemeScopeProps {
+  theme: string;
+}
+
+export default function ThemeScope(props: ThemeScopeProps) {
+  provideContext(ThemeContext, props.theme);
+
+  return (
+    <p>
+      <slot />
+    </p>
+  );
+}

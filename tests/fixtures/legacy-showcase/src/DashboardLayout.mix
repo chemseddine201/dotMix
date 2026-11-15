@@ -1,0 +1,31 @@
+import Header from "./components/Header.mix";
+import Sidebar from "./components/Sidebar.mix";
+import Breadcrumbs from "./components/Breadcrumbs.mix";
+import { Outlet } from "@dotmix/router";
+import { syncSignal } from "@dotmix/sync";
+import "./DashboardLayout.css";
+
+export default function DashboardLayout() {
+  const theme = syncSignal("light", { key: "dashboard_theme", driver: "indexeddb" });
+
+  function toggleTheme() {
+    theme.set(theme() === "light" ? "dark" : "light");
+  }
+
+  return (
+    <div class={"dashboard-shell theme-" + theme()}>
+      <Header title="⚡ Mix / Tix All-In-One Enterprise Architecture" theme={theme()} onToggleTheme={toggleTheme} />
+      <div class="dashboard-body">
+        <Sidebar />
+        <main class="dashboard-main">
+          <Breadcrumbs mounts={1} />
+          <div class="outlet-viewport">
+            <Outlet context={{ tier: "Production", release: "Gate 24 Certified" }} />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+<style src="./DashboardLayout.css"></style>

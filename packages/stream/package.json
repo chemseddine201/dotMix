@@ -1,0 +1,34 @@
+{
+  "name": "@dotmix/stream",
+  "version": "0.1.0",
+  "description": "Resumable island streaming and progressive hydration for dotMix SSR",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/stream"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@dotmix/runtime": "0.1.0",
+    "@dotmix/compiler-ssr": "0.1.0"
+  },
+  "devDependencies": {
+    "@dotmix/diagnostics": "0.1.0"
+  },
+  "license": "MIT"
+}

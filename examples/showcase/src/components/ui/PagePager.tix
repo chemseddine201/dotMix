@@ -1,0 +1,34 @@
+import "./PagePager.css";
+import { Link } from "@dotmix/router";
+import type { NavEntry } from "../../layouts/navigation.js";
+
+interface PagePagerProps {
+  prev: NavEntry | null;
+  next: NavEntry | null;
+}
+
+export default function PagePager(props: PagePagerProps) {
+  return (
+    <div class="pager-wrapper">
+      {if (props.prev !== null || props.next !== null)}
+        <nav class="pager-nav" aria-label="Page navigation">
+          {if (props.prev !== null)}
+            <Link to={props.prev?.path ?? "/"} class="pager-link pager-prev">
+              <span class="pager-label">Previous</span>
+              <span class="pager-title">{props.prev?.title ?? ""}</span>
+            </Link>
+          {else}
+            <span aria-hidden="true" />
+          {endif}
+          {if (props.next !== null)}
+            <Link to={props.next?.path ?? "/"} class="pager-link pager-next">
+              <span class="pager-label">Next</span>
+              <span class="pager-title">{props.next?.title ?? ""}</span>
+            </Link>
+          {endif}
+        </nav>
+      {endif}
+    </div>
+  );
+}
+

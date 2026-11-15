@@ -1,0 +1,21 @@
+import { signal } from "@dotmix/runtime";
+import TaskLine from "./TaskLine.tix";
+import { Each } from "@dotmix/runtime/directives";
+
+interface Task {
+  id: number;
+  title: string;
+}
+
+export default function EachRenderComponentDemo() {
+  const tasks = signal<Task[]>([
+    { id: 1, title: "Write the release notes" },
+    { id: 2, title: "Review the pull request" }
+  ]);
+
+  return (
+    <div>
+      <Each data={tasks()} render={TaskLine} as="task" fallback={<p>No tasks.</p>} />
+    </div>
+  );
+}

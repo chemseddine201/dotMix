@@ -1,0 +1,170 @@
+import "./ShowcaseLayout.css";
+import { computed, createEffect, createRef, onCleanup, signal } from "@dotmix/runtime";
+import { Outlet, useLocation } from "@dotmix/router";
+import NavSection from "../components/ui/NavSection.tix";
+import PagePager from "../components/ui/PagePager.tix";
+import SearchModal from "../components/ui/SearchModal.tix";
+import SiteHeader from "../components/ui/SiteHeader.tix";
+import { buildNavigation, getAdjacentRoutes, isEditableElement, trapFocusOnTab } from "./navigation.js";
+import { routes } from "../routes.js";
+
+export default function ShowcaseLayout() {
+  const location = useLocation();
+  const drawerOpen = signal<boolean>(false);
+  const desktopCollapsed = signal<boolean>(false);
+  const searchOpen = signal<boolean>(false);
+
+  const mainRef = createRef<HTMLElement>();
+  const sidebarRef = createRef<HTMLElement>();
+  const mobileMenuRef = createRef<HTMLButtonElement>();
+  const drawerCloseRef = createRef<HTMLButtonElement>();
+  const searchButtonRef = createRef<HTMLButtonElement>();
+
+  const groups = buildNavigation(routes);
+  const adjacent = computed(() => getAdjacentRoutes(routes, location.pathname));
+  let previousReturnFocus: HTMLElement | null = null;
+  let lastPath = location.pathname;
+
+  function openDrawer(): void {
+    drawerOpen.set(true);
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => drawerCloseRef.current?.focus());
+    }
+  }
+
+  function closeDrawer(restoreFocus: boolean): void {
+    if (!drawerOpen()) {
+      return;
+    }
+    drawerOpen.set(false);
+    if (restoreFocus) {
+      mobileMenuRef.current?.focus();
+    }
+  }
+
+  function openSearch(): void {
+    previousReturnFocus =
+      typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : searchButtonRef.current;
+    drawerOpen.set(false);
+    searchOpen.set(true);
+  }
+
+  function closeSearch(): void {
+    searchOpen.set(false);
+    const restoreTarget = previousReturnFocus ?? searchButtonRef.current;
+    previousReturnFocus = null;
+    restoreTarget?.focus();
+  }
+
+  function handleDrawerKeyDown(event: KeyboardEvent): void {
+    if (!drawerOpen()) {
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDrawer(true);
+      return;
+    }
+    trapFocusOnTab(event, sidebarRef.current);
+  }
+
+  createEffect(() => {
+    const activePath = location.pathname;
+    if (activePath !== lastPath) {
+      lastPath = activePath;
+      drawerOpen.set(false);
+      searchOpen.set(false);
+      if (typeof window !== "undefined") {
+        window.scrollTo(0, 0);
+      }
+    }
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        const activeLink = sidebarRef.current?.querySelector('a[aria-current="page"]');
+        if (activeLink && typeof activeLink.scrollIntoView === "function") {
+          activeLink.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      });
+    }
+  });
+
+  if (typeof window !== "undefined") {
+    const onGlobalKeyDown = (event: KeyboardEvent): void => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (searchOpen()) {
+          closeSearch();
+        } else {
+          openSearch();
+        }
+        return;
+      }
+      if (event.key === "/" && !searchOpen() && !isEditableElement(event.target)) {
+        event.preventDefault();
+        openSearch();
+        return;
+      }
+      if (event.key === "Escape" && drawerOpen()) {
+        event.preventDefault();
+        closeDrawer(true);
+      }
+    };
+    window.addEventListener("keydown", onGlobalKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", onGlobalKeyDown));
+  }
+
+  return (
+    <div class="site-shell">
+      <button type="button" class="skip-link" onClick={() => { mainRef.current?.focus(); mainRef.current?.scrollIntoView({ block: "start" }); }}>
+        Skip to content
+      </button>
+
+      <SiteHeader
+        drawerOpen={drawerOpen()}
+        desktopCollapsed={desktopCollapsed()}
+        toggleDrawer={() => (drawerOpen() ? closeDrawer(true) : openDrawer())}
+        toggleSidebar={() => desktopCollapsed.set(!desktopCollapsed())}
+        triggerSearch={openSearch}
+        mobileMenuRef={mobileMenuRef}
+        searchButtonRef={searchButtonRef}
+      />
+
+      <div class="layout-body">
+        {if (drawerOpen())}
+          <div class="sidebar-backdrop" aria-hidden="true" onClick={() => closeDrawer(true)} />
+        {endif}
+
+        <aside
+          id="site-sidebar"
+          ref={sidebarRef}
+          class={{ "layout-sidebar": true, "layout-sidebar-open": drawerOpen(), "layout-sidebar-desktop-collapsed": desktopCollapsed() }}
+          aria-label="Primary navigation"
+          onKeyDown={handleDrawerKeyDown}
+        >
+          <div class="drawer-header">
+            <span class="drawer-title">Navigation</span>
+            <button ref={drawerCloseRef} type="button" class="drawer-close-button" onClick={() => closeDrawer(true)}>Close</button>
+          </div>
+          <nav aria-label="Documentation sections">
+            {each (group, index, group.section) in groups}
+              <NavSection title={group.section} items={group.items} activePath={location.pathname} onNavigate={() => closeDrawer(false)} />
+            {endeach}
+          </nav>
+        </aside>
+
+        <main id="main-content" ref={mainRef} tabIndex={-1} class="layout-main">
+          <div class="layout-content">
+            <Outlet />
+            <PagePager prev={adjacent().prev} next={adjacent().next} />
+          </div>
+        </main>
+      </div>
+
+      {if (searchOpen())}
+        <SearchModal onClose={closeSearch} />
+      {endif}
+    </div>
+  );
+}

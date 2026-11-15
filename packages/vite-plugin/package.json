@@ -1,0 +1,25 @@
+{
+  "name": "@dotmix/vite-plugin",
+  "version": "0.1.0",
+  "description": "Vite/Rollup plugin for Mix/Tix compiler with HMR and scoped CSS extraction",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chemseddine201/dotMix.git",
+    "directory": "packages/vite-plugin"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@dotmix/compiler-frontend": "0.1.0",
+    "@dotmix/compiler-semantic": "0.1.0",
+    "@dotmix/compiler-codegen": "0.1.0",
+    "@dotmix/compiler-css": "0.1.0",
+    "@dotmix/diagnostics": "0.1.0"
+  },
+  "license": "MIT"
+}

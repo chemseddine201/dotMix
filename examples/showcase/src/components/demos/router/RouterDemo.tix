@@ -1,0 +1,39 @@
+import { signal } from "@dotmix/runtime";
+import { createMemoryRouter, RouterProvider, Outlet, NavLink } from "@dotmix/router";
+import DemoHome from "./DemoHome.tix";
+import DemoProfile from "./DemoProfile.tix";
+import DemoAdmin from "./DemoAdmin.tix";
+import ActionButton from "../../ui/ActionButton.tix";
+
+export default function RouterDemo() {
+  const allowed = signal<boolean>(false);
+
+  const router = createMemoryRouter({
+    routes: [
+      { path: "/", component: DemoHome },
+      {
+        id: "profile",
+        path: "/profile/:id",
+        component: DemoProfile,
+        loader: ({ params }) => ({ name: "User " + params["id"] })
+      },
+      {
+        path: "/admin",
+        component: DemoAdmin,
+        beforeEnter: () => (allowed() ? true : "/")
+      }
+    ]
+  });
+
+  return (
+    <RouterProvider router={router}>
+      <p>
+        <NavLink to="/" end>Home</NavLink>{" "}
+        <NavLink to="/profile/7">Profile 7 (loader)</NavLink>{" "}
+        <NavLink to="/admin">Admin (guard)</NavLink>
+      </p>
+      <ActionButton label={allowed() ? "Revoke access" : "Grant access"} onPress={() => allowed.set(!allowed())} />
+      <Outlet />
+    </RouterProvider>
+  );
+}

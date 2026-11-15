@@ -1,0 +1,11 @@
+import CodeBlock from "./CodeBlock.tix";
+
+interface CodeTextProps {
+  code: string;
+  title?: string;
+  language?: string;
+}
+
+export default function CodeText(props: CodeTextProps) {
+  return <CodeBlock title={props.title} code={props.code} language={props.language} />;
+}
