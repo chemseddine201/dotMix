@@ -2,14 +2,13 @@
 
 **Package:** `@dotmix/cli`  
 **Binaries:** `mix`, `dotmix`  
-**Architecture:** Zero external runtime dependencies (leveraging Node.js 22+ native built-in modules: `node:util.parseArgs`, `node:http`, `node:zlib`, `node:test`, `node:readline/promises`).  
-**Governance:** Phase Gate 37 / Decisions `D-159` through `D-169` (`HAA-14`, `HAA-15`).
+**Architecture:** Built on Node.js 22+ built-in modules (`node:util.parseArgs`, `node:http`, `node:zlib`, `node:test`, `node:readline/promises`). Its only third-party code comes through the compiler packages: `typescript`, `acorn` (with `@sveltejs/acorn-typescript`) and `css-tree`.
 
 ---
 
 ## 1. Overview & Architecture
 
-The dotMix CLI provides a unified, production-grade developer workflow comparable to modern web framework toolchains while maintaining **zero external runtime dependencies**. It executes directly on Node.js 22+ with pure TypeScript implementation.
+The dotMix CLI provides a unified, production-grade developer workflow comparable to modern web framework toolchains. It runs on Node.js 22+ and is written in TypeScript.
 
 ```
                           ┌────────────────────────┐
@@ -49,7 +48,7 @@ All commands accept the standard global options:
 
 ## 2. Command Reference
 
-### 2.1 `mix create` / `mix init` — Project Scaffolding (`D-160`)
+### 2.1 `mix create` / `mix init` — Project Scaffolding
 
 Scaffolds a new dotMix application with interactive terminal prompts or headless CLI flags.
 
@@ -63,7 +62,7 @@ mix create my-app --template standard --ts --scss --git --install
 
 #### Options:
 - `[name]`: Name of the directory and project to scaffold (default: `my-mix-app`).
-- `--template <minimal | standard | showcase>`: Scaffold template variant.
+- `--template <minimal | standard | showcase | sync-crdt>`: Scaffold template variant.
   - `minimal`: Single-page starter with counter component and basic style.
   - `standard` (default): Full application architecture with layouts, pages, routing, and design system components.
   - `showcase`: Comprehensive showcase demonstrating forms, permissions, async blocks, and analytics.
@@ -77,7 +76,7 @@ mix create my-app --template standard --ts --scss --git --install
 
 ---
 
-### 2.2 `mix dev` — Local Development Server (`D-161`)
+### 2.2 `mix dev` — Local Development Server
 
 Starts the local development server with instant Server-Sent Events (SSE) Hot Module Replacement (HMR).
 
@@ -89,7 +88,7 @@ mix dev [dir] --port 3000 --host 0.0.0.0 --open
 - **Instant HMR**: Granular DOM updates, transactional state retention, and scoped stylesheet replacement without full page reloads.
 - **Port Conflict Resolution**: Probes requested port; if already occupied, automatically auto-increments to the next available port and alerts the developer.
 - **LAN Network IP Detection**: Displays both `Local: http://localhost:3000/` and `Network: http://192.168.x.x:3000/` addresses on startup.
-- **Configuration Loading**: Loads custom middleware and settings from `mix.config.ts`, `mix.config.js`, or `dotmix.config.*`.
+- **Configuration file**: `mix create` writes `mix.config.ts`, and `mix dev` reports when it finds `mix.config.ts` or `dotmix.config.ts`. Version 0.1.0 does not read its settings yet; use CLI flags and `.env` files.
 
 #### Options:
 - `[dir]`: Project root directory (default: current working directory).
@@ -97,32 +96,41 @@ mix dev [dir] --port 3000 --host 0.0.0.0 --open
 - `--host [address]`: Host IP to bind to (e.g. `0.0.0.0` or `localhost`).
 - `--open`: Automatically opens the project in the default web browser.
 - `--cors`: Enable cross-origin resource sharing headers.
+- `--mode <mode>`: Environment mode name used for `.env.<mode>` loading and `import.meta.env.MODE` (default: `development`).
+
+#### Environment Variables (`.env` and `import.meta.env`):
+- At server startup, `mix dev` reads `.env`, `.env.local`, `.env.<mode>`, and `.env.<mode>.local` in the project root (later files override earlier ones; `process.env` overrides all files).
+- Only keys prefixed with `MIX_PUBLIC_` are exposed to client code; non-prefixed keys are never included in served modules.
+- `import.meta.env.MODE`, `.DEV`, `.PROD`, `.MIX_PUBLIC_*`, and bare `import.meta.env` are replaced when serving modules.
+- **Restart `mix dev` after editing `.env`** so updated environment values take effect.
 
 ---
 
-### 2.3 `mix build` — Production AOT Bundler (`D-162`)
+### 2.3 `mix build` — Production AOT Bundler
 
 Compiles declarative templates ahead-of-time directly into surgical JavaScript instructions and bundles production assets.
 
 ```bash
-mix build [src] [dist] --target client --clean --sourcemap --analyze
+mix build [src] [dist] --target client --clean --analyze
 ```
 
 #### Options:
 - `[src]`: Source directory containing entry points (default: `src`).
 - `[dist]`: Destination output directory (default: `dist`).
-- `-d, --target <client | ssr | static>`: Compilation target mode.
+- `-d, --target <client | ssr>`: Compilation target mode.
   - `client` (default): Client-side single-page application bundle.
   - `ssr`: Node.js server entry point emitting `@dotmix/server-node` streaming handler.
-  - `static`: Pre-rendered static HTML generator for statically prerenderable routes.
-- `--sourcemap`: Emits high-precision source maps (`.map`) linking back to original `.tix` and `.mix` files.
+  - For static HTML pages, build with `client` and add `--prerender` (below). `static` is accepted and builds the same output as `client`.
+- `--mode <mode>`: Environment mode name used for `.env.<mode>` loading and `import.meta.env` (default: `production`). `.env`, `.env.local`, `.env.<mode>`, and `.env.<mode>.local` are loaded from the project root (`process.env` wins); only `MIX_PUBLIC_*` keys are exposed and replaced before chunk hashing.
+- `--prerender <routes>`: Comma-separated list of static route paths (for example `--prerender /,/about`; no route parameters or `*`) to pre-render in headless Chrome via CDP after building. Saves `dist/index.html` for `/` and `dist/<path>/index.html` for nested paths with `data-mix-prerendered` on the mount element (which `mount()` clears before mounting the client DOM). The saved `<html>` and `<body>` keep the attributes of your `index.html`: classes or attributes the app adds to them at runtime (theme, cursor, animation state) are not saved, because they would apply before any script runs; `<head>` changes such as `useHead` titles are kept. Requires an installed Chromium browser (`MIX_BROWSER_PATH`); omitted by default so normal builds need no browser.
+- `--sourcemap`: Accepted, but version 0.1.0 does not emit source maps yet.
 - `--clean`: Wipes the destination `dist/` directory before compiling.
 - `--analyze`: Outputs visual chunk table with file sizes, gzip sizes, and asset relationships.
-- Emits `dist/mix-manifest.json` containing chunk hashes, CSS links, and preloading graphs.
+- Emits `dist/mix-manifest.json` (target, entry module, and every hashed module and asset with its size) and `dist/bundle-report.json`.
 
 ---
 
-### 2.4 `mix preview` — Production Preview Server (`D-163`)
+### 2.4 `mix preview` — Production Preview Server
 
 Runs a zero-dependency static HTTP server to preview compiled production bundles locally.
 
@@ -143,7 +151,7 @@ mix preview [dist] --port 4173 --host 127.0.0.1
 
 ---
 
-### 2.5 `mix test` — Zero-Dependency Test Runner (`D-164`, `D-169`)
+### 2.5 `mix test` — Zero-Dependency Test Runner
 
 Executes unit, logic, component SSR, and real-browser interactive tests using Node 22 native test primitives. Completely eliminates synthetic DOM emulation libraries (`happy-dom`, `jsdom`).
 
@@ -156,7 +164,7 @@ mix test [pattern] --browser --coverage
 2. **Component Tests**: Rendered via `@dotmix/compiler-ssr` (`renderToString`) to assert on true HTML markup and attributes without virtual DOM shims.
 3. **Interactive DOM Tests**: Controls installed Chrome, Edge, or Chromium via a pure TypeScript Chrome DevTools Protocol (CDP) client (`packages/cli/src/browser/cdp.ts`) using Node 22 native `fetch` and `WebSocket`.
 
-#### Skip Contract (A1 & D-169):
+#### Skip Contract:
 If `--browser` is passed but no compatible Chromium browser executable is installed on the machine, the test runner outputs a clear diagnostic skip notice and exits cleanly with **code 2** without failing unrelated logic tests.
 
 #### Options:
@@ -167,7 +175,7 @@ If `--browser` is passed but no compatible Chromium browser executable is instal
 
 ---
 
-### 2.6 `mix check` & `mix lint` — Static Analysis & Linter (`D-165`)
+### 2.6 `mix check` & `mix lint` — Static Analysis & Linter
 
 Performs static semantic checking, dead import pruning, slot validation, and syntax audits.
 
@@ -188,7 +196,7 @@ mix lint [dir] --fix
 
 ---
 
-### 2.7 `mix add` / `mix generate` — Architectural Code Generator (`D-166`)
+### 2.7 `mix add` / `mix generate` — Architectural Code Generator
 
 Atomically scaffolds new architecture primitives and safely registers routes without regular expressions.
 
@@ -201,7 +209,7 @@ mix add permission Billing
 ```
 
 #### Subcommands:
-- `component <Name>`: Creates `src/components/<Name>.tix` (styles live in its inline `<style>` block) and `tests/components/<Name>.test.mjs`.
+- `component <Name>`: Creates `src/components/<Name>.tix`, a sibling stylesheet imported by the component (`<Name>.css`, or the format chosen with `--scss`, `--sass`, `--less` or `--pcss`) and `tests/components/<Name>.test.mjs`.
 - `page <Name> [--route <path>]`: Creates `src/pages/<Name>Page.tix` and deterministically registers route in `src/routes.ts`.
 - `layout <Name>`: Creates persistent layout component in `src/layouts/<Name>Layout.tix` with `<slot />`.
 - `store <Name>`: Scaffolds reactive signal store in `src/stores/<Name>Store.ts`.
@@ -210,7 +218,7 @@ mix add permission Billing
 
 ---
 
-### 2.8 `mix info` & `mix doctor` — Diagnostics & Health Audits (`D-167`)
+### 2.8 `mix info` & `mix doctor` — Diagnostics & Health Audits
 
 Extracts environment information and audits local project health across 10 automated checkpoints.
 
@@ -236,7 +244,7 @@ mix doctor
 
 ---
 
-### 2.9 `mix upgrade` — Dependency Lifecycle & Codemod Engine (`D-168`)
+### 2.9 `mix upgrade` — Dependency Lifecycle & Codemod Engine
 
 Inspects the npm registry for newer `@dotmix/*` package releases, computes semver diffs, previews upgrade plans, and applies automated AST syntax migrations.
 

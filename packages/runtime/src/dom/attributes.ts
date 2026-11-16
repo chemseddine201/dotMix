@@ -192,16 +192,24 @@ export function setAttribute(el: Element, name: string, value: unknown): void {
     }
     return;
   }
-  if (BOOLEAN_ATTRIBUTES.has(name.toLowerCase())) {
-    const boolVal = Boolean(value);
-    if (name in el) {
+  const normalizedBoolName = name.toLowerCase();
+  if (BOOLEAN_ATTRIBUTES.has(normalizedBoolName)) {
+    // HTML boolean attributes: presence means true, so a valueless attribute (compiled to "") is enabled.
+    const isEnabled = value === "" || Boolean(value);
+    const propName =
+      normalizedBoolName === "readonly"
+        ? "readOnly"
+        : normalizedBoolName === "novalidate"
+          ? "noValidate"
+          : name;
+    if (propName in el) {
       try {
-        (el as unknown as Record<string, unknown>)[name] = boolVal;
+        (el as unknown as Record<string, unknown>)[propName] = isEnabled;
       } catch {
         // Ignore read-only DOM properties
       }
     }
-    if (boolVal) {
+    if (isEnabled) {
       el.setAttribute(name, "");
     } else {
       el.removeAttribute(name);

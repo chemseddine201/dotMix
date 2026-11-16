@@ -40,7 +40,7 @@ See [FEATURES.md](FEATURES.md) for details.
 
 ## Quick Start
 
-> **Status: pre-release.** The npm packages are not published yet, so the commands below will work after the first release. Until then you can build and test the framework from this repository (`npm install`, then `npm run build`, then `npm test`).
+> **Status: 0.1.0, early release.** APIs may still change before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
 
 ### 1. Scaffold a New Project
 
@@ -65,7 +65,8 @@ my-app/
 │   ├── styles/           # Global tokens, resets, and preprocessor styles
 │   ├── routes.ts         # Declarative routes with pre-loader security guards
 │   └── main.mix          # Bootstrap and permission provider
-├── mix.config.ts         # Framework configuration
+├── index.html            # HTML shell with the #root mount point
+├── mix.config.ts         # Reserved for configuration (0.1.0 does not read it yet)
 ├── package.json
 └── tsconfig.json
 ```
@@ -81,7 +82,7 @@ npm run dev
 # Static typechecking and semantic diagnostics
 npm run check
 
-# Ahead-of-time production build with route code-splitting & gzip report
+# Production build: one hashed ES module per source module, an import map, and a size report
 npm run build
 
 # Preview production build locally with SPA routing fallback & compression
@@ -185,7 +186,6 @@ export default function UserProfile(props: UserProps) {
         <p>No analytics available.</p>
       {endif}
 
-      {/* Permission gate */}
       <Can I="edit" this={user()} fallback={<span class="badge">Read Only</span>}>
         <button class="btn-primary" onClick={() => console.log("Edit user")}>
           Edit Profile
@@ -216,6 +216,10 @@ export default function UserProfile(props: UserProps) {
 | [`@dotmix/vite-plugin`](packages/vite-plugin) | Vite & Rollup compiler plugin with instant HMR | Dev toolchain |
 | [`@dotmix/cli`](packages/cli) | CLI tool (`mix` / `dotmix`: `dev`, `build`, `check`, `create`) | Dev toolchain |
 | [`@dotmix/language-server`](packages/language-server) | Language Server Protocol (LSP) for VS Code and editors | Dev toolchain |
+| [`@dotmix/diagnostics`](packages/diagnostics) | Shared diagnostic classes, codes and source spans | Dev toolchain |
+| [`@dotmix/ast`](packages/ast) | AST node types and source spans for the compiler | Dev toolchain |
+| [`@dotmix/interop`](packages/interop) | Use dotMix components and signals inside other frameworks | `@dotmix/runtime` only |
+| [`@dotmix/sanitizer-dompurify`](packages/sanitizer-dompurify) | Optional HTML sanitizer adapter built on DOMPurify | `@dotmix/runtime`; optional peer `dompurify` |
 | [`vscode-mix`](editors/vscode-mix) | VS Code extension for `.mix` and `.tix` (not on the Marketplace yet; [install guide](#4-editor-support-vs-code)) | VS Code / IDE |
 
 ---
@@ -244,7 +248,7 @@ npm run lint
 # Full test suite (no mocks)
 npm test
 
-# Golden-path check of all 12 scaffold variants
+# Golden-path check of all 10 scaffold variants (TypeScript and JavaScript × 5 stylesheet formats)
 npm run test:golden
 
 # Real-browser tests (Chrome, Edge, Firefox)
@@ -258,3 +262,18 @@ npm run test:e2e
 
 **dotMix** is released under the [MIT License](LICENSE). © 2026 [Chemseddine](https://github.com/chemseddine201) and dotMix contributors.
 An Arabic translation is provided for reference in [LICENSE.ar.md](LICENSE.ar.md); the English text is the legal version.
+
+---
+
+## TODO
+
+Planned work, not part of 0.1.0:
+
+- [ ] `mix doctor` passes on a newly created project: remove the `sass` / `less` / `postcss` check (the compiler handles these formats itself) and align the TypeScript configuration check with the generated `tsconfig.json`.
+- [ ] Remove the unused optional `sass`, `less` and `postcss` peer dependencies from `@dotmix/cli`, and report Stylus files as unsupported instead of suggesting an install.
+- [ ] Read `mix.config.ts` / `.mjs` / `.js`: source and output folders, base path, and dev, preview and build options, with command-line flags taking precedence.
+- [ ] `mix build --sourcemap` writes source maps that point to the original `.tix`, `.mix` and `.ts` lines; remove `--target static` (use `--prerender`).
+- [ ] Rename the sync engine's public names (`engine: "d137"`, the `D137_*` error codes, the `createD137…` functions and the storage names) to neutral names.
+- [ ] Remove internal planning references from source comments and error messages.
+- [ ] Show the name "dotMix" in CLI output, and read the `mix --version` number from the installed package.
+- [ ] Change the VS Code extension ID to `dotmix.vscode-mix`.

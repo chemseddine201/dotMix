@@ -11,11 +11,11 @@
   "@dotmix/cli": {
     "directoryName": "cli",
     "version": "0.1.0",
-    "measuredRawBytes": 464313,
-    "measuredGzipBytes": 133656,
-    "measuredJavaScriptGzipBytes": 62120,
-    "budgetGzipBytes": 140339,
-    "budgetJavaScriptGzipBytes": 65226
+    "measuredRawBytes": 491833,
+    "measuredGzipBytes": 142597,
+    "measuredJavaScriptGzipBytes": 66820,
+    "budgetGzipBytes": 149727,
+    "budgetJavaScriptGzipBytes": 70161
   },
   "@dotmix/compiler-codegen": {
     "directoryName": "compiler-codegen",

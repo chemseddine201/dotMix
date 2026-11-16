@@ -1,9 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
 import { ModuleGraph } from "../../node_modules/@dotmix/cli/dist/module-graph.js";
 
-describe("Gate 36 (T-36.3): Module Graph & Propagation Traversal (H-5, D-152)", () => {
-  const rootDir = "G:/xampp-httpdocs/mix-framework/app";
+describe("Module graph and update propagation", () => {
+  // Any absolute directory works: the graph only uses it to resolve module ids.
+  const rootDir = path.join(os.tmpdir(), "module-graph-app");
 
   it("1. Diamond dependency propagates to common boundary without duplicates", () => {
     const graph = new ModuleGraph(rootDir);
@@ -56,5 +59,19 @@ describe("Gate 36 (T-36.3): Module Graph & Propagation Traversal (H-5, D-152)", 
     assert.strictEqual(graph.incrementVersion("/src/helper.js"), 1);
     assert.strictEqual(graph.incrementVersion("/src/helper.js"), 2);
     assert.strictEqual(graph.getNode("/src/helper.js")?.version, 2);
+  });
+
+  it("6. An absolute file path inside the project maps to its root-relative module id on every platform", () => {
+    // The file watcher reports absolute paths; on Linux and macOS they start with "/" like module ids do.
+    const graph = new ModuleGraph(rootDir);
+    const changedFile = path.join(rootDir, "src", "Counter.mix");
+    assert.strictEqual(graph.normalizeId(changedFile), "/src/Counter.mix");
+    assert.strictEqual(graph.normalizeId("/src/Counter.mix"), "/src/Counter.mix");
+    assert.strictEqual(path.normalize(graph.toAbsolutePath(graph.normalizeId(changedFile))).toLowerCase(), path.normalize(changedFile).toLowerCase());
+
+    graph.addEdge("/src/App.mix", "/src/Counter.mix");
+    const result = graph.computePropagation(changedFile);
+    assert.strictEqual(result.type, "update");
+    assert.deepStrictEqual(result.boundaries, ["/src/Counter.mix"]);
   });
 });

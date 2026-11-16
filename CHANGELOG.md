@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Explicit ownership tree and deterministic disposal lifecycles (`createRoot`, `onCleanup`, owner hierarchy).
   - DOM adapter that keeps persistent text nodes and attribute bindings, with no runtime dependencies.
   - Atomic keyed collection reconciler rejecting duplicate keys upfront without DOM corruption.
-  - Component lifecycle and placement primitives (`onCleanup`, `KeepAlive`, `createPortal` / `Teleport`).
+  - Component lifecycle and placement primitives (`onMount`, `onCleanup`, `KeepAlive`, `createPortal` / `Teleport`).
+  - `onMount(callback)` runs once in a microtask after synchronous node insertion, registers any returned function with `onCleanup`, skips if the owner is disposed beforehand, and is a no-op under SSR.
   - Isomorphic RBAC/ABAC permissions engine (`<Can>`, `defineAbility`, `createAbility`, reactive capability checks, asynchronous permission cancellation).
 
 - **Radix-Trie Router (`@dotmix/router`):**
@@ -55,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Developer Tooling & CLI (`@dotmix/cli`, `@dotmix/vite-plugin`):**
   - CLI (`mix` / `dotmix`) built on native Node.js 22+ modules; the compiler packages it uses depend only on `typescript`, `css-tree` and `acorn` (with `@sveltejs/acorn-typescript`).
   - `mix create`: Project scaffolding supporting TypeScript (`.tix`) and JavaScript (`.mix`), stylesheet preprocessors (`scss`, `sass`, `less`, `pcss`, `css`), and modular templates (`minimal`, `standard`, `sync-crdt`, `showcase`).
-  - `mix dev`: Development server with Server-Sent Events (SSE) HMR transport, stable CSS scoping, and state-retaining re-instantiation.
-  - `mix build`: Production build with one content-hashed ES module per source module, an import map with modulepreload, one merged stylesheet, and a bundle report.
+  - `mix dev`: Development server with Server-Sent Events (SSE) HMR transport, stable CSS scoping, state-retaining re-instantiation, and `.env*` loading (`import.meta.env` with `MIX_PUBLIC_*`).
+  - `mix build`: Production build with one content-hashed ES module per source module, an import map with modulepreload, one merged stylesheet, `.env*` (`import.meta.env` / `MIX_PUBLIC_*`) replacement before hashing, `--prerender <routes>` static HTML generation via CDP, and a bundle report.
   - `mix check` & `mix lint`: Static typechecking of `.tix` components and `.ts` modules, with stylish error formatting; `mix lint --fix` applies automatic fixes.
   - `mix doctor` & `mix info`: Diagnostic utilities running automated configuration checks.
   - `mix upgrade`: Safe dependency lifecycle manager with automated codemod migrations.
@@ -85,7 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The standard `mix create` template includes `index.html` with the `#root` mount point and, for TypeScript, `src/env.d.ts`; the published `@dotmix/cli` package includes its templates.
 - VS Code extension: a packager builds a self-contained `.vsix` (language server and TypeScript plugin included); the TypeScript plugin resolves `.tix` / `.mix` imports in `.ts` files; Ctrl+click opens imported paths.
 - HMR: a hot-swapped component keeps the contexts provided above the replaced instance (for example the router context).
+- Every runtime primitive that components import automatically (including `onCleanup`, `batch`, `createRoot`, `createResource`) now type-checks in `.tix` files without an explicit import; their types come from `@dotmix/runtime` itself.
 - `createForm` reads `initialValues` for field names; `typecheckTix` no longer duplicates diagnostics when given a descriptor.
 - Imports of `createAuth`, `AuthProvider`, `useAuth` and `createKeepAlive` from `@dotmix/runtime/directives` are kept in compiled output.
 - Loop variables of `{each}` with `{continue if}`, `{break if}` or `{empty}` are typed from the collection.
 - `{keepalive ... as key}` and `{isset ... as value}` bindings are typed; `PermissionProvider` children are optional; `useLoaderData()` returns the data of routes with parameters.
+- Valueless HTML boolean attributes (`checked`, `disabled`, `hidden`, `readonly`, `open`, and all `BOOLEAN_ATTRIBUTES`) remain present when compiled as empty strings (`""`).
+- Comments in markup (`{/* ... */}` and `{// ...}`) report `MIX_ERR_PARSE_SYNTAX` with a clear message directing authors to the component script above `return`.

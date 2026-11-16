@@ -26,6 +26,8 @@ Mix and Tix share an identical underlying Abstract Syntax Tree (AST), semantic r
 Mix (`.mix`, JavaScript) and Tix (`.tix`, TypeScript) components support **Functional ReactJS-Style Component Authoring** (`export default function ComponentName(props) { ... return ( <...> ); }`) alongside optional `<style>` blocks (as well as `<script>` SFC blocks):
 
 ```tsx
+import Header from "./Header.tix";
+
 interface ViewProps {
   title: string;
 }

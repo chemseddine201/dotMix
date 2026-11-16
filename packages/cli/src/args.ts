@@ -41,6 +41,7 @@ export interface CliValues {
   mode?: string | undefined;
   templateStyle?: string | undefined;
   base?: string | undefined;
+  prerender?: string | undefined;
 }
 
 export interface ParsedCliArgs {
@@ -98,7 +99,8 @@ export function parseCliArguments(argv: string[]): ParsedCliArgs {
       pcss: { type: "boolean" },
       mode: { type: "string" },
       "template-style": { type: "string" },
-      base: { type: "string" }
+      base: { type: "string" },
+      prerender: { type: "string" }
     },
     strict: false,
     allowPositionals: true
@@ -143,7 +145,8 @@ export function parseCliArguments(argv: string[]): ParsedCliArgs {
     pcss: boolOpt(values.pcss),
     mode: strOpt(values.mode),
     templateStyle: strOpt(values["template-style"]),
-    base: strOpt(values.base)
+    base: strOpt(values.base),
+    prerender: strOpt(values.prerender)
   };
 
   return {

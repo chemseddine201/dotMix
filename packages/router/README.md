@@ -17,3 +17,15 @@ Routes may declare a `permissions` guard (`{ action, subject, field?, redirectTo
 >
 > Because all client code executes in an untrusted browser environment, a user can inspect client bundles or issue direct HTTP requests. Always enforce authentication, RBAC/ABAC permissions, and field-level filtering on the server (API endpoints, RPC handlers, and server loaders/actions).
 
+
+## Install
+
+```bash
+npm install @dotmix/router
+```
+
+Part of [dotMix](https://github.com/chemseddine201/dotMix). See the [main README](https://github.com/chemseddine201/dotMix#readme) for documentation.
+
+## License
+
+MIT

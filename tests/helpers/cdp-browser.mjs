@@ -1,16 +1,22 @@
 /* global WebSocket, setTimeout, clearTimeout, document, fetch */
 /**
  * Zero-dependency Chrome DevTools Protocol (CDP) client for real-browser testing.
- * Uses Node 22 built-in fetch and WebSocket to control Chrome Headless Shell.
+ * Uses Node 22 built-in fetch and WebSocket to control an installed Chromium-based browser.
  */
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { findInstalledBrowser } from "../../node_modules/@dotmix/cli/dist/browser/detector.js";
 
-export const DEFAULT_CHROME_PATH =
-  "C:\\Users\\LoTech\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1248\\chrome-headless-shell-win64\\chrome-headless-shell.exe";
+/** The browser found the same way `mix test --browser` finds it (MIX_BROWSER_PATH, then the platform's usual install paths). */
+export const installedBrowserPath = findInstalledBrowser();
+
+/** `skip` option for suites that need a real browser: a reason when none is installed, otherwise false. */
+export const browserSkipReason = installedBrowserPath === null
+  ? "no Chromium-based browser installed (set MIX_BROWSER_PATH to run this suite)"
+  : false;
 
 export class CdpPage {
   constructor(browser, pageInfo, ws) {
@@ -220,9 +226,9 @@ export class CdpBrowser {
 }
 
 export async function launchBrowser(options = {}) {
-  const chromePath = options.executablePath || DEFAULT_CHROME_PATH;
-  if (!fs.existsSync(chromePath)) {
-    throw new Error(`Chrome headless shell executable not found at: ${chromePath}`);
+  const chromePath = options.executablePath || installedBrowserPath;
+  if (!chromePath || !fs.existsSync(chromePath)) {
+    throw new Error("No Chromium-based browser found. Install Chrome, Edge or Chromium, or set MIX_BROWSER_PATH.");
   }
   const userDataDir =
     options.userDataDir || fs.mkdtempSync(path.join(os.tmpdir(), "cdp-browser-"));

@@ -1,4 +1,4 @@
-# Mix Framework — Release & Versioning Policy
+# dotMix — Release & Versioning Policy
 
 **Document Authority:** Human Architecture Authority  
 **Applies to:** All Core Workspace Packages and Official Tooling  

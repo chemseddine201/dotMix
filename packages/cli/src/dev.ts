@@ -8,7 +8,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { URL } from "node:url";
 import { mix } from "@dotmix/vite-plugin";
-import { transpileSourceModule } from "@dotmix/compiler-semantic";
+import { replaceImportMetaEnv, transpileSourceModule } from "@dotmix/compiler-semantic";
 import { compileCss, preprocessCss } from "@dotmix/compiler-css";
 import { STYLE_FILE_REGEX } from "./scanner.js";
 import { createFileWatcher } from "./watcher.js";
@@ -24,6 +24,7 @@ import {
 } from "./specifier-rewriter.js";
 import { servePublicFile } from "./public-files.js";
 import { normalizeDriveLetter } from "./normalize-path.js";
+import { buildImportMetaEnvValues } from "./env-files.js";
 
 export { HMR_CLIENT_SOURCE, rewriteModuleImportsForDev, resolveMixModuleFile, resolveMixPackageRequest };
 
@@ -68,7 +69,18 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
   const host = options.host ?? "127.0.0.1";
   const requestedPort = options.port ?? 3000;
 
-  const plugin = mix({ hmr: true, mode: options.mode ?? "development" });
+  const devMode = options.mode ?? "development";
+  const plugin = mix({ hmr: true, mode: devMode });
+  const envValues = buildImportMetaEnvValues(rootDir, devMode);
+  const compileComponentModule = (filePath: string, sourceText: string): string => {
+    const transformed = plugin.transform(sourceText, filePath);
+    const withEnv = replaceImportMetaEnv(transformed ? transformed.code : "", envValues);
+    return rewriteModuleImportsForDev(withEnv, filePath, rootDir, moduleGraph);
+  };
+  const compileScriptModule = (filePath: string, sourceText: string): string => {
+    const transpiled = transpileSourceModule(sourceText, filePath.endsWith(".ts"));
+    return rewriteModuleImportsForDev(replaceImportMetaEnv(transpiled, envValues), filePath, rootDir, moduleGraph);
+  };
   const moduleCache = new Map<string, string>();
   const moduleGraph = new ModuleGraph(rootDir);
   const serverId = crypto.randomUUID();
@@ -134,9 +146,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
             const rawSource = (fileContent !== undefined && absPath === boundaryAbs)
               ? fileContent
               : fs.readFileSync(boundaryAbs, "utf-8");
-            const transformed = plugin.transform(rawSource, boundaryAbs);
-            const rawCompiled = transformed ? transformed.code : "";
-            const jsCode = rewriteModuleImportsForDev(rawCompiled, boundaryAbs, rootDir, moduleGraph);
+            const jsCode = compileComponentModule(boundaryAbs, rawSource);
             moduleCache.set(boundaryAbs, jsCode);
 
             const resolvedCssId = plugin.resolveId(`${boundaryAbs}?mix-css=1`);
@@ -167,9 +177,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
             const rawSource = (fileContent !== undefined && absPath === boundaryAbs)
               ? fileContent
               : fs.readFileSync(boundaryAbs, "utf-8");
-            const transpiled = transpileSourceModule(rawSource, boundaryAbs.endsWith(".ts"));
-            const jsCode = rewriteModuleImportsForDev(transpiled, boundaryAbs, rootDir, moduleGraph);
-            moduleCache.set(boundaryAbs, jsCode);
+            moduleCache.set(boundaryAbs, compileScriptModule(boundaryAbs, rawSource));
           }
         } catch (err: unknown) {
           activeErrors.add(boundaryAbs);
@@ -344,10 +352,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
             if (resolvedFile.endsWith(".mix") || resolvedFile.endsWith(".tix")) {
               let jsCode = moduleCache.get(resolvedFile);
               if (jsCode === undefined) {
-                const rawSource = fs.readFileSync(resolvedFile, "utf-8");
-                const transformed = plugin.transform(rawSource, resolvedFile);
-                const rawCompiled = transformed ? transformed.code : "";
-                jsCode = rewriteModuleImportsForDev(rawCompiled, resolvedFile, rootDir, moduleGraph);
+                jsCode = compileComponentModule(resolvedFile, fs.readFileSync(resolvedFile, "utf-8"));
                 moduleCache.set(resolvedFile, jsCode);
                 lastJsHashes.set(resolvedFile, jsCode);
                 const resolvedCssId = plugin.resolveId(`${resolvedFile}?mix-css=1`);
@@ -365,9 +370,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
             if (resolvedFile.endsWith(".ts") || resolvedFile.endsWith(".js")) {
               let jsCode = moduleCache.get(resolvedFile);
               if (jsCode === undefined) {
-                const rawSource = fs.readFileSync(resolvedFile, "utf-8");
-                const transpiled = transpileSourceModule(rawSource, resolvedFile.endsWith(".ts"));
-                jsCode = rewriteModuleImportsForDev(transpiled, resolvedFile, rootDir, moduleGraph);
+                jsCode = compileScriptModule(resolvedFile, fs.readFileSync(resolvedFile, "utf-8"));
                 moduleCache.set(resolvedFile, jsCode);
               }
               res.writeHead(200, {

@@ -5,13 +5,13 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { launchBrowser } from "../helpers/cdp-browser.mjs";
+import { launchBrowser, browserSkipReason } from "../helpers/cdp-browser.mjs";
 import { createDevServer } from "../../node_modules/@dotmix/cli/dist/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, "fixtures/test-app");
 
-describe("Gate 36 (T-36.0): Instant Hot Updates Real-Browser E2E (E1-E10)", () => {
+describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipReason }, () => {
   let browser;
 
   before(async () => {

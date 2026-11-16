@@ -390,5 +390,10 @@ export function mount(
   target: Element,
   props: Record<string, unknown> = {}
 ): MountedComponent {
+  // Prerendered shells are replaced wholesale rather than hydrated because SSR and router are client-only.
+  if (target.hasAttribute("data-mix-prerendered")) {
+    target.removeAttribute("data-mix-prerendered");
+    target.replaceChildren();
+  }
   return mountComponent(ComponentFn, props, target, null);
 }

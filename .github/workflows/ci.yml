@@ -20,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -38,10 +38,14 @@ jobs:
         run: npm run lint
 
       - name: Run test suites
-        run: npm test
+        # Each failed test is also reported as an annotation on the run.
+        run: npm run test:ci
 
       - name: Run performance and timing suites
         run: npm run test:perf
+        env:
+          # Shared 2-core runners are about twice as slow as a developer machine; budgets stay strict locally.
+          MIX_PERF_BUDGET_SCALE: "2"
 
       - name: Enforce bundle size budgets
         run: node tools/release/measure-size.mjs --check

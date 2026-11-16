@@ -9,7 +9,7 @@ src/
 ├── layouts/          # Persistent shell layouts (<Outlet /> retains state across routes)
 ├── pages/            # Target page views bound to declarative routes
 ├── components/       # Reusable UI primitives
-│   ├── common/       # Design system primitives (Button, Input, Modal, Card)
+│   ├── common/       # Design system primitives (Button, Input)
 │   └── domain/       # Feature components (TaskItem, SyncStatusPill)
 ├── permissions/      # Native isomorphic RBAC/ABAC capability matrix
 ├── stores/           # Reactive signals and offline CRDT sync collections
@@ -24,7 +24,7 @@ src/
 # 1. Install dependencies
 npm install
 
-# 2. Build development output
+# 2. Start the development server (hot updates)
 npm run dev
 
 # 3. Typecheck .tix and analyze .mix components

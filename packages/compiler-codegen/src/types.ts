@@ -40,6 +40,7 @@ export const AUTO_IMPORTABLE_RUNTIME_PRIMITIVES = [
   "createEffect",
   "batch",
   "onCleanup",
+  "onMount",
   "createRoot",
   "createRef",
   "defineProps",

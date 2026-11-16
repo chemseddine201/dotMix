@@ -154,4 +154,4 @@ To facilitate forensic analysis and real-time observability without compromising
    - User-defined fields (`partialFields`, raw data) are strictly omitted.
    - Forensic payload previews are bounded to $\le 80$ characters.
    - Operators can safely query entry counts and clear quarantined records without direct database inspection.
-- **Verification:** [`tests/sync-d137/security/diagnostics.test.mjs`](file:///tests/sync-d137/security/diagnostics.test.mjs)
+- **Verification:** [`tests/sync-d137/security/diagnostics.test.mjs`](../../tests/sync-d137/security/diagnostics.test.mjs)

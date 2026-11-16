@@ -11,6 +11,7 @@ import { parse } from "@dotmix/compiler-frontend";
 import {
   analyze,
   projectTypeScript,
+  replaceImportMetaEnv,
   rewriteJsModuleSpecifiers,
   transpileSourceModule
 } from "@dotmix/compiler-semantic";
@@ -29,6 +30,7 @@ import {
 } from "./minifier.js";
 import { normalizeBasePath, writeProductionShell } from "./production-shell.js";
 import { emitProductionModules } from "./production-modules.js";
+import { buildImportMetaEnvValues } from "./env-files.js";
 
 export type {
   BundleChunkInfo,
@@ -69,6 +71,7 @@ export function build(options: BuildOptions = {}): BuildResult {
   const outDir = normalizeDriveLetter(path.resolve(options.outDir ?? "dist"));
   const shouldMinify = options.minify !== false;
   const mode = options.mode ?? "production";
+  const envValues = buildImportMetaEnvValues(path.dirname(inDir), mode);
 
   if (options.clean && fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
@@ -119,7 +122,8 @@ export function build(options: BuildOptions = {}): BuildResult {
       watchedFilesSet.add(dependency);
     }
 
-    compiledModules.set(toModuleKey(file, ".js"), rewriteJsModuleSpecifiers(codegen.js, toEmittedModuleSpecifier));
+    const compiledWithEnv = replaceImportMetaEnv(codegen.js, envValues);
+    compiledModules.set(toModuleKey(file, ".js"), rewriteJsModuleSpecifiers(compiledWithEnv, toEmittedModuleSpecifier));
     if (codegen.css) {
       compiledStylesheets.set(toModuleKey(file, ".css"), codegen.css);
       allCompiledCssChunks.push(codegen.css);
@@ -132,7 +136,10 @@ export function build(options: BuildOptions = {}): BuildResult {
   for (const scriptFile of scriptFiles) {
     watchedFilesSet.add(scriptFile);
     const source = fs.readFileSync(scriptFile, "utf-8");
-    const transpiledCode = transpileSourceModule(source, scriptFile.endsWith(".ts"));
+    const transpiledCode = replaceImportMetaEnv(
+      transpileSourceModule(source, scriptFile.endsWith(".ts")),
+      envValues
+    );
     compiledModules.set(toModuleKey(scriptFile, ".js"), rewriteJsModuleSpecifiers(transpiledCode, toEmittedModuleSpecifier));
   }
 

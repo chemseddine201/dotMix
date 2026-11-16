@@ -5,7 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { launchBrowser } from "../helpers/cdp-browser.mjs";
+import { launchBrowser, browserSkipReason } from "../helpers/cdp-browser.mjs";
+import { perfBudgetScale } from "./budget-scale.mjs";
 import { createDevServer } from "../../node_modules/@dotmix/cli/dist/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,7 +19,7 @@ function percentile(arr, p) {
   return sorted[Math.max(0, idx)];
 }
 
-describe("Gate 36 (T-36.10): HMR Latency Performance Budgets (D-156)", () => {
+describe("HMR latency performance budgets", { skip: browserSkipReason }, () => {
   let browser;
 
   before(async () => {
@@ -98,8 +99,10 @@ describe("Gate 36 (T-36.10): HMR Latency Performance Budgets (D-156)", () => {
       const compP95 = percentile(compLatencies, 95);
       console.log(`[Latency] Component edit 30 saves: median = ${compP50.toFixed(2)}ms, p95 = ${compP95.toFixed(2)}ms`);
 
-      assert.ok(cssP95 <= 50, `CSS p95 must be <= 50ms, got p50=${cssP50.toFixed(2)}ms, p95=${cssP95.toFixed(2)}ms`);
-      assert.ok(compP95 <= 100, `Component p95 must be <= 100ms, got p50=${compP50.toFixed(2)}ms, p95=${compP95.toFixed(2)}ms`);
+      const cssBudgetMs = 50 * perfBudgetScale;
+      const componentBudgetMs = 100 * perfBudgetScale;
+      assert.ok(cssP95 <= cssBudgetMs, `CSS p95 must be <= ${cssBudgetMs}ms, got p50=${cssP50.toFixed(2)}ms, p95=${cssP95.toFixed(2)}ms`);
+      assert.ok(compP95 <= componentBudgetMs, `Component p95 must be <= ${componentBudgetMs}ms, got p50=${compP50.toFixed(2)}ms, p95=${compP95.toFixed(2)}ms`);
     } finally {
       await page.close();
       await server.close();

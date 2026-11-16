@@ -139,6 +139,17 @@ declare module "*.postcss" {
 declare function signal<T>(initialValue: T): { (): T; set(next: T | ((prev: T) => T)): T; peek(): T };
 declare function computed<T>(fn: () => T): { (): T; peek(): T };
 declare function createEffect(fn: () => void | (() => void)): void;
+declare function onMount(callback: () => void | (() => void)): void;
+// The other primitives codegen imports automatically, typed from the runtime itself so they cannot drift.
+declare const batch: typeof import("@dotmix/runtime").batch;
+declare const onCleanup: typeof import("@dotmix/runtime").onCleanup;
+declare const createRoot: typeof import("@dotmix/runtime").createRoot;
+declare const createCancellationSource: typeof import("@dotmix/runtime").createCancellationSource;
+declare const createResource: typeof import("@dotmix/runtime").createResource;
+declare const setContext: typeof import("@dotmix/runtime").setContext;
+declare const getContext: typeof import("@dotmix/runtime").getContext;
+declare const createTrustedHtml: typeof import("@dotmix/runtime").createTrustedHtml;
+declare const setSanitizerProvider: typeof import("@dotmix/runtime").setSanitizerProvider;
 declare function createRef<T = Element>(initial?: T | null): { current: T | null };
 declare function defineProps<P>(defaults?: Partial<P>): P;
 interface Context<T> { readonly id: symbol; readonly defaultValue: T; }

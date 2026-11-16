@@ -13,3 +13,7 @@ export {
   type ScriptModuleDiagnostic,
   type ScriptModuleTypecheckResult
 } from "./script-typecheck.js";
+export {
+  replaceImportMetaEnv,
+  type ImportMetaEnvValues
+} from "./import-meta-env.js";

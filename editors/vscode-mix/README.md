@@ -62,8 +62,8 @@ Details: [INSTALL.md](./INSTALL.md) and the [full guide](https://github.com/chem
   - `tix-comp`: Scaffold a dotMix Functional Component with TypeScript Props interface.
   - `mix-comp`: Scaffold a dotMix Functional Component in JavaScript.
   - `mix-sfc`: Scaffold a traditional Single-File Component (`<script>`, template, `<style>`).
-  - `mix-signal`: Create a reactive `createSignal` primitive.
-  - `mix-computed`: Create a derived `createComputed` primitive.
+  - `mix-signal`: Create a reactive `signal` (imported automatically).
+  - `mix-computed`: Create a derived `computed` value (imported automatically).
   - `mix-effect`: Create a reactive `createEffect` side effect.
   - `mix-if`, `mix-ifelse`, `mix-ifelseif`: Clean curly control-flow blocks.
   - `mix-each`: `{each (item, idx) in list}` iteration block.

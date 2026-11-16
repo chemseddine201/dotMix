@@ -43,9 +43,17 @@ export class ModuleGraph {
   normalizeId(idOrPath: string): string {
     const clean = idOrPath.split("?")[0] ?? idOrPath;
     const normalized = normalizeDriveLetter(clean);
-    if (/^[a-zA-Z]:[/\\]/.test(normalized)) {
-      const rel = path.relative(this.rootDir, normalized).split(path.sep).join("/");
-      return rel.startsWith("/") ? rel : `/${rel}`;
+    // A file-system path inside the project becomes its root-relative id. On Linux and macOS an
+    // absolute path starts with "/" like a module id, so containment decides, not the leading character.
+    if (path.isAbsolute(normalized)) {
+      const relativeToRoot = path.relative(this.rootDir, normalized);
+      const isInsideRoot = relativeToRoot !== ""
+        && relativeToRoot !== ".."
+        && !relativeToRoot.startsWith(`..${path.sep}`)
+        && !path.isAbsolute(relativeToRoot);
+      if (isInsideRoot) {
+        return `/${relativeToRoot.split(path.sep).join("/")}`;
+      }
     }
     const webPath = normalized.replace(/\\/g, "/");
     return webPath.startsWith("/") ? webPath : `/${webPath}`;

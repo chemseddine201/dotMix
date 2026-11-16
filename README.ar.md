@@ -40,7 +40,7 @@
 
 ## البدء السريع
 
-> **الحالة: ما قبل الإصدار.** حزم npm لم تُنشر بعد، لذا ستعمل الأوامر أدناه بعد الإصدار الأول. حتى ذلك الحين يمكنك بناء الإطار واختباره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
+> **الحالة: الإصدار 0.1.0، إصدار مبكر.** قد تتغير الواجهات البرمجية قبل الإصدار 1.0. للعمل على الإطار نفسه، ابنِه واختبره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
 
 ### 1. إنشاء مشروع جديد
 
@@ -65,7 +65,8 @@ my-app/
 │   ├── styles/           # المتغيرات العامة والأنماط المعالجة مسبقاً
 │   ├── routes.ts         # إعداد المسارات مع حراسة الصلاحيات التلقائية
 │   └── main.mix          # نقطة الانطلاق ومزود الصلاحيات
-├── mix.config.ts         # إعدادات إطار العمل
+├── index.html            # صفحة HTML الأساسية مع نقطة التركيب #root
+├── mix.config.ts         # محجوز للإعدادات (الإصدار 0.1.0 لا يقرؤه بعد)
 ├── package.json
 └── tsconfig.json
 ```
@@ -81,7 +82,7 @@ npm run dev
 # الفحص الثابت للأنواع والتشخيص البرمجي
 npm run check
 
-# البناء النهائي للإنتاج مع تقسيم الحزم وضغط الأصول
+# بناء الإنتاج: وحدة ES مستقلة ببصمة لكل ملف مصدر، وخريطة استيراد، وتقرير بالأحجام
 npm run build
 
 # معاينة حزمة الإنتاج محلياً مع توجيه SPA والضغط
@@ -185,7 +186,6 @@ export default function UserProfile(props: UserProps) {
         <p>لا توجد بيانات متاحة.</p>
       {endif}
 
-      {/* بوابة الصلاحيات الجراحية في شجرة الـ DOM */}
       <Can I="edit" this={user()} fallback={<span class="badge">للقراءة فقط</span>}>
         <button class="btn-primary" onClick={() => console.log("تعديل البيانات")}>
           تعديل الملف الشخصي
@@ -216,6 +216,10 @@ export default function UserProfile(props: UserProps) {
 | [`@dotmix/vite-plugin`](packages/vite-plugin) | إضافة Vite و Rollup الرسمية مع دعم HMR | أدوات التطوير |
 | [`@dotmix/cli`](packages/cli) | أداة سطر الأوامر (`mix` و `dotmix`) | أدوات التطوير |
 | [`@dotmix/language-server`](packages/language-server) | بروتوكول خادم اللغة (LSP) لدعم محررات VS Code | أدوات التطوير |
+| [`@dotmix/diagnostics`](packages/diagnostics) | أصناف التشخيص المشتركة ورموزها ومواضعها في المصدر | أدوات التطوير |
+| [`@dotmix/ast`](packages/ast) | أنواع عقد شجرة AST ومواضعها للمترجم | أدوات التطوير |
+| [`@dotmix/interop`](packages/interop) | استعمال مكونات dotMix وإشاراتها داخل أطر عمل أخرى | `@dotmix/runtime` فقط |
+| [`@dotmix/sanitizer-dompurify`](packages/sanitizer-dompurify) | محول اختياري لتنقية HTML مبني على DOMPurify | `@dotmix/runtime`؛ واعتمادية نظيرة اختيارية `dompurify` |
 | [`vscode-mix`](editors/vscode-mix) | إضافة VS Code لملفات `.mix` و `.tix` (غير منشورة في المتجر بعد؛ [دليل التثبيت](#4-دعم-المحرر-vs-code)) | محررات وأدوات التطوير |
 
 ---
@@ -244,7 +248,7 @@ npm run lint
 # حزمة الاختبارات الكاملة (بلا محاكاة)
 npm test
 
-# فحص المسار الذهبي لكل قوالب التوليد الـ12
+# فحص المسار الذهبي لقوالب التوليد العشرة (TypeScript و JavaScript × 5 صيغ للأنماط)
 npm run test:golden
 
 # اختبارات في متصفحات حقيقية (Chrome و Edge و Firefox)
@@ -259,3 +263,18 @@ npm run test:e2e
 يُنشر **dotMix** بموجب [رخصة MIT](LICENSE). © 2026 [Chemseddine](https://github.com/chemseddine201) والمساهمون في dotMix.
 الترجمة العربية في [LICENSE.ar.md](LICENSE.ar.md) للاطلاع فقط؛ النص الإنجليزي هو المرجع القانوني.
 
+
+---
+
+## TODO
+
+أعمال مخطط لها، ليست ضمن الإصدار 0.1.0:
+
+- [ ] أن ينجح `mix doctor` على مشروع جديد: حذف فحص `sass` و`less` و`postcss` (المترجم يعالج هذه الصيغ بنفسه)، ومواءمة فحص إعدادات TypeScript مع ملف `tsconfig.json` المولَّد.
+- [ ] حذف الاعتماديات النظيرة الاختيارية غير المستعملة `sass` و`less` و`postcss` من `@dotmix/cli`، والإبلاغ عن ملفات Stylus بأنها غير مدعومة بدل اقتراح تثبيتها.
+- [ ] قراءة `mix.config.ts` / `.mjs` / `.js`: مجلدا المصدر والإخراج، والمسار الأساسي، وخيارات dev وpreview وbuild، مع أولوية خيارات سطر الأوامر.
+- [ ] أن يكتب `mix build --sourcemap` خرائط مصدر تشير إلى الأسطر الأصلية في ملفات `.tix` و`.mix` و`.ts`؛ وحذف `--target static` (استعمل `--prerender`).
+- [ ] إعادة تسمية الأسماء العامة لمحرك المزامنة (`engine: "d137"`، ورموز الأخطاء `D137_*`، والدوال `createD137…`، وأسماء التخزين) بأسماء محايدة.
+- [ ] حذف مراجع التخطيط الداخلية من تعليقات الكود ورسائل الأخطاء.
+- [ ] عرض الاسم «dotMix» في مخرجات أوامر CLI، وقراءة رقم `mix --version` من الحزمة المثبتة.
+- [ ] تغيير معرّف إضافة VS Code إلى `dotmix.vscode-mix`.

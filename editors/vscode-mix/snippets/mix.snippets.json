@@ -66,14 +66,14 @@
   "createSignal": {
     "prefix": ["signal", "mix-signal"],
     "body": [
-      "const ${1:state} = createSignal(${2:initialValue});"
+      "const ${1:state} = signal(${2:initialValue});"
     ],
     "description": "Create a reactive signal"
   },
-  "createComputed": {
+  "computed": {
     "prefix": ["computed", "mix-computed"],
     "body": [
-      "const ${1:derived} = createComputed(() => ${2:expression});"
+      "const ${1:derived} = computed(() => ${2:expression});"
     ],
     "description": "Create a derived computed signal"
   },

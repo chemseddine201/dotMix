@@ -27,3 +27,14 @@ declare module "*.scss" {}
 declare module "*.sass" {}
 declare module "*.less" {}
 declare module "*.pcss" {}
+
+interface ImportMetaEnv {
+  readonly MODE: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly [key: `MIX_PUBLIC_${string}`]: string | undefined;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

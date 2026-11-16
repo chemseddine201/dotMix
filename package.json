@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsc -b",
     "lint": "eslint .",
-    "test": "node --test tests/**/*.test.mjs",
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "test:ci": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./tests/support/github-annotations.mjs --test-reporter-destination=stdout \"tests/**/*.test.mjs\"",
     "test:perf": "node --test --test-concurrency=1 tests/perf/",
     "test:golden": "node --test tests/golden/golden-path.test.mjs",
     "test:browser": "node tools/browser-matrix/run.mjs",

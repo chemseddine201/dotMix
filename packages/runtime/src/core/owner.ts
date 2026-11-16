@@ -8,7 +8,7 @@ import {
   type EffectNode,
   type Owner
 } from "./types.js";
-import { coreState, unlinkComputation } from "./state.js";
+import { coreState, runWithOwner, unlinkComputation } from "./state.js";
 import { createCancellationSource } from "./cancellation.js";
 
 export function createOwnerInstance(
@@ -159,4 +159,29 @@ export function onCleanup(fn: () => void): void {
   if (coreState.currentOwner && coreState.currentOwner.ownerState === OwnerState.ACTIVE) {
     coreState.currentOwner.cleanups.push(fn);
   }
+}
+
+/**
+ * Runs `callback` once, after the current render pass has inserted this component's nodes.
+ * A returned function runs when the component is disposed. Skipped if the owner is disposed first.
+ * Under SSR it does nothing.
+ */
+export function onMount(callback: () => void | (() => void)): void {
+  const owner = coreState.currentOwner;
+  if (!owner || owner.ownerState !== OwnerState.ACTIVE) {
+    return;
+  }
+  queueMicrotask(() => {
+    if (owner.ownerState !== OwnerState.ACTIVE) {
+      return;
+    }
+    const cleanup = runWithOwner(owner, callback);
+    if (typeof cleanup === "function") {
+      if (owner.ownerState === OwnerState.ACTIVE) {
+        owner.cleanups.push(cleanup);
+      } else {
+        cleanup();
+      }
+    }
+  });
 }

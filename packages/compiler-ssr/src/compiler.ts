@@ -380,16 +380,21 @@ export function compileToSsr(
   const hasPropsDeclaration = compDescriptor
     ? compDescriptor.rootScope.bindings.has("props")
     : false;
+  const hasImportedOnMount = compDescriptor ? compDescriptor.imports.has("onMount") : false;
+  const hasLocalOnMountDeclaration =
+    !hasImportedOnMount && compDescriptor ? compDescriptor.rootScope.bindings.has("onMount") : false;
 
   const helperCode = renderUsedSsrHelpers(usedSsrHelpers);
+  const ssrOnMountPreamble = !hasImportedOnMount && !hasLocalOnMountDeclaration ? "\nfunction onMount() {}\n" : "";
+  const ssrOnMountShadow = !hasLocalOnMountDeclaration ? "  const onMount = () => {};\n" : "";
   const moduleCode = `
 ${scriptImports}
 
-${SSR_RUNTIME_PREAMBLE}${helperCode ? "\n\n" + helperCode : ""}
+${SSR_RUNTIME_PREAMBLE}${ssrOnMountPreamble}${helperCode ? "\n\n" + helperCode : ""}
 
 export function renderToString(__props = {}, __ctx = {}) {
   const defineProps = (defaults) => Object.assign({}, defaults, __props);
-${!hasPropsDeclaration ? "  const props = __props;\n" : ""}${scriptBody}
+${ssrOnMountShadow}${!hasPropsDeclaration ? "  const props = __props;\n" : ""}${scriptBody}
   let __html = "";
 ${parts.join("")}
   return __html;

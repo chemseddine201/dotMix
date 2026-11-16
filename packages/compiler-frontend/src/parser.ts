@@ -240,6 +240,15 @@ export class TemplateParser implements ParserContext {
 
   private parseInterpolation(): TemplateNode {
     const start = this.pos; // at '{'
+    if (this.source.startsWith("{/*", start) || this.source.startsWith("{//", start)) {
+      failSyntax(
+        DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+        'Comments are not supported inside markup ("{/* … */}"). Put the comment in the component script, above `return`.',
+        this.lineMap,
+        start,
+        Math.min(this.source.length, start + 8)
+      );
+    }
     if (
       this.source.startsWith("{#", start) ||
       this.source.startsWith("{/", start) ||

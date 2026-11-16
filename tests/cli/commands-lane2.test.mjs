@@ -163,7 +163,8 @@ describe("Gate 37 Task 2.2: Lane 2 Commands (preview, test, lint, info, doctor)"
       const res = runCli(["info"]);
       assert.equal(res.status, 0);
       assert.match(res.stdout, /Mix Framework — Environment Information/);
-      assert.match(res.stdout, /Node\.js:\s+v22\./);
+      // The CLI runs on the same Node binary as this test, whatever its major version.
+      assert.ok(res.stdout.includes(process.version), `expected the running Node ${process.version} in:\n${res.stdout}`);
       assert.match(res.stdout, /Browser:/);
     });
 

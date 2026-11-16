@@ -56,6 +56,8 @@ Both modes lower to the **exact same Intermediate Representation (IR)** and emit
 - **Exact diagnostics:** Misuse produces a compile-time `MixDiagnosticError` with exact source span.
 - **Template style lint:** Enforce `blocks`, `components`, or `hybrid` (default) via `mix lint --template-style <style>`.
 - **Canonical prop names:** `condition` (boolean gate), `value` (inspected value), `on` (switch subject / memo deps), `data` (collection), `name` / `to` (target name), `is` (match value), `trigger` (timing).
+- **Markup comments:** Comments are not supported inside markup (`{/* … */}` or `{// …}`); put comments in the component script above `return` (`MIX_ERR_PARSE_SYNTAX`).
+- **Component lifecycle hooks:** `onMount(callback)` and `onCleanup(fn)` are auto-imported primitives from `@dotmix/runtime` (also importable explicitly). `onMount` queues `callback` once in a microtask after the synchronous render pass inserts the component's nodes (skipped if the owner is disposed first; any returned cleanup runs on owner disposal; no-op under SSR).
 
 ---
 
@@ -354,7 +356,7 @@ declare module "@dotmix/runtime/directives" {
 
 Then, in any file:
 
-```mix
+```text
 {auth as user} ............. user: Customer (the default guard)
 {auth "admin" as user} ..... user: AdminUser
 const auth = useAuth(); .... auth.user("admin"): AdminUser | null

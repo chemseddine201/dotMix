@@ -88,9 +88,17 @@ export function createPreviewServer(options: PreviewOptions = {}): Promise<http.
       return;
     }
 
-    // SPA fallback: if file does not exist and has no dot extension, serve index.html
+    // Serve directory index.html for pre-rendered routes (e.g. /about/index.html) before SPA fallback.
+    const directoryIndexFile = path.join(targetFile, "index.html");
     const hasExtension = path.extname(targetFile) !== "";
-    if (!fs.existsSync(targetFile) || !fs.statSync(targetFile).isFile()) {
+    if (
+      fs.existsSync(targetFile) &&
+      fs.statSync(targetFile).isDirectory() &&
+      fs.existsSync(directoryIndexFile) &&
+      fs.statSync(directoryIndexFile).isFile()
+    ) {
+      targetFile = directoryIndexFile;
+    } else if (!fs.existsSync(targetFile) || !fs.statSync(targetFile).isFile()) {
       if (!hasExtension) {
         targetFile = path.resolve(rootDir, "index.html");
       } else {

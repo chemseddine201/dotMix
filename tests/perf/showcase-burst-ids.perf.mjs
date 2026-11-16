@@ -12,6 +12,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { syncCollection, SyncEngine, MemoryDriver } from "../../node_modules/@dotmix/sync/dist/index.js";
+import { perfBudgetScale } from "./budget-scale.mjs";
 
 describe("Phase 4: Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)", () => {
   function createTaskIdGenerator() {
@@ -54,7 +55,8 @@ describe("Phase 4: Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)
 
     // Verify performance
     const totalMs = t1 - t0;
-    assert.ok(totalMs < 5000, `1,000 in-memory insertions should finish under 5s (took ${totalMs.toFixed(2)}ms)`);
+    const budgetMs = 5000 * perfBudgetScale;
+    assert.ok(totalMs < budgetMs, `1,000 in-memory insertions should finish under ${budgetMs}ms (took ${totalMs.toFixed(2)}ms)`);
   });
 
   test("2. Burst-inserted collection survives snapshot persistence and restoration", async () => {

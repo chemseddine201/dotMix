@@ -64,6 +64,7 @@ export const ALLOWED_GLOBALS = new Set([
   "createEffect",
   "batch",
   "onCleanup",
+  "onMount",
   "createRoot",
   "createRef",
   "defineProps",

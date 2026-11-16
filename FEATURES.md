@@ -41,7 +41,7 @@ In traditional frameworks, developers must install third-party libraries (e.g. C
     <Button onClick={editTask}>Edit</Button>
   </Can>
   ```
-- **Async Authorization with Cancellation (`D-104`):** In-flight remote permission checks via `ability.canAsync()` integrate with dotMix's `CancellationToken`. If the user navigates away or state changes before the remote server responds, the in-flight request is aborted immediately with zero memory leaks.
+- **Async Authorization with Cancellation:** In-flight remote permission checks via `ability.canAsync()` integrate with dotMix's `CancellationToken`. If the user navigates away or state changes before the remote server responds, the in-flight request is aborted immediately with zero memory leaks.
 - **Pre-Loader Route Guards:** `@dotmix/router` routes declare security rules directly on route definitions:
   ```ts
   {
@@ -65,7 +65,7 @@ Duplicate keys in a keyed list are a common source of rendering bugs, such as in
 
 ---
 
-### 2.3 Native Zero-Dependency Standard Library (`@dotmix/helpers` / `@dotmix/helpers`)
+### 2.3 Native Zero-Dependency Standard Library (`@dotmix/helpers`)
 
 Enterprise frontend applications routinely suffer from "dependency sprawl", importing dozens of uncoordinated npm packages: `lodash`, `moment`, `dayjs`, `axios`, `async`, `p-limit`, `qs`, `mitt`, and `uuid`. This inflates bundle size, introduces supply-chain security risks, and produces inconsistent typing.
 
@@ -107,7 +107,7 @@ dotMix provides **`@dotmix/helpers`** with **100% zero external dependencies**, 
 Building offline-capable collaborative web applications typically requires external frameworks like Yjs or Automerge. 
 
 dotMix incorporates **`@dotmix/sync`** natively:
-- **Instantaneous Optimistic Mutations:** Signals update synchronously (<1µs) with zero VDOM overhead; changes are queued optimistically.
+- **Instantaneous Optimistic Mutations:** Signals update synchronously with no virtual DOM work; changes are queued optimistically.
 - **Durable Local Storage:** Pluggable persistence drivers (`MemoryDriver`, `IndexedDbDriver`, `OpfsDriver`) ensure mutation logs survive page reloads and browser crashes.
 - **Deterministic Convergence:** Vector clocks, Lamport timestamps, and fractional indexing guarantee that divergent offline edits converge to identical states without server coordination.
 - **Automatic Rollback:** If a server rejects an optimistic mutation, local state and surgical DOM rollback automatically without full-page remounting.
@@ -126,15 +126,15 @@ dotMix does not lock teams into an all-or-nothing migration:
 ### 2.6 Compiler-Native Scoped CSS with Multi-Preprocessor Pipeline (`@dotmix/compiler-css`)
 
 Unlike frameworks that require complex PostCSS/Vite plugins or CSS-in-JS runtimes:
-- Ahead-of-time compilation for `.scss`, `.sass`, `.less`, `.pcss`, and `.css` directly in `<style src="..." />` and project stylesheets.
+- Ahead-of-time compilation of `.scss`, `.sass`, `.less`, `.pcss` and `.css` with the compiler's own preprocessors (no `sass`, `less` or `postcss` package needed), for stylesheets a component imports (`import "./Button.scss";`) and for `<style>` blocks.
 - Pure build-time AST scoping with zero runtime overhead (`[data-mix-<hash>]`).
-- Build-time security validation rejecting `@import` inside raw styles to prevent CSS exfiltration attacks (`D-108`).
+- Build-time security validation rejecting `@import` inside raw styles to prevent CSS exfiltration attacks.
 
 ---
 
 ### 2.7 Production Toolchain & Streaming SSR with Cryptographic CSP Nonces (`@dotmix/server-node`)
 
-- **Automatic Route Code-Splitting:** Dynamic routes (`lazy: () => import(...)`) compile into hashed, code-split chunks.
+- **Code-Splitting:** `mix build` writes every module as its own content-hashed file; lazy routes (`lazy: () => import(...)`) load their modules only when visited.
 - **Streaming HTML Generation:** Renders chunked HTML with progressive hydration markers.
 - **Cryptographic CSP Nonces:** Automatically generates per-request CSP nonce headers and applies them to all injected `<style>` and `<script>` tags, preventing inline script injection.
 - **Sub-Island Error Recovery:** Async streaming errors inside isolated components are caught by boundaries without aborting the HTTP stream.
