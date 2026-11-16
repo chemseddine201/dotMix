@@ -89,7 +89,9 @@ export async function testCommand(parsed: ParsedCliArgs): Promise<number> {
     console.log(`  Running ${colors.bold(String(testFiles.length))} test file(s)...\n`);
   }
 
-  const nodeArgs = ["--test"];
+  // The hooks let tests import the project's TypeScript modules (`../src/x.js` → `src/x.ts`).
+  const typeScriptHooks = new URL("../test-loader/register.js", import.meta.url).href;
+  const nodeArgs = ["--import", typeScriptHooks, "--test"];
 
   if (isWatch) {
     nodeArgs.push("--watch");

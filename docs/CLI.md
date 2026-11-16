@@ -160,7 +160,7 @@ mix test [pattern] --browser --coverage
 ```
 
 #### Execution Tiers:
-1. **Logic & Unit Tests**: Driven natively by `node:test` and `node:assert/strict`.
+1. **Logic & Unit Tests**: Driven natively by `node:test` and `node:assert/strict`. Tests can import the project's TypeScript modules with the usual `.js` specifiers (`../src/x.js` for `src/x.ts`); `mix test` compiles them when they load, with no extra package.
 2. **Component Tests**: Rendered via `@dotmix/compiler-ssr` (`renderToString`) to assert on true HTML markup and attributes without virtual DOM shims.
 3. **Interactive DOM Tests**: Controls installed Chrome, Edge, or Chromium via a pure TypeScript Chrome DevTools Protocol (CDP) client (`packages/cli/src/browser/cdp.ts`) using Node 22 native `fetch` and `WebSocket`.
 
@@ -232,8 +232,8 @@ mix doctor
 
 #### 10 Automated Health Checks in `mix doctor`:
 1. **Package Version Parity**: Verifies all installed `@dotmix/*` dependencies match exact identical versions.
-2. **`tsconfig.json` Alignment**: Validates `verbatimModuleSyntax: true` and `moduleResolution: "bundler"`.
-3. **CSS Preprocessor Peer Dependencies**: Verifies `sass`, `less`, or `postcss` are installed if preprocessor stylesheets are used.
+2. **`tsconfig.json` Alignment**: Checks that `moduleResolution` is `NodeNext` (what `mix create` writes), `Node16` or `Bundler`, so `.js` import specifiers resolve to `.ts` sources.
+3. **Stylesheet Formats**: `.css`, `.scss`, `.sass`, `.less` and `.pcss` compile with the built-in preprocessors, so no `sass`, `less` or `postcss` package is needed; fails on Stylus files, which are not supported.
 4. **Circular Import Audit**: Detects circular dependency cycles across components and routes.
 5. **Control-Flow Syntax Health**: Flags deprecated `{#if}` or prohibited JSX-style `{cond && <El/>}` expressions.
 6. **Lockfile & Build Consistency**: Detects stale `.tsbuildinfo` or mismatched lockfiles.

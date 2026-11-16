@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] — 2026-11-16
+
+All `@dotmix/*` packages move to 0.1.1 together.
+
+### Fixed
+- `mix dev` styles new projects correctly. A stylesheet that a component imports from another folder (such as `./styles/global.scss` in `main.mix`) is now global instead of scoped, while stylesheets in the component's own folder stay scoped, so its `:root` tokens and `body` rules apply. A stylesheet's own `@import`s (such as `./tokens.scss`) are no longer dropped.
+- `mix test` runs tests that import the project's TypeScript modules with `.js` specifiers (`../src/x.js` for `src/x.ts`). The unit test that `mix create` writes now passes.
+- `mix doctor` reports no failure on a newly created project. The stylesheet check no longer asks for `sass`, `less` or `postcss`, because the compiler handles those formats itself; it fails only on Stylus files. The TypeScript check accepts the `NodeNext` settings the template writes.
+- `@dotmix/cli` no longer declares `sass`, `less` and `postcss` as optional peer dependencies.
+- A Stylus stylesheet reports that the format is unsupported, instead of suggesting an install that would not help.
+- `mix --version`, `mix info` and the dependency versions of new projects come from the installed CLI instead of a hard-coded number.
+
 ## [0.1.0] — 2026-11-16
 
 ### Added

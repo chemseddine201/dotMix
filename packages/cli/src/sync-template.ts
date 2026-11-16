@@ -7,6 +7,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { DOTMIX_VERSION } from "./version.js";
 
 export function toKebabCase(name: string): string {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/[\s_]+/g, "-").toLowerCase();
@@ -53,8 +54,8 @@ export function createSyncCrdtProject(targetDir: string, projectName: string, is
     version: "0.1.0",
     type: "module",
     scripts: { dev: "mix dev", build: "mix build src dist", check: "mix check src", test: "mix test" },
-    dependencies: { "@dotmix/runtime": "0.1.0", "@dotmix/sync": "0.1.0" },
-    devDependencies: { "@dotmix/cli": "0.1.0" }
+    dependencies: { "@dotmix/runtime": DOTMIX_VERSION, "@dotmix/sync": DOTMIX_VERSION },
+    devDependencies: { "@dotmix/cli": DOTMIX_VERSION }
   };
 
   const store = isTs

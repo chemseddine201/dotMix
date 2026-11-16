@@ -10,6 +10,7 @@ import { execSync } from "node:child_process";
 import type { ParsedCliArgs } from "../args.js";
 import { colors, banner } from "../terminal.js";
 import { findInstalledBrowser } from "../browser/index.js";
+import { DOTMIX_VERSION } from "../version.js";
 
 function getToolVersion(cmd: string): string | null {
   try {
@@ -112,7 +113,7 @@ export function collectEnvironmentInfo(): EnvironmentInfo {
       bun: getToolVersion("bun"),
     },
     mix: {
-      cliVersion: "0.1.0",
+      cliVersion: DOTMIX_VERSION,
       installedPackages: getPackageVersions(),
     },
     toolchain: {

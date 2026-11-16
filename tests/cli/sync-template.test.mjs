@@ -10,7 +10,10 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
+
+/** New projects pin the version of the CLI that created them (all @dotmix packages are released together). */
+const cliVersion = JSON.parse(fs.readFileSync(new URL("../../packages/cli/package.json", import.meta.url), "utf-8")).version;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliBinPath = path.resolve(__dirname, "../../packages/cli/dist/bin.js");
@@ -28,8 +31,8 @@ describe("sync-crdt template and mix add sync", () => {
         const ext = lang === "ts" ? "ts" : "js";
         const comp = lang === "ts" ? "tix" : "mix";
         const pkg = JSON.parse(fs.readFileSync(path.join(app, "package.json"), "utf-8"));
-        assert.strictEqual(pkg.dependencies["@dotmix/sync"], "0.1.0");
-        assert.strictEqual(pkg.devDependencies["@dotmix/cli"], "0.1.0");
+        assert.strictEqual(pkg.dependencies["@dotmix/sync"], cliVersion);
+        assert.strictEqual(pkg.devDependencies["@dotmix/cli"], cliVersion);
         assert.ok(fs.readFileSync(path.join(app, `src/stores/tasks.${ext}`), "utf-8").includes("syncCollection"));
         assert.ok(fs.existsSync(path.join(app, `src/App.${comp}`)));
         const build = run(["build", "src", "dist"], app);

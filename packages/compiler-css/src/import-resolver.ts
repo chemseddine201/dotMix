@@ -135,8 +135,9 @@ export function tryReadPartial(
   for (const rel of relCandidates) {
     const posixResolved = path.posix.resolve(posixFromDir, rel);
     if (options?.readFile) {
-      const customContent = options.readFile(posixResolved, fromFile) ?? options.readFile(rel, fromFile);
-      if (typeof customContent === "string") {
+      // Readers return "" for a file they cannot find, so an empty answer moves on to the next form.
+      const customContent = options.readFile(posixResolved, fromFile) || options.readFile(rel, fromFile);
+      if (customContent) {
         return { resolvedPath: posixResolved, content: customContent };
       }
     }

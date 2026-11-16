@@ -6,7 +6,7 @@
  * 2. Indented Sass (.sass) compiles to valid scoped CSS.
  * 3. Less variables (@var), parent selector nesting, @import partials, and mixins compile to valid scoped CSS.
  * 4. PostCSS (.pcss / .postcss) nesting and @import partials compile to valid scoped CSS.
- * 5. Missing external preprocessor produces MIX_ERR_PREPROCESSOR_MISSING with an install instruction.
+ * 5. An unsupported format (Stylus) produces MIX_ERR_PREPROCESSOR_MISSING naming the supported formats.
  * 6. Plain .css and raw <style> blocks still reject @import with MIX_ERR_CSS_FORBIDDEN_IMPORT (D-108).
  * 7. Resolved partial paths are returned in dependencies list for build/watch tracking.
  */
@@ -153,7 +153,7 @@ describe("Gate 27 (T-27.3 / D-130): Build-Time CSS Preprocessor Stage", () => {
     assert.ok(compiledPcss.code.includes(".card-header[data-mix-"));
   });
 
-  test("4. Missing external preprocessor produces MIX_ERR_PREPROCESSOR_MISSING with install instruction", () => {
+  test("4. Stylus is reported as unsupported, with the supported formats and no install advice", () => {
     assert.strictEqual(typeof compilerCss.preprocessCss, "function", "preprocessCss must be exported by @dotmix/compiler-css");
 
     assert.throws(
@@ -166,7 +166,9 @@ describe("Gate 27 (T-27.3 / D-130): Build-Time CSS Preprocessor Stage", () => {
       (err) => {
         assert.ok(err instanceof MixDiagnosticError);
         assert.strictEqual(err.code, DiagnosticCodes.MIX_ERR_PREPROCESSOR_MISSING);
-        assert.match(err.message, /npm install/);
+        assert.match(err.message, /not supported/);
+        assert.match(err.message, /\.scss, \.sass, \.less, \.pcss or \.css/);
+        assert.doesNotMatch(err.message, /npm install/);
         return true;
       }
     );

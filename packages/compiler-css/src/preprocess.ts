@@ -7,8 +7,7 @@
  * - Evaluates SCSS (`$var`) and Less (`@var`) variables.
  * - Expands SCSS `@mixin` / `@include` and Less parametric mixins.
  * - Flattens nested rules and parent selector `&` concatenation (`&-primary`, `&:hover`, `&.active`).
- * - Fails with `MIX_ERR_PREPROCESSOR_MISSING` and an install hint when an unsupported external
- *   preprocessor is requested.
+ * - Fails with `MIX_ERR_PREPROCESSOR_MISSING` for formats it does not compile (Stylus).
  * - Preserves D-108 strictly for plain `.css` and post-preprocessed output.
  */
 
@@ -80,14 +79,9 @@ export function preprocessCss(
   }
 
   if (lang !== "scss" && lang !== "sass" && lang !== "less" && lang !== "pcss" && lang !== "postcss") {
-    const pkgMap: Record<string, string> = {
-      styl: "stylus",
-      stylus: "stylus"
-    };
-    const pkgName = pkgMap[lang] ?? lang;
     throw new MixDiagnosticError({
       code: DiagnosticCodes.MIX_ERR_PREPROCESSOR_MISSING,
-      message: `CSS preprocessor for '${lang}' is not installed. Run 'npm install -D ${pkgName}' to compile '${filename}' (D-130).`,
+      message: `'.${lang}' stylesheets are not supported ('${filename}'). Use .scss, .sass, .less, .pcss or .css.`,
       severity: "error",
       span: makeDefaultSpan(filename)
     });

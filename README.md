@@ -40,7 +40,7 @@ See [FEATURES.md](FEATURES.md) for details.
 
 ## Quick Start
 
-> **Status: 0.1.0, early release.** APIs may still change before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
+> **Status: early release (0.1.x).** APIs may still change before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
 
 ### 1. Scaffold a New Project
 
@@ -269,11 +269,9 @@ An Arabic translation is provided for reference in [LICENSE.ar.md](LICENSE.ar.md
 
 Planned work, not part of 0.1.0:
 
-- [ ] `mix doctor` passes on a newly created project: remove the `sass` / `less` / `postcss` check (the compiler handles these formats itself) and align the TypeScript configuration check with the generated `tsconfig.json`.
-- [ ] Remove the unused optional `sass`, `less` and `postcss` peer dependencies from `@dotmix/cli`, and report Stylus files as unsupported instead of suggesting an install.
 - [ ] Read `mix.config.ts` / `.mjs` / `.js`: source and output folders, base path, and dev, preview and build options, with command-line flags taking precedence.
 - [ ] `mix build --sourcemap` writes source maps that point to the original `.tix`, `.mix` and `.ts` lines; remove `--target static` (use `--prerender`).
 - [ ] Rename the sync engine's public names (`engine: "d137"`, the `D137_*` error codes, the `createD137…` functions and the storage names) to neutral names.
 - [ ] Remove internal planning references from source comments and error messages.
-- [ ] Show the name "dotMix" in CLI output, and read the `mix --version` number from the installed package.
+- [ ] Show the name "dotMix" in CLI output (`mix --version` already reads the installed version).
 - [ ] Change the VS Code extension ID to `dotmix.vscode-mix`.

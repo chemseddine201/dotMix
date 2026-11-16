@@ -28,6 +28,12 @@ export interface CodegenResult {
   readonly js: string;
   readonly code: string;
   readonly css?: string;
+  /**
+   * The unscoped part of `css`: stylesheets the component imports other than its own sibling
+   * stylesheet (for example `./styles/global.scss`). A build that already ships those files can
+   * leave this part out of its merged stylesheet.
+   */
+  readonly globalCss?: string;
   readonly scopeId?: string;
   readonly scopeAttribute?: string;
   readonly map?: SourceMapV3;

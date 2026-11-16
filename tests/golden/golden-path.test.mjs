@@ -212,6 +212,18 @@ describe("Gate 27 Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
             `[build] produced stderr output:\n${buildRes.stderr}`
           );
 
+          // 3b. Run the scaffolded project's own tests with `mix test` (they import its .ts modules)
+          const projectTestRes = spawnSync(
+            process.execPath,
+            [cliBin, "test"],
+            { encoding: "utf-8", cwd: projectDir }
+          );
+          assert.strictEqual(
+            projectTestRes.status,
+            0,
+            `[mix test] exited with ${projectTestRes.status}:\nSTDOUT:\n${projectTestRes.stdout}\nSTDERR:\n${projectTestRes.stderr}`
+          );
+
           // 4. Specifier Audit on all emitted .js files
           const jsFiles = collectFiles(distDir, (name) => name.endsWith(".js"));
           assert.ok(jsFiles.length >= 10, `Expected at least 10 emitted .js files in dist, found ${jsFiles.length}`);

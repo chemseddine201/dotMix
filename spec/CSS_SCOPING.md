@@ -26,6 +26,15 @@ The compiler transforms selectors by appending a unique component attribute sele
 }
 ```
 
+### 1.1 Imported stylesheets
+
+A component may import stylesheets in its script (`import "./Card.scss";`). The compiler treats them by location:
+
+- **The component's own stylesheets** are the files in its folder (`./Card.scss`, `./Header.less`). They are scoped exactly like a `<style>` block. When the component also has a `<style>` block, the block is used instead.
+- **A stylesheet from another folder** (for example `./styles/global.scss` imported by `main.mix`, or `../shared/reset.css`) is global: it is compiled without scoping, so rules such as `:root { --token: … }` and `body { … }` apply to the whole page. Its own `@import`s are resolved from its folder.
+
+A production build ships each global stylesheet once in the merged stylesheet.
+
 ---
 
 ## 2. Compile-Time CSS Validation (D-108)

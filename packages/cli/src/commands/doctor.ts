@@ -102,30 +102,27 @@ export function runDoctorChecks(projectRoot = process.cwd()): DoctorCheckResult[
       // basic stripping of comments for JSON parse
       const stripped = tsRaw.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, "");
       const tsConfig = JSON.parse(stripped) as {
-        compilerOptions?: { moduleResolution?: string; verbatimModuleSyntax?: boolean };
+        compilerOptions?: { moduleResolution?: string };
       };
-      const opts = tsConfig.compilerOptions || {};
-      const modRes = opts.moduleResolution?.toLowerCase();
-      const hasValidModRes = modRes === "bundler" || modRes === "node16" || modRes === "nodenext";
-      const hasVerbatim = opts.verbatimModuleSyntax === true;
+      const moduleResolution = tsConfig.compilerOptions?.moduleResolution;
+      const normalizedResolution = moduleResolution?.toLowerCase();
+      // These modes resolve the `.js` import specifiers dotMix projects use to their `.ts` sources.
+      const hasValidModRes = normalizedResolution === "nodenext" || normalizedResolution === "node16" || normalizedResolution === "bundler";
 
-      if (hasValidModRes && hasVerbatim) {
+      if (hasValidModRes) {
         results.push({
           id: 3,
           name: "TypeScript Configuration",
           status: "pass",
-          message: "tsconfig.json has verbatimModuleSyntax: true and moduleResolution: bundler.",
+          message: `tsconfig.json uses moduleResolution "${moduleResolution}".`,
         });
       } else {
-        const issues = [];
-        if (!hasValidModRes) issues.push("moduleResolution should be 'bundler'");
-        if (!hasVerbatim) issues.push("verbatimModuleSyntax should be true");
         results.push({
           id: 3,
           name: "TypeScript Configuration",
           status: "warn",
-          message: `tsconfig.json compiler options need alignment: ${issues.join(", ")}.`,
-          remedy: "Update tsconfig.json to include \"verbatimModuleSyntax\": true and \"moduleResolution\": \"bundler\".",
+          message: `tsconfig.json moduleResolution is ${moduleResolution ? `"${moduleResolution}"` : "not set"}; ".js" import specifiers may not resolve to ".ts" sources.`,
+          remedy: "Set \"module\" and \"moduleResolution\" to \"NodeNext\" in tsconfig.json (\"Node16\" and \"Bundler\" also work).",
         });
       }
     } catch {
@@ -138,38 +135,27 @@ export function runDoctorChecks(projectRoot = process.cwd()): DoctorCheckResult[
     }
   }
 
-  // 4. Preprocessor Peer Dependencies
+  // 4. Stylesheet formats: .css, .scss, .sass, .less and .pcss compile with the built-in
+  // preprocessors (no sass, less or postcss package); Stylus is not supported.
   const srcDir = path.join(projectRoot, "src");
-  let hasScss = false;
-  let hasLess = false;
-  let hasPostcss = false;
+  const unsupportedStylesheets = fs.existsSync(srcDir)
+    ? scanInputDirectory(srcDir).styleFiles.filter((file) => file.endsWith(".styl") || file.endsWith(".stylus"))
+    : [];
 
-  if (fs.existsSync(srcDir)) {
-    const { styleFiles } = scanInputDirectory(srcDir);
-    hasScss = styleFiles.some((f) => f.endsWith(".scss") || f.endsWith(".sass"));
-    hasLess = styleFiles.some((f) => f.endsWith(".less"));
-    hasPostcss = styleFiles.some((f) => f.endsWith(".pcss"));
-  }
-
-  const missingPreprocs: string[] = [];
-  if (hasScss && !allDeps["sass"]) missingPreprocs.push("sass");
-  if (hasLess && !allDeps["less"]) missingPreprocs.push("less");
-  if (hasPostcss && !allDeps["postcss"]) missingPreprocs.push("postcss");
-
-  if (missingPreprocs.length === 0) {
+  if (unsupportedStylesheets.length === 0) {
     results.push({
       id: 4,
-      name: "Preprocessor Peer Dependencies",
+      name: "Stylesheet Formats",
       status: "pass",
-      message: "Required CSS preprocessors (sass/less/postcss) are satisfied.",
+      message: "All stylesheets use supported formats; they compile without extra packages.",
     });
   } else {
     results.push({
       id: 4,
-      name: "Preprocessor Peer Dependencies",
+      name: "Stylesheet Formats",
       status: "fail",
-      message: `Project uses stylesheets requiring missing peer packages: ${missingPreprocs.join(", ")}.`,
-      remedy: `Install missing peer dependencies: npm install -D ${missingPreprocs.join(" ")}`,
+      message: `Stylus files are not supported: ${unsupportedStylesheets.map((file) => path.relative(projectRoot, file)).join(", ")}.`,
+      remedy: "Convert them to .scss, .sass, .less, .pcss or .css.",
     });
   }
 

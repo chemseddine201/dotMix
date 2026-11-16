@@ -64,7 +64,7 @@ test("Foundation 2: Layer boundaries, zero runtime in compiler, and router bound
     const routerPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "router", "package.json"), "utf-8"));
     assert.strictEqual(
       routerPkg.dependencies?.["@dotmix/runtime"],
-      "0.1.0",
+      JSON.parse(fs.readFileSync(path.join(packagesDir, "runtime", "package.json"), "utf-8")).version,
       "@dotmix/router must depend only on @dotmix/runtime"
     );
     const nonMixRuntimeDeps = Object.keys(routerPkg.dependencies || {}).filter(

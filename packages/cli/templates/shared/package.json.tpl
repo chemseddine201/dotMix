@@ -9,13 +9,13 @@
     "test": "mix test"
   },
   "dependencies": {
-    "@dotmix/runtime": "0.1.0",
-    "@dotmix/router": "0.1.0",
-    "@dotmix/sync": "0.1.0",
-    "@dotmix/helpers": "0.1.0"
+    "@dotmix/runtime": "{{dotmixVersion}}",
+    "@dotmix/router": "{{dotmixVersion}}",
+    "@dotmix/sync": "{{dotmixVersion}}",
+    "@dotmix/helpers": "{{dotmixVersion}}"
   },
   "devDependencies": {
-    "@dotmix/cli": "0.1.0"
+    "@dotmix/cli": "{{dotmixVersion}}"
   }
 }
 

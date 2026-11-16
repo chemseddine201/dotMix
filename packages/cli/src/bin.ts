@@ -14,6 +14,7 @@ import { devCommand } from "./commands/dev.js";
 import { buildCommand } from "./commands/build.js";
 import { checkCommand } from "./commands/check.js";
 import { addCommand } from "./commands/add.js";
+import { DOTMIX_VERSION } from "./version.js";
 
 const parsed = parseCliArguments(process.argv.slice(2));
 
@@ -78,9 +79,9 @@ export async function dispatch(): Promise<number> {
 
   if (parsed.values.version || parsed.command === "version") {
     if (parsed.values.json) {
-      console.log(JSON.stringify({ name: "@dotmix/cli", version: "0.1.0" }));
+      console.log(JSON.stringify({ name: "@dotmix/cli", version: DOTMIX_VERSION }));
     } else {
-      console.log("Mix Framework v0.1.0");
+      console.log(`Mix Framework v${DOTMIX_VERSION}`);
     }
     return 0;
   }

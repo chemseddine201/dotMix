@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/ast",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AST node types, spans and template node definitions for the dotMix compiler",
   "files": [
     "dist"
@@ -21,7 +21,7 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.1.0"
+    "@dotmix/diagnostics": "0.1.1"
   },
   "license": "MIT"
 }

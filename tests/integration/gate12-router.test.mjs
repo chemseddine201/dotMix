@@ -44,7 +44,7 @@ describe("Gate 12: Production Client Router (@dotmix/router — D-115)", () => {
 
     assert.strictEqual(
       json.dependencies?.["@dotmix/runtime"],
-      "0.1.0",
+      JSON.parse(fs.readFileSync(path.join(rootDir, "packages/runtime/package.json"), "utf-8")).version,
       "@dotmix/router must depend on @dotmix/runtime"
     );
 

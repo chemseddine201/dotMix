@@ -20,6 +20,16 @@ import {
 } from "./types.js";
 import { CodegenContext } from "./context.js";
 
+/**
+ * True when `specifier` is one of the component's own stylesheets: a file in the component's folder
+ * (`./Card.scss`, `./Card.header.less`). Those are scoped to the component. A stylesheet from another
+ * folder (`./styles/global.scss`, `../shared/reset.css`) is global and compiled without scoping.
+ */
+export function isComponentStylesheet(specifier: string): boolean {
+  const withoutQuery = specifier.split("?")[0] ?? specifier;
+  return withoutQuery.startsWith("./") && !withoutQuery.slice(2).includes("/");
+}
+
 export function generate(
   descriptor: ComponentDescriptor,
   options?: CodegenOptions
@@ -57,21 +67,30 @@ export function generate(
     }
   }
 
-  if (!rawCssToCompile && descriptor.cssImports && descriptor.cssImports.length > 0 && options?.resolveStyle) {
-    const pieces: string[] = [];
+  let rawGlobalCss = "";
+  if (descriptor.cssImports && descriptor.cssImports.length > 0 && options?.resolveStyle) {
+    const hasStyleBlock = rawCssToCompile.length > 0;
+    const componentPieces: string[] = [];
+    const globalPieces: string[] = [];
     for (const cssFile of descriptor.cssImports) {
+      const isOwnStylesheet = isComponentStylesheet(cssFile);
+      // A <style> block replaces the component's own stylesheet; global stylesheets always apply.
+      if (isOwnStylesheet && hasStyleBlock) continue;
       const content = options.resolveStyle(cssFile, filename);
       if (content) {
         const pre = preprocessCss(content, {
           filename: cssFile,
           readFile: (rel, from) => options.resolveStyle!(rel, from)
         });
-        pieces.push(pre.code);
+        (isOwnStylesheet ? componentPieces : globalPieces).push(pre.code);
         styleDependencies.push(...pre.dependencies);
       }
     }
-    if (pieces.length > 0) {
-      rawCssToCompile = pieces.join("\n");
+    if (componentPieces.length > 0) {
+      rawCssToCompile = componentPieces.join("\n");
+    }
+    if (globalPieces.length > 0) {
+      rawGlobalCss = globalPieces.join("\n");
     }
   }
 
@@ -93,6 +112,12 @@ export function generate(
     if (isScoped) {
       scopeAttribute = cssResult.scopeAttribute;
     }
+  }
+
+  let globalCss: string | undefined;
+  if (rawGlobalCss.trim().length > 0) {
+    globalCss = compileCss(rawGlobalCss, { filename, scoped: false }).code;
+    compiledCss = compiledCss === undefined ? globalCss : `${globalCss}\n${compiledCss}`;
   }
 
   // 2. Separate and transpile <script> imports and body statements
@@ -291,6 +316,7 @@ export function generate(
     js: jsCode,
     code: jsCode,
     ...(compiledCss !== undefined ? { css: compiledCss } : {}),
+    ...(globalCss !== undefined ? { globalCss } : {}),
     ...(scopeId !== undefined ? { scopeId } : {}),
     ...(scopeAttribute !== undefined ? { scopeAttribute } : {}),
     ...(map !== undefined ? { map } : {}),

@@ -124,9 +124,14 @@ export function build(options: BuildOptions = {}): BuildResult {
 
     const compiledWithEnv = replaceImportMetaEnv(codegen.js, envValues);
     compiledModules.set(toModuleKey(file, ".js"), rewriteJsModuleSpecifiers(compiledWithEnv, toEmittedModuleSpecifier));
-    if (codegen.css) {
-      compiledStylesheets.set(toModuleKey(file, ".css"), codegen.css);
-      allCompiledCssChunks.push(codegen.css);
+    // Global stylesheets a component imports (`./styles/global.scss`) are project files too; the
+    // stylesheet loop below adds them to the merged stylesheet once, so keep only the component's own CSS.
+    const componentCss = codegen.css !== undefined && codegen.globalCss !== undefined
+      ? codegen.css.slice(codegen.globalCss.length).trim()
+      : codegen.css;
+    if (componentCss) {
+      compiledStylesheets.set(toModuleKey(file, ".css"), componentCss);
+      allCompiledCssChunks.push(componentCss);
     }
     if (filename.endsWith(".tix")) {
       projectedDeclarations.set(toModuleKey(file, ".d.ts"), projectTypeScript(desc.ast, source, filename).code);

@@ -16,6 +16,7 @@ import type { ParsedCliArgs } from "../args.js";
 import { colors } from "../terminal.js";
 import { scanInputDirectory } from "../scanner.js";
 import { fixSource } from "./lint.js";
+import { DOTMIX_VERSION } from "../version.js";
 
 export interface SemVer {
   readonly major: number;
@@ -118,7 +119,7 @@ export function queryRegistry(pkgName: string, registryBase: string): Promise<Re
       {
         headers: {
           Accept: "application/json",
-          "User-Agent": "dotmix-cli/0.1.0"
+          "User-Agent": `dotmix-cli/${DOTMIX_VERSION}`
         }
       },
       (res) => {
@@ -201,8 +202,8 @@ export async function upgradeCommand(
   // If running in repo root / workspace without direct @dotmix/* deps, evaluate default core packages
   const isFallback = Object.keys(allDeps).length === 0;
   if (isFallback) {
-    allDeps["@dotmix/runtime"] = { versionStr: "0.1.0", inDev: false };
-    allDeps["@dotmix/router"] = { versionStr: "0.1.0", inDev: false };
+    allDeps["@dotmix/runtime"] = { versionStr: DOTMIX_VERSION, inDev: false };
+    allDeps["@dotmix/router"] = { versionStr: DOTMIX_VERSION, inDev: false };
   }
 
   const registryUrl =

@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/compiler-semantic",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scope resolution and TypeScript type checking for dotMix components",
   "files": [
     "dist"
@@ -21,8 +21,8 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.1.0",
-    "@dotmix/ast": "0.1.0",
+    "@dotmix/diagnostics": "0.1.1",
+    "@dotmix/ast": "0.1.1",
     "typescript": "6.0.3"
   },
   "license": "MIT"

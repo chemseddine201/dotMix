@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createSyncCrdtProject } from "./sync-template.js";
 import { renderStylesheet, stylesheetImportLine } from "./stylesheet-template.js";
+import { DOTMIX_VERSION } from "./version.js";
 
 export type TemplateVariant = "minimal" | "standard" | "showcase" | "sync-crdt";
 export type StyleFormat = "scss" | "sass" | "less" | "pcss" | "css";
@@ -66,7 +67,8 @@ function applyTemplateTokens(
   return content
     .replaceAll("{{projectName}}", tokens.projectName)
     .replaceAll("{{styleExt}}", tokens.styleExt)
-    .replaceAll("{{compExt}}", tokens.compExt);
+    .replaceAll("{{compExt}}", tokens.compExt)
+    .replaceAll("{{dotmixVersion}}", DOTMIX_VERSION);
 }
 
 export function detectPackageManager(): PackageManager {
@@ -98,10 +100,10 @@ function createMinimalProject(
       test: "mix test"
     },
     dependencies: {
-      "@dotmix/runtime": "0.1.0"
+      "@dotmix/runtime": DOTMIX_VERSION
     },
     devDependencies: {
-      "@dotmix/cli": "0.1.0"
+      "@dotmix/cli": DOTMIX_VERSION
     }
   };
 
