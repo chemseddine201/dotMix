@@ -53,7 +53,7 @@ function runDevAndCaptureStartup(workingDirectory) {
       child.kill();
       setTimeout(() => resolve(output), 2000);
     };
-    const timer = setTimeout(finish, 2500);
+    const timer = setTimeout(finish, 7500);
 
     child.stdout.on("data", (data) => {
       output += data.toString();

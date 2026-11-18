@@ -38,3 +38,25 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface HmrAppliedDetail {
+  /** The module that was swapped, as the dev server names it (same value as `mix:hmr-update`). */
+  readonly moduleId: string;
+  /** Top-level nodes inserted for every swapped instance, in document order. */
+  readonly nodes: readonly Node[];
+}
+
+interface HmrUpdateDetail {
+  readonly type: "update";
+  readonly file: string;
+  readonly timestamp: number;
+  readonly cssUpdated: boolean;
+  readonly kind?: "js" | "css";
+  readonly cssContent?: string;
+  readonly seq?: number;
+}
+
+interface WindowEventMap {
+  "mix:hmr-applied": CustomEvent<HmrAppliedDetail>;
+  "mix:hmr-update": CustomEvent<HmrUpdateDetail>;
+}

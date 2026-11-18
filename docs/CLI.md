@@ -104,6 +104,23 @@ mix dev [dir] --port 3000 --host 0.0.0.0 --open
 - `import.meta.env.MODE`, `.DEV`, `.PROD`, `.MIX_PUBLIC_*`, and bare `import.meta.env` are replaced when serving modules.
 - **Restart `mix dev` after editing `.env`** so updated environment values take effect.
 
+#### Hot Update Events:
+dotMix dev server dispatches custom lifecycle events on `window` during hot updates:
+- **`mix:hmr-update`**: Dispatched *before* the updated module is imported and swapped. Payload detail: `{ type: "update", file: string, timestamp: number, cssUpdated: boolean, kind?: "js" | "css", cssContent?: string, seq?: number }`.
+- **`mix:hmr-applied`**: Dispatched *after* all instances of the updated module have successfully swapped their DOM nodes and disposed old reactive owners. Payload detail: `{ moduleId: string, nodes: readonly Node[] }`.
+
+Example: re-running a one-shot DOM enhancer (such as scroll reveals, tooltips, or pointer effects) on swapped elements:
+```typescript
+window.addEventListener("mix:hmr-applied", (event) => {
+  for (const node of event.detail.nodes) {
+    if (node.nodeType === 1) { // Element
+      initTooltips(node as HTMLElement);
+      initScrollReveal(node as HTMLElement);
+    }
+  }
+});
+```
+
 ---
 
 ### 2.3 `mix build` — Production AOT Bundler

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 All `@dotmix/*` packages move to 0.2.0 together.
 
 ### Added
+- `mix dev` dispatches a `mix:hmr-applied` event on `window` after a hot update has put the new DOM in place; `event.detail.nodes` lists the inserted nodes, so code that enhances the page once (scroll reveals, tooltips) can enhance them too.
 - Configuration file loading: `mix.config.ts`, `mix.config.mjs`, and `mix.config.js` with CLI-flag precedence.
 - Real source maps support for client and SSR builds via `mix build --sourcemap`.
 

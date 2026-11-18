@@ -11,7 +11,7 @@ import { createDevServer } from "../../node_modules/@dotmix/cli/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, "fixtures/test-app");
 
-describe("Instant hot updates in a real browser (E1-E11)", { skip: browserSkipReason }, () => {
+describe("Instant hot updates in a real browser (E1-E12)", { skip: browserSkipReason }, () => {
   let browser;
 
   before(async () => {
@@ -362,10 +362,76 @@ describe("Instant hot updates in a real browser (E1-E11)", { skip: browserSkipRe
         { timeout: 3500 }
       );
 
-      const updatedCounterExists = await environment.page.evaluate(() => !!document.querySelector("#counter-1"));
-      assert.strictEqual(updatedCounterExists, true, "Counter-1 must remain in the DOM after hot update");
+      const counterCount = await environment.page.evaluate(() => document.querySelectorAll("#counter-1").length);
+      assert.strictEqual(counterCount, 1, "There must be exactly one #counter-1 in the DOM after hot update");
       const updatedCounterText = await environment.page.getText("#counter-1 .count-value");
       assert.strictEqual(updatedCounterText, "Refreshed: 0");
+    } finally {
+      await environment.cleanup();
+    }
+  });
+
+  it("E12: mix:hmr-applied re-runs DOM enhancer on swapped element", async () => {
+    const environment = await setupApp();
+    try {
+      // 1. Install one-shot enhancer with mix:hmr-applied listener
+      await environment.page.evaluate(() => {
+        function markEnhanced(nodes) {
+          for (const node of nodes) {
+            if (node.nodeType === 1) {
+              const el = node;
+              if (el.id === "counter-1") {
+                el.classList.add("enhanced-by-probe");
+              }
+              const child = el.querySelector?.("#counter-1");
+              if (child) {
+                child.classList.add("enhanced-by-probe");
+              }
+            }
+          }
+        }
+
+        // Initial mark on document
+        markEnhanced([document.body]);
+
+        // Re-mark on mix:hmr-applied
+        window.addEventListener("mix:hmr-applied", (event) => {
+          window.__e12AppliedEvent = {
+            moduleId: event.detail.moduleId,
+            nodeCount: event.detail.nodes?.length ?? 0
+          };
+          markEnhanced(event.detail.nodes || []);
+        });
+      });
+
+      // Confirm initial enhancement
+      const initiallyEnhanced = await environment.page.evaluate(
+        () => document.querySelector("#counter-1")?.classList?.contains("enhanced-by-probe") ?? false
+      );
+      assert.strictEqual(initiallyEnhanced, true, "#counter-1 must have initial enhancement class");
+
+      // 2. Perform hot update on Counter.mix
+      const counterFilePath = path.join(environment.tmpDir, "src/Counter.mix");
+      const sourceContent = fs.readFileSync(counterFilePath, "utf-8");
+      fs.writeFileSync(counterFilePath, sourceContent.replace("Count: {count()}", "AppliedEnhance: {count()}"), "utf-8");
+
+      await environment.page.waitForCondition(
+        () => document.querySelector("#counter-1 .count-value")?.textContent?.includes("AppliedEnhance:"),
+        { timeout: 3500 }
+      );
+
+      // 3. Verify swapped element has new text and re-applied enhancement
+      const textAfterUpdate = await environment.page.getText("#counter-1 .count-value");
+      assert.strictEqual(textAfterUpdate, "AppliedEnhance: 0");
+
+      const hasEnhancedClassAfterSwap = await environment.page.evaluate(
+        () => document.querySelector("#counter-1")?.classList?.contains("enhanced-by-probe") ?? false
+      );
+      assert.strictEqual(hasEnhancedClassAfterSwap, true, "Swapped element must be re-enhanced via mix:hmr-applied");
+
+      const appliedEvent = await environment.page.evaluate(() => window.__e12AppliedEvent);
+      assert.ok(appliedEvent, "mix:hmr-applied event must have been recorded");
+      assert.strictEqual(appliedEvent.nodeCount > 0, true, "mix:hmr-applied event must provide nodes");
     } finally {
       await environment.cleanup();
     }

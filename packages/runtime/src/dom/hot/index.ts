@@ -19,6 +19,13 @@ import { normalizeToNodeArray } from "../nodes.js";
 
 export type HmrComponentFn = (props: Record<string, unknown>) => Node | readonly Node[];
 
+export interface HmrAppliedDetail {
+  /** The module that was swapped, as the dev server names it (same value as `mix:hmr-update`). */
+  readonly moduleId: string;
+  /** Top-level nodes inserted for every swapped instance, in document order. */
+  readonly nodes: readonly Node[];
+}
+
 interface WindowWithMixOverlay {
   __mix_show_error?: (err: { message: string; frame?: string }) => void;
   __mix_clear_error?: () => void;
@@ -34,6 +41,7 @@ export interface HmrInstanceRecord {
   owner: Owner | null;
   dispose: () => void;
   signalGetters: Map<string, () => unknown>;
+  nodes?: Node[];
 }
 
 // Global dev-only state registries
@@ -110,7 +118,8 @@ export function registerHmrInstance(
   endMarker: Comment,
   owner: Owner | null,
   dispose: () => void,
-  instanceKey: string
+  instanceKey: string,
+  nodes?: Node[]
 ): HmrInstanceRecord {
   const record: HmrInstanceRecord = {
     instanceKey,
@@ -121,7 +130,8 @@ export function registerHmrInstance(
     endMarker,
     owner,
     dispose,
-    signalGetters: liveGettersStore.get(instanceKey) ?? new Map()
+    signalGetters: liveGettersStore.get(instanceKey) ?? new Map(),
+    nodes: nodes ? [...nodes] : []
   };
 
   let set = instanceRegistry.get(moduleId);
@@ -187,6 +197,9 @@ export function hmrSwapComponent(
     return true;
   }
 
+  const insertedNodes: Node[] = [];
+  let swappedCount = 0;
+
   for (const instance of Array.from(instances)) {
     if (typeof document !== "undefined" && instance.startMarker && !instance.startMarker.isConnected && !instance.startMarker.parentNode) {
       instances.delete(instance);
@@ -240,10 +253,8 @@ export function hmrSwapComponent(
     const parentContainer = instance.startMarker.parentNode;
     if (parentContainer) {
       try {
-        if (instance.endMarker.parentNode !== parentContainer) {
-          parentContainer.insertBefore(instance.endMarker, instance.startMarker.nextSibling);
-        } else {
-          let isFollowing = false;
+        let isFollowing = false;
+        if (instance.endMarker.parentNode === parentContainer) {
           let walker: Node | null = instance.startMarker.nextSibling;
           while (walker) {
             if (walker === instance.endMarker) {
@@ -252,7 +263,29 @@ export function hmrSwapComponent(
             }
             walker = walker.nextSibling;
           }
-          if (!isFollowing) {
+        }
+
+        if (!isFollowing) {
+          let anchorNode: Node | null = null;
+          if (instance.nodes && instance.nodes.length > 0) {
+            for (let index = instance.nodes.length - 1; index >= 0; index--) {
+              const candidate = instance.nodes[index];
+              if (candidate && candidate.parentNode === parentContainer) {
+                let sibling: Node | null = instance.startMarker.nextSibling;
+                while (sibling) {
+                  if (sibling === candidate) {
+                    anchorNode = candidate;
+                    break;
+                  }
+                  sibling = sibling.nextSibling;
+                }
+                if (anchorNode) break;
+              }
+            }
+          }
+          if (anchorNode) {
+            parentContainer.insertBefore(instance.endMarker, anchorNode.nextSibling);
+          } else {
             parentContainer.insertBefore(instance.endMarker, instance.startMarker.nextSibling);
           }
         }
@@ -277,9 +310,31 @@ export function hmrSwapComponent(
     instance.ComponentFn = newComponentFn;
     instance.owner = newOwner;
     instance.dispose = newDispose ?? (() => {});
+    instance.nodes = newNodes;
+
+    insertedNodes.push(...newNodes);
+    swappedCount++;
   }
 
   clearErrorOverlay();
+
+  if (swappedCount > 0 && typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    if (insertedNodes.length > 1 && typeof Node !== "undefined") {
+      insertedNodes.sort((a, b) => {
+        if (a === b) return 0;
+        const pos = a.compareDocumentPosition(b);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+      });
+    }
+    const detail: HmrAppliedDetail = {
+      moduleId,
+      nodes: insertedNodes
+    };
+    window.dispatchEvent(new CustomEvent<HmrAppliedDetail>("mix:hmr-applied", { detail }));
+  }
+
   return true;
 }
 

@@ -345,7 +345,8 @@ export function mountComponent<P extends Record<string, unknown>>(
       endMarker,
       compOwner,
       disposeFn,
-      instanceKey
+      instanceKey,
+      nodes
     );
   } else {
     createRoot((dispose) => {
