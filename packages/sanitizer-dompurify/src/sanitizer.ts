@@ -1,5 +1,5 @@
 /**
- * @dotmix/sanitizer-dompurify/sanitizer — Production HTML SanitizerProvider implementation (D-109 / HAA-03).
+ * @dotmix/sanitizer-dompurify/sanitizer — Production HTML SanitizerProvider implementation.
  */
 
 import {

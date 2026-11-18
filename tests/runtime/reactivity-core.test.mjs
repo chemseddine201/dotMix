@@ -20,7 +20,7 @@ import {
 import { toAbortSignal, fromAbortSignal } from "../../node_modules/@dotmix/runtime/dist/platform/index.js";
 import { MixError, DiagnosticCodes } from "../../node_modules/@dotmix/runtime/dist/errors.js";
 
-test("Gate 4 (T-RX-01..04): Diamond dependency graph evaluates Glitch-Free with single effect run and lazy validation break", () => {
+test(" (T-RX-01..04): Diamond dependency graph evaluates Glitch-Free with single effect run and lazy validation break", () => {
   const log = [];
   let cRuns = 0;
 
@@ -49,7 +49,7 @@ test("Gate 4 (T-RX-01..04): Diamond dependency graph evaluates Glitch-Free with 
   });
 });
 
-test("Gate 4 (D-101, T-RX-05..07): Effect writes trigger non-nested deferred rerun and coalesce multiple writes", () => {
+test(": Effect writes trigger non-nested deferred rerun and coalesce multiple writes", () => {
   const trace = [];
 
   createRoot(dispose => {
@@ -80,7 +80,7 @@ test("Gate 4 (D-101, T-RX-05..07): Effect writes trigger non-nested deferred rer
   });
 });
 
-test("Gate 4 (R-RX-05): Immediate subscription on first read catches write later in the same effect run", () => {
+test(" (R-RX-05): Immediate subscription on first read catches write later in the same effect run", () => {
   const runs = [];
 
   createRoot(dispose => {
@@ -103,7 +103,7 @@ test("Gate 4 (R-RX-05): Immediate subscription on first read catches write later
   });
 });
 
-test("Gate 4 (D-101, R-RX-06, I-5): Runaway cycle ceiling throws ReactiveCycleError while preserving sibling queue, and Computed write is forbidden", () => {
+test(": Runaway cycle ceiling throws ReactiveCycleError while preserving sibling queue, and Computed write is forbidden", () => {
   configureScheduler({ maxEffectIterations: 25 });
   try {
     createRoot(dispose => {
@@ -148,7 +148,7 @@ test("Gate 4 (D-101, R-RX-06, I-5): Runaway cycle ceiling throws ReactiveCycleEr
   }
 });
 
-test("Gate 4 (D-102, D-103, T-OW-01..05): Owner disposal unlinks computations/cleanups and detachedParent inherits context without auto-disposal", () => {
+test(": Owner disposal unlinks computations/cleanups and detachedParent inherits context without auto-disposal", () => {
   const ThemeCtx = createContext("light");
   let detachedEffectRuns = 0;
   let childEffectRuns = 0;
@@ -181,7 +181,7 @@ test("Gate 4 (D-102, D-103, T-OW-01..05): Owner disposal unlinks computations/cl
     assert.strictEqual(childEffectRuns, 1);
     assert.strictEqual(detachedEffectRuns, 1);
 
-    // Disposing parent must dispose childEffect, but leave detachedRoot alive (D-103)!
+    // Disposing parent must dispose childEffect, but leave detachedRoot alive!
     disposeParent();
     assert.strictEqual(parentOwner.ownerState, OwnerState.DISPOSED);
     assert.deepStrictEqual(cleanupsCalled, ["child-cleanup"]);
@@ -200,7 +200,7 @@ test("Gate 4 (D-102, D-103, T-OW-01..05): Owner disposal unlinks computations/cl
   assert.strictEqual(detachedEffectRuns, 2);
 });
 
-test("Gate 4 (D-104, R-CX-01..09): CancellationToken, generation-checked createResource stale suppression, and AbortSignal bridges", async () => {
+test(": CancellationToken, generation-checked createResource stale suppression, and AbortSignal bridges", async () => {
   const src = createCancellationSource(null);
   assert.strictEqual(src.token.isCancelled, false);
   assert.strictEqual(src.token.aborted, false);

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Durable ACK Message Ingestion & Stable Frontier Advance (Gate 33 / D-137)
+ * @dotmix/sync — Durable ACK Message Ingestion & Stable Frontier Advance
  */
 
 import { canonicalizeValue } from "./apply.js";
@@ -35,7 +35,7 @@ export async function ingestDurableAck(
   if (!ack.protocolVersion || !ack.protocolVersion.startsWith(PROTOCOL_FAMILY_PREFIX)) {
     return {
       ok: false,
-      code: "D137_ACK_PROTOCOL_VERSION_INVALID",
+      code: "SYNC_ACK_PROTOCOL_VERSION_INVALID",
       detail: `Unsupported protocol version: ${ack.protocolVersion}`,
     };
   }
@@ -43,7 +43,7 @@ export async function ingestDurableAck(
   if (ack.collectionId !== engine.meta.collectionId) {
     return {
       ok: false,
-      code: "D137_ACK_COLLECTION_MISMATCH",
+      code: "SYNC_ACK_COLLECTION_MISMATCH",
       detail: `ACK collectionId ${ack.collectionId} does not match engine ${engine.meta.collectionId}`,
     };
   }
@@ -51,7 +51,7 @@ export async function ingestDurableAck(
   if (ack.epochNumber !== engine.meta.epochNumber) {
     return {
       ok: false,
-      code: "D137_ACK_EPOCH_MISMATCH",
+      code: "SYNC_ACK_EPOCH_MISMATCH",
       detail: `ACK epochNumber ${ack.epochNumber} does not match engine epochNumber ${engine.meta.epochNumber}`,
     };
   }
@@ -60,7 +60,7 @@ export async function ingestDurableAck(
   if (!binding || (binding.role !== "WRITER_REPLICA" && binding.role !== "COORDINATOR")) {
     return {
       ok: false,
-      code: "D137_ACK_SENDER_UNAUTHORIZED",
+      code: "SYNC_ACK_SENDER_UNAUTHORIZED",
       detail: `ACK sender ${ack.fromReplicaId} is not an authorized member in epoch ${engine.meta.epochNumber}`,
     };
   }
@@ -68,7 +68,7 @@ export async function ingestDurableAck(
   if (engine.meta.revokedKeyIds && engine.meta.revokedKeyIds.includes(ack.authorKeyId)) {
     return {
       ok: false,
-      code: "D137_ACK_KEY_REVOKED",
+      code: "SYNC_ACK_KEY_REVOKED",
       detail: `ACK signing key ${ack.authorKeyId} has been revoked`,
     };
   }
@@ -76,7 +76,7 @@ export async function ingestDurableAck(
   if (binding.authorKeyId !== ack.authorKeyId) {
     return {
       ok: false,
-      code: "D137_ACK_KEY_MISMATCH",
+      code: "SYNC_ACK_KEY_MISMATCH",
       detail: `ACK signing key ${ack.authorKeyId} does not match binding key ${binding.authorKeyId}`,
     };
   }
@@ -92,7 +92,7 @@ export async function ingestDurableAck(
   if (!isValidSig) {
     return {
       ok: false,
-      code: "D137_ACK_SIGNATURE_INVALID",
+      code: "SYNC_ACK_SIGNATURE_INVALID",
       detail: `Cryptographic signature verification failed for ACK from ${ack.fromReplicaId}`,
     };
   }
@@ -102,7 +102,7 @@ export async function ingestDurableAck(
     if (parts.length !== 2) {
       return {
         ok: false,
-        code: "D137_ACK_STREAM_KEY_INVALID",
+        code: "SYNC_ACK_STREAM_KEY_INVALID",
         detail: `Invalid stream key syntax: ${streamKey}`,
       };
     }
@@ -111,7 +111,7 @@ export async function ingestDurableAck(
     if (isNaN(streamEpoch) || streamEpoch > engine.meta.epochNumber) {
       return {
         ok: false,
-        code: "D137_ACK_STREAM_EPOCH_INVALID",
+        code: "SYNC_ACK_STREAM_EPOCH_INVALID",
         detail: `Stream epoch ${streamEpoch} exceeds current epoch ${engine.meta.epochNumber}`,
       };
     }
@@ -121,7 +121,7 @@ export async function ingestDurableAck(
       if (!ackDigest) {
         return {
           ok: false,
-          code: "D137_ACK_MISSING_DIGEST",
+          code: "SYNC_ACK_MISSING_DIGEST",
           detail: `Missing rolling digest for positive sequence ${ackSeq} on stream ${streamKey}`,
         };
       }
@@ -142,7 +142,7 @@ export async function ingestDurableAck(
         if (expectedDigest && expectedDigest !== ackDigest) {
           return {
             ok: false,
-            code: "D137_ACK_DIGEST_MISMATCH",
+            code: "SYNC_ACK_DIGEST_MISMATCH",
             detail: `Rolling digest mismatch for stream ${streamKey} at sequence ${ackSeq}: expected ${expectedDigest}, received ${ackDigest}`,
           };
         }

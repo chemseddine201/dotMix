@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/core/cancellation — Pure ECMAScript CancellationToken and CancellationSource (D-104).
+ * @dotmix/runtime/core/cancellation — Pure ECMAScript CancellationToken and CancellationSource.
  */
 
 import {

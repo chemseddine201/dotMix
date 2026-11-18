@@ -1,6 +1,6 @@
 /* global process, console, performance */
 /**
- * T-35.2 / Lane A Task A1: Soak and Fuzz Verification Suite
+ * Lane A Task A1: Soak and Fuzz Verification Suite
  *
  * Runs:
  * 1. 1,000,000-input wire-decoder fuzz
@@ -15,8 +15,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  D137Engine,
-  D137_V331_LIMITS,
+  ReplicationEngine,
+  SYNC_PROTOCOL_LIMITS,
   PROTOCOL_VERSION,
   commitCheckpoint,
   computeSnapshotDigestSync,
@@ -27,7 +27,7 @@ import {
 import { decodeWireOperation } from "../../packages/sync/dist/protocol/types.js";
 import { createHttpPrincipal } from "../../packages/sync/dist/transport/principal.js";
 import { MultiTabCoordinator } from "../../packages/sync/dist/transport/multi-tab.js";
-import { D137ReferenceCoordinator } from "../../tools/d137-coordinator/coordinator.js";
+import { SyncReferenceCoordinator } from "../../tools/sync-coordinator/coordinator.js";
 
 class CoordinatorTransportBridge {
   constructor(coordinatorInstance, principalInstance) {
@@ -155,7 +155,7 @@ export async function runStoreBoundsVerification(targetOpCount = 50000) {
     signingAlgorithm: "Ed25519",
   };
 
-  const engine = new D137Engine(
+  const engine = new ReplicationEngine(
     collectionIdentifier,
     "bounds-primary",
     1,
@@ -211,22 +211,22 @@ export async function runStoreBoundsVerification(targetOpCount = 50000) {
 
   const boundsDurationMs = performance.now() - boundsStartTime;
   console.log(`Store bounds verification done: ${targetOpCount.toLocaleString()} ops in ${(boundsDurationMs / 1000).toFixed(2)} s`);
-  console.log(`  Journal max: ${maxJournalObserved} / declared bound ${D137_V331_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT}`);
-  console.log(`  Outbox max: ${maxOutboxObserved} / declared bound ${D137_V331_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT}`);
-  console.log(`  Gap buffer max: ${maxGapBufferObserved} / declared bound ${D137_V331_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION}`);
-  console.log(`  Dependency buffer max: ${maxDependencyBufferObserved} / declared bound ${D137_V331_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION}`);
-  console.log(`  Quarantine max: ${maxQuarantineObserved} / declared bound ${D137_V331_LIMITS.MAX_QUARANTINE_RECORDS}`);
+  console.log(`  Journal max: ${maxJournalObserved} / declared bound ${SYNC_PROTOCOL_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT}`);
+  console.log(`  Outbox max: ${maxOutboxObserved} / declared bound ${SYNC_PROTOCOL_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT}`);
+  console.log(`  Gap buffer max: ${maxGapBufferObserved} / declared bound ${SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION}`);
+  console.log(`  Dependency buffer max: ${maxDependencyBufferObserved} / declared bound ${SYNC_PROTOCOL_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION}`);
+  console.log(`  Quarantine max: ${maxQuarantineObserved} / declared bound ${SYNC_PROTOCOL_LIMITS.MAX_QUARANTINE_RECORDS}`);
   console.log(`  Operation digests max: ${maxOperationDigestsObserved}\n`);
 
   return {
     totalOperations: targetOpCount,
     durationMs: boundsDurationMs,
     stores: [
-      { name: "mutationJournal", maxObserved: maxJournalObserved, declaredBound: D137_V331_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT, pass: maxJournalObserved <= D137_V331_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT },
-      { name: "syncOutbox", maxObserved: maxOutboxObserved, declaredBound: D137_V331_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT, pass: maxOutboxObserved <= D137_V331_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT },
-      { name: "inboundGapBuffer", maxObserved: maxGapBufferObserved, declaredBound: D137_V331_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION, pass: maxGapBufferObserved <= D137_V331_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION },
-      { name: "inboundDependencyBuffer", maxObserved: maxDependencyBufferObserved, declaredBound: D137_V331_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION, pass: maxDependencyBufferObserved <= D137_V331_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION },
-      { name: "quarantineJournal", maxObserved: maxQuarantineObserved, declaredBound: D137_V331_LIMITS.MAX_QUARANTINE_RECORDS, pass: maxQuarantineObserved <= D137_V331_LIMITS.MAX_QUARANTINE_RECORDS },
+      { name: "mutationJournal", maxObserved: maxJournalObserved, declaredBound: SYNC_PROTOCOL_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT, pass: maxJournalObserved <= SYNC_PROTOCOL_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT },
+      { name: "syncOutbox", maxObserved: maxOutboxObserved, declaredBound: SYNC_PROTOCOL_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT, pass: maxOutboxObserved <= SYNC_PROTOCOL_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT },
+      { name: "inboundGapBuffer", maxObserved: maxGapBufferObserved, declaredBound: SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION, pass: maxGapBufferObserved <= SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION },
+      { name: "inboundDependencyBuffer", maxObserved: maxDependencyBufferObserved, declaredBound: SYNC_PROTOCOL_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION, pass: maxDependencyBufferObserved <= SYNC_PROTOCOL_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION },
+      { name: "quarantineJournal", maxObserved: maxQuarantineObserved, declaredBound: SYNC_PROTOCOL_LIMITS.MAX_QUARANTINE_RECORDS, pass: maxQuarantineObserved <= SYNC_PROTOCOL_LIMITS.MAX_QUARANTINE_RECORDS },
       { name: "operationDigests", maxObserved: maxOperationDigestsObserved, declaredBound: targetOpCount, pass: maxOperationDigestsObserved <= targetOpCount },
     ],
   };
@@ -240,7 +240,7 @@ export function measureCheckpointCadence() {
 
   for (const entryThreshold of entryCountThresholds) {
     const coordinatorCertificate = createDefaultFoundingCertificate(collectionIdentifier, "cadence-replica");
-    const engine = new D137Engine(collectionIdentifier, "cadence-replica", 1, coordinatorCertificate, "key:cadence-replica:v1");
+    const engine = new ReplicationEngine(collectionIdentifier, "cadence-replica", 1, coordinatorCertificate, "key:cadence-replica:v1");
 
     for (let entryIndex = 1; entryIndex <= entryThreshold; entryIndex++) {
       const lamportStamp = { lamport: entryIndex, epochNumber: 1, replicaId: "cadence-replica", sequence: entryIndex };
@@ -280,7 +280,7 @@ async function executeSimSeed(seedNumber) {
   const targetEventCount = isHeavySeed ? 50 : 10;
   const collectionIdentifier = `col_sim_${seedNumber}`;
 
-  const coordinator = new D137ReferenceCoordinator({ collectionId: collectionIdentifier });
+  const coordinator = new SyncReferenceCoordinator({ collectionId: collectionIdentifier });
   await coordinator.initialize();
   await coordinator.registerClient("key-rep-1", "01".repeat(32), "WRITER_REPLICA", "rep-1");
   await coordinator.registerClient("key-rep-2", "01".repeat(32), "WRITER_REPLICA", "rep-2");
@@ -295,9 +295,9 @@ async function executeSimSeed(seedNumber) {
   const channel1 = new CoordinatorTransportBridge(coordinator, principal1);
   const channel2 = new CoordinatorTransportBridge(coordinator, principal2);
 
-  let client1 = syncCollection({ key: collectionIdentifier, engine: "d137", driver: store1, channel: channel1 });
+  let client1 = syncCollection({ key: collectionIdentifier, engine: "replicated", driver: store1, channel: channel1 });
   await client1.ready;
-  let client2 = syncCollection({ key: collectionIdentifier, engine: "d137", driver: store2, channel: channel2 });
+  let client2 = syncCollection({ key: collectionIdentifier, engine: "replicated", driver: store2, channel: channel2 });
   await client2.ready;
 
   const tabCoordinator = new MultiTabCoordinator({
@@ -425,7 +425,7 @@ export async function executeAllSoakTasks() {
   const markdownReportLines = [
     "# Soak and Fuzz Verification Report",
     "",
-    "**Authority:** Human Architecture Authority (HAA-20)  ",
+    "**Authority:** Human Architecture Authority  ",
     `**Protocol:** \`${PROTOCOL_VERSION}\`  `,
     `**Timestamp:** ${aggregatedEvidence.timestamp}  `,
     "",

@@ -23,7 +23,7 @@ const FORBIDDEN_HMR_PATTERNS = [
   "__hmr_end"
 ];
 
-describe("Gate 36 (T-36.0): Production Purity (D-156)", () => {
+describe(": Production Purity", () => {
   it("1. compiler-codegen with hmr: false emits zero HMR strings or shims", () => {
     const source = `
 export default function PureCounter(props = {}) {

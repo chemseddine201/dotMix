@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/ast",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "AST node types, spans and template node definitions for the dotMix compiler",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -21,7 +23,7 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.1.1"
+    "@dotmix/diagnostics": "0.2.0"
   },
   "license": "MIT"
 }

@@ -17,7 +17,7 @@ import {
   applyHmrUpdate
 } from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 7 & Gate 8: Keyed LIS Reconciliation (D-110 / HAA-02) & HMR Stable Scope (D-111)", () => {
+describe(" &: Keyed LIS Reconciliation & HMR Stable Scope", () => {
   let win;
   let document;
 
@@ -120,7 +120,7 @@ describe("Gate 7 & Gate 8: Keyed LIS Reconciliation (D-110 / HAA-02) & HMR Stabl
     });
   });
 
-  describe("3. Atomic Duplicate-Update Rejection Policy (D-110 / HAA-02 Option A Strict)", () => {
+  describe("3. Atomic Duplicate-Update Rejection Policy", () => {
     it("validates keys upfront, rejects duplicates atomically, preserves DOM & owners, allocates zero nodes, and throws MixError", () => {
       const container = document.createElement("div");
       let renderAllocations = 0;
@@ -179,7 +179,7 @@ describe("Gate 7 & Gate 8: Keyed LIS Reconciliation (D-110 / HAA-02) & HMR Stabl
         (err) => err instanceof MixError && err.code === DiagnosticCodes.MIX_ERR_DUPLICATE_KEY
       );
 
-      // Verify all 6 requirements of D-110 / HAA-02 Option A:
+      // Verify all 6 requirements Option A:
       // 1. Zero new DOM or owner allocations occurred for "new-key" or "dup"
       assert.equal(renderAllocations, 3);
       // 2. Zero existing row owners were disposed
@@ -266,7 +266,7 @@ describe("Gate 7 & Gate 8: Keyed LIS Reconciliation (D-110 / HAA-02) & HMR Stabl
     });
   });
 
-  describe("4. HMR Stable Scope & Trampoline Dispatch (D-111)", () => {
+  describe("4. HMR Stable Scope & Trampoline Dispatch", () => {
     it("hot-swaps component methods in place via stable scope without rebinding DOM event listeners", () => {
       const btn = document.createElement("button");
       const count = signal(5);

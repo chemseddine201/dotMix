@@ -25,7 +25,7 @@ function setupDom() {
   return win;
 }
 
-describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in Attributes & Control-Flow Diagnostics", () => {
+describe(": Element Expressions in Attributes & Control-Flow Diagnostics", () => {
   it("1. Parses element and fragment expressions inside attribute {...} values with exact SourceSpans and semantic scope verification", () => {
     const src = `<script lang="ts">
   import { signal } from "@dotmix/runtime";
@@ -221,7 +221,7 @@ describe("Gate 28 (T-28.4 — D-132 & D-133 Option b): Element Expressions in At
     }
   });
 
-  it("4. D-133 (Option b): Diagnoses {cond && <el/>} with MIX_ERR_JSX_LOGICAL_EXPRESSION and warns on legacy {#if}/{#each}", () => {
+  it("4. (Option b): Diagnoses {cond && <el/>} with MIX_ERR_JSX_LOGICAL_EXPRESSION and warns on legacy {#if}/{#each}", () => {
     const jsxLogicalSrc = `<script>
   const show = true;
 </script>

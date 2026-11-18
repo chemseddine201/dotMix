@@ -10,7 +10,7 @@ import { create, build } from "../../node_modules/@dotmix/cli/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliBinPath = path.resolve(__dirname, "../../packages/cli/dist/bin.js");
 
-describe("Gate 29 (T-29.2): Production Bundler, Lazy Route Code-Splitting, Minification, Hashed Assets & Bundle Report", () => {
+describe(": Production Bundler, Lazy Route Code-Splitting, Minification, Hashed Assets & Bundle Report", () => {
   it("1. build() emits one content-hashed module per source module, an import map with modulepreload, the hashed stylesheet and bundle-report.json", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-build-bundle-"));
     const appDir = path.join(tmpDir, "bundle-app");

@@ -14,7 +14,7 @@ export default [
       "reports/**",
       "examples/portfolio/**",
       "scratch/**",
-      "tools/d137-reference/**"
+      "tools/sync-reference/**"
     ]
   },
   js.configs.recommended,

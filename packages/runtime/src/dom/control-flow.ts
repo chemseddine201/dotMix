@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/dom/control-flow — Slot rendering, {#await}, {#if}, dynamic elements (D-105),
+ * @dotmix/runtime/dom/control-flow — Slot rendering, {#await}, {#if}, dynamic elements,
  * and component mounting primitives.
  */
 
@@ -244,7 +244,7 @@ export interface MountedComponent {
 export type MountHandle = MountedComponent;
 
 /**
- * D-105 & TECH-06: Resolves dynamic tag expression ONCE per element instance,
+ * & TEC: Resolves dynamic tag expression ONCE per element instance,
  * creates the element (or mounts component), and applies preserved attributes/children.
  */
 export function createDynamicElement(
@@ -281,7 +281,7 @@ export function createDynamicElement(
   if (typeof resolved !== "string" || !/^[a-zA-Z][a-zA-Z0-9-]*$/.test(resolved)) {
     throw new MixError(
       DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-      `Invalid dynamic element tag name: "${String(resolved)}" (D-105).`
+      `Invalid dynamic element tag name: "${String(resolved)}".`
     );
   }
 

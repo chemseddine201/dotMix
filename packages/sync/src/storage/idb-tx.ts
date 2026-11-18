@@ -1,7 +1,7 @@
 /**
  * @dotmix/sync — IndexedDB Transactions, Scope Matrix & Fencing Invariants
  *
- * Implements Tx #1..#13 transaction scopes matching §5.2 of D-137-SPEC-v3.3.2,
+ * Implements Tx #1..#13 transaction scopes matching §5.2-SPEC-v3.3.2,
  * synchronous SHA-256 digest calculations (no WebCrypto microtask drift),
  * isolated post-commit execution (I21), AUD-D1..AUD-D4 fencing enforcement,
  * and S59/S91 boot recovery. Zero external dependencies.
@@ -376,7 +376,7 @@ export function runTx13EquivocationExcision<T>(backend: StoreBackend, transactio
   return backend.runTransaction(TX13_EQUIVOCATION_EXCISION_STORES, "readwrite", transactionOperation);
 }
 
-// T-33.6: Fencing & Revalidation Enforcements (AUD-D1..AUD-D4)
+//: Fencing & Revalidation Enforcements (AUD-D1..AUD-D4)
 export interface FencingContext {
   authorKeyId?: string;
   authorReplicaId?: string;
@@ -387,7 +387,7 @@ export interface FencingContext {
 
 export interface FencingValidationResult {
   ok: boolean;
-  code?: "D137_KEY_REVOKED" | "D137_EPOCH_MISMATCH" | "D137_MEMBER_KEY_SUPERSEDED" | "D137_FENCE_FAILED";
+  code?: "SYNC_KEY_REVOKED" | "SYNC_EPOCH_MISMATCH" | "SYNC_MEMBER_KEY_SUPERSEDED" | "SYNC_FENCE_FAILED";
   reason?: string;
 }
 
@@ -410,7 +410,7 @@ export function revalidateFencingAndMembership(
   if (context.authorKeyId && meta.revokedKeyIds && meta.revokedKeyIds.includes(context.authorKeyId)) {
     return {
       ok: false,
-      code: "D137_KEY_REVOKED",
+      code: "SYNC_KEY_REVOKED",
       reason: `Key ${context.authorKeyId} has been revoked`,
     };
   }
@@ -423,7 +423,7 @@ export function revalidateFencingAndMembership(
   ) {
     return {
       ok: false,
-      code: "D137_EPOCH_MISMATCH",
+      code: "SYNC_EPOCH_MISMATCH",
       reason: `Epoch moved from ${context.expectedEpochNumber} to ${meta.epochNumber}`,
     };
   }
@@ -434,7 +434,7 @@ export function revalidateFencingAndMembership(
     if (!binding || (context.authorKeyId && binding.authorKeyId !== context.authorKeyId)) {
       return {
         ok: false,
-        code: "D137_MEMBER_KEY_SUPERSEDED",
+        code: "SYNC_MEMBER_KEY_SUPERSEDED",
         reason: `Key binding for member ${context.authorReplicaId} has been rotated or removed`,
       };
     }
@@ -449,7 +449,7 @@ export function revalidateFencingAndMembership(
     ) {
       return {
         ok: false,
-        code: "D137_FENCE_FAILED",
+        code: "SYNC_FENCE_FAILED",
         reason: `Tab lease taken over by tab ${meta.leaseHolderTabId} term ${meta.leaseFencingTerm}`,
       };
     }
@@ -458,7 +458,7 @@ export function revalidateFencingAndMembership(
   return { ok: true };
 }
 
-// T-33.7: Boot Recovery on IndexedDB (S59, S91)
+//: Boot Recovery on IndexedDB (S59, S91)
 export {
   type SnapshotRecordLike,
   type BootRecoveryResult,

@@ -23,7 +23,7 @@ function setupDom() {
   return win;
 }
 
-describe("Gate 28 (T-28.5): Production Sanitizer (@dotmix/sanitizer-dompurify) & XSS Vector Verification", () => {
+describe(": Production Sanitizer (@dotmix/sanitizer-dompurify) & XSS Vector Verification", () => {
   it("1. Neutralizes <img onerror>, <svg onload>, javascript:/vbscript:/data:text/html URLs, active tags, and unsafe inline styles", async () => {
     const win = setupDom();
     try {

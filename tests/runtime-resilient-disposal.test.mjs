@@ -1,5 +1,5 @@
 /**
- * Phase 4 Permanent Regression Test Suite: Resilient Runtime Owner Disposal (FINDING-RUNTIME-01)
+ * Permanent Regression Test Suite: Resilient Runtime Owner Disposal (FINDING-RUNTIME-01)
  *
  * Verifies:
  * 1. Three cleanups in LIFO order; middle cleanup throws; all three execute
@@ -19,7 +19,7 @@ import {
   createEffect
 } from "../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Phase 4: Resilient Runtime Owner Disposal (FINDING-RUNTIME-01)", () => {
+describe(": Resilient Runtime Owner Disposal (FINDING-RUNTIME-01)", () => {
   test("1. Three cleanups in LIFO order: middle throws, all three execute", () => {
     const executed = [];
     let caughtError = null;

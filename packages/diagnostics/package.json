@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/diagnostics",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Shared diagnostic classes, codes and source spans for the dotMix toolchain",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",

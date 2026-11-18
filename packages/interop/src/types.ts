@@ -1,5 +1,5 @@
 /**
- * @dotmix/interop — Type definitions for Universal Polyglot Component ABI (Gate 17 / D-120)
+ * @dotmix/interop — Type definitions for Universal Polyglot Component ABI
  */
 
 export interface TC39Signal<T> {

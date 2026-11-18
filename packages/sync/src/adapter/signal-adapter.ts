@@ -1,15 +1,15 @@
 /**
- * @dotmix/sync — D-137 Signal Adapter (Gate 34 / T-34.1)
+ * @dotmix/sync — Signal Adapter
  *
  * Implements the SyncSignal<T> facade backed by a single-entry collection
- * with externalId "__value__" on the D-137 protocol engine.
+ * with externalId "__value__" on the protocol engine.
  * Zero external dependencies.
  */
 
 import { signal } from "@dotmix/runtime";
 import type { SyncSignalOptions, SyncStatus } from "../types.js";
-import type { D137SignalAdapter } from "./contract.js";
-import { createD137CollectionAdapter } from "./collection-adapter.js";
+import type { ReplicatedSignalAdapter } from "./contract.js";
+import { createReplicatedCollectionAdapter } from "./collection-adapter.js";
 
 interface SingleValueItem<T> {
   id: string;
@@ -18,22 +18,22 @@ interface SingleValueItem<T> {
 
 let hasWarnedCommitDeprecation = false;
 
-export function createD137SignalAdapter<T>(
+export function createReplicatedSignalAdapter<T>(
   initialValue: T,
   options: SyncSignalOptions<T>
-): D137SignalAdapter<T> {
+): ReplicatedSignalAdapter<T> {
   const storeKey = options.key;
   const signalValueSignal = signal<T>(initialValue);
 
   const adapterOptions = {
     key: storeKey,
-    engine: "d137" as const,
+    engine: "replicated" as const,
     initialItems: [{ id: "__value__", value: initialValue }],
     ...(options.syncEngine !== undefined ? { syncEngine: options.syncEngine } : {}),
     ...(options.driver !== undefined ? { driver: options.driver } : {}),
   };
 
-  const underlyingCollection = createD137CollectionAdapter<SingleValueItem<T>>(adapterOptions);
+  const underlyingCollection = createReplicatedCollectionAdapter<SingleValueItem<T>>(adapterOptions);
 
   const accessor = (() => {
     const liveItems = underlyingCollection.items();
@@ -41,7 +41,7 @@ export function createD137SignalAdapter<T>(
       return liveItems[0].value;
     }
     return signalValueSignal();
-  }) as D137SignalAdapter<T>;
+  }) as ReplicatedSignalAdapter<T>;
 
   accessor.set = (newValue: T | ((previousValue: T) => T)): void => {
     const currentValue = accessor();

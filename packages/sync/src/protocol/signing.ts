@@ -1,6 +1,6 @@
 /**
- * D-147 WebCrypto Signing, Verification & Non-Extractable Key Storage
- * (Gate 33 / T-33.3 / D-147 / HAA-16)
+ * WebCrypto Signing, Verification & Non-Extractable Key Storage
+ *
  *
  * Implements mandatory ECDSA P-256 (raw IEEE P1363 64-byte signatures) and optional
  * Ed25519 signing. Non-extractable private keys (extractable === false) are persisted
@@ -59,7 +59,7 @@ export type GeneratedKeyPair = LocalKeyPair;
 
 /**
  * Generates an asymmetric signing key pair.
- * By default, privateKey has extractable = false per D-147 (never exportable).
+ * By default, privateKey has extractable = false (never exportable).
  */
 export async function generateSigningKeyPair(
   alg: SigningAlgorithm = "ECDSA_P256",

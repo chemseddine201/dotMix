@@ -1,9 +1,9 @@
 /**
- * `mix create --template sync-crdt` (D-160) and the `mix add sync` artifact (D-166).
+ * `mix create --template sync-crdt` and the `mix add sync` artifact.
  *
- * Generated code uses only the public @dotmix/sync API (syncCollection), whose signatures D-149 keeps
- * stable. Projects therefore run on whichever engine is the default: legacy until Gate 34 / T-34.8,
- * D-137 afterwards. No engine option is hard-coded.
+ * Generated code uses only the public @dotmix/sync API (syncCollection), whose signatures keeps
+ * stable. Projects therefore run on whichever engine is the default: legacy until,
+ * afterwards. No engine option is hard-coded.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";

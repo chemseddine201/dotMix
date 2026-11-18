@@ -1,13 +1,13 @@
 /**
- * @dotmix/sync — Remote Wire Envelope Processing Bridge (Gate 34)
+ * @dotmix/sync — Remote Wire Envelope Processing Bridge
  *
- * Ingests incoming wire envelopes strictly through D137Engine.ingestRemoteOperation
+ * Ingests incoming wire envelopes strictly through ReplicationEngine.ingestRemoteOperation
  * (enforcing cryptographic signatures, certificate membership, and lease fencing).
  * Zero external dependencies.
  */
 
 import type { Mutation } from "../types.js";
-import type { D137Engine } from "../protocol/engine.js";
+import type { ReplicationEngine } from "../protocol/engine.js";
 import {
   decodeWireEnvelope,
   type WireEnvelope,
@@ -29,7 +29,7 @@ export interface RemoteWireProcessingResult {
  */
 export async function processRemoteWireEnvelope(
   candidateEnvelopeOrPayload: unknown,
-  engineInstance: D137Engine,
+  engineInstance: ReplicationEngine,
   channelPrincipal?: TransportChannelPrincipal
 ): Promise<RemoteWireProcessingResult> {
   const decodeOutcome = decodeWireEnvelope(candidateEnvelopeOrPayload);
@@ -39,15 +39,15 @@ export async function processRemoteWireEnvelope(
   if (wireEnvelope.type === "op" && wireEnvelope.payload) {
     const operation = wireEnvelope.payload as ReplicableOperation;
 
-    // Topology enforcement (D-148):
+    // Topology enforcement:
     // Release 1 supports isolated-local, browser-shared-origin, and server-coordinated.
     // Coordinator-less peer-to-peer multi-device is deferred.
-    // Two d137 clients wired peer-to-peer with no coordinator exchange NO data.
+    // Two replicated clients wired peer-to-peer with no coordinator exchange NO data.
     const memberBinding = engineInstance.meta.epochMemberBindings[operation.opDot.replicaId];
     if (!memberBinding) {
       return {
         accepted: false,
-        topologyError: "D137_TOPOLOGY_REQUIRES_COORDINATOR",
+        topologyError: "SYNC_TOPOLOGY_REQUIRES_COORDINATOR",
       };
     }
 
@@ -71,16 +71,16 @@ export async function processRemoteWireEnvelope(
 
 /**
  * Processes incoming mutations delivered through legacy channels or adapters.
- * On d137, a remote change is accepted ONLY as a signed op through ingestRemoteOperation.
+ * On replicated, a remote change is accepted ONLY as a signed op through ingestRemoteOperation.
  * Plain legacy mutations are rejected.
  */
 export async function processRemoteMutation(
   remoteMutation: Mutation<unknown>,
-  engineInstance: D137Engine,
+  engineInstance: ReplicationEngine,
   channelPrincipal?: TransportChannelPrincipal
 ): Promise<RemoteWireProcessingResult> {
   const candidateEnvelope =
-    (remoteMutation as unknown as { d137Envelope?: WireEnvelope }).d137Envelope ??
+    (remoteMutation as unknown as { replicationEnvelope?: WireEnvelope }).replicationEnvelope ??
     (remoteMutation as unknown as { envelope?: WireEnvelope }).envelope;
 
   if (candidateEnvelope) {

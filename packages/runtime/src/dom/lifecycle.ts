@@ -4,7 +4,7 @@
  * - KeepAlive (createKeepAlive)
  * - Transition (createTransition)
  *
- * Implements Phase Gate 19 / Decision D-122.
+ * Implements Phase Decision.
  */
 
 export * from "./portal.js";

@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/security/trusted-html — Trusted HTML Boundary & SanitizerProvider
- * (D-109 / HAA-03, R-HTML-01..06).
+ *.
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";
@@ -88,7 +88,7 @@ function getOrCreateTrustedTypesPolicy(): TrustedTypesPolicy | null {
 
 /**
  * Creates an authentic TrustedHtmlValue using the root application SanitizerProvider.
- * Caller-supplied sanitizer callbacks are strictly prohibited (D-109 / HAA-03).
+ * Caller-supplied sanitizer callbacks are strictly prohibited.
  */
 export function createTrustedHtml(
   dirtyHtml: string,
@@ -101,7 +101,7 @@ export function createTrustedHtml(
   ) {
     throw new MixError(
       DiagnosticCodes.MIX_SEC_FOREIGN_TRUSTED_HTML,
-      "Caller-supplied sanitizer callbacks are forbidden (D-109 / HAA-03). Configure root SanitizerProvider via setSanitizerProvider()."
+      "Caller-supplied sanitizer callbacks are forbidden. Configure root SanitizerProvider via setSanitizerProvider()."
     );
   }
   if (typeof dirtyHtml !== "string") {
@@ -155,7 +155,7 @@ export function setTrustedHtml(el: Element, val: unknown): void {
   if (FORBIDDEN_HTML_CONTEXT_TAGS.has(tagName)) {
     throw new MixError(
       DiagnosticCodes.MIX_SEC_HTML_CONTEXT,
-      `Trusted HTML injection into <${tagName}> is unconditionally forbidden (D-109 / R-HTML-04).`
+      `Trusted HTML injection into <${tagName}> is unconditionally forbidden.`
     );
   }
   if (!isTrustedHtml(val)) {

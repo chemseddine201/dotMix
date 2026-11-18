@@ -11,7 +11,7 @@ import { createDevServer } from "../../node_modules/@dotmix/cli/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, "fixtures/test-app");
 
-describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipReason }, () => {
+describe("Instant hot updates in a real browser (E1-E11)", { skip: browserSkipReason }, () => {
   let browser;
 
   before(async () => {
@@ -41,7 +41,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     };
   }
 
-  it("E1: template text edit shows in DOM and signal state is kept (H-1)", async () => {
+  it("E1: template text edit shows in DOM and signal state is kept", async () => {
     const env = await setupApp();
     try {
       await env.page.click("#counter-1 .inc-btn");
@@ -63,7 +63,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E2: two component instances route event handlers independently before and after edit (H-2)", async () => {
+  it("E2: two component instances route event handlers independently before and after edit", async () => {
     const env = await setupApp();
     try {
       await env.page.click("#counter-1 .inc-btn");
@@ -100,7 +100,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E3: CSS-only edit updates getComputedStyle with stable scope attribute and single style tag (H-3)", async () => {
+  it("E3: CSS-only edit updates getComputedStyle with stable scope attribute and single style tag", async () => {
     const env = await setupApp();
     try {
       const initialBg = await env.page.evaluate(() =>
@@ -144,7 +144,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E4: editing imported JS helper updates component; editing entry helper causes full reload (H-5)", async () => {
+  it("E4: editing imported JS helper updates component; editing entry helper causes full reload", async () => {
     const env = await setupApp();
     try {
       await env.page.evaluate(() => { window.__marker = 42; });
@@ -172,7 +172,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E5: syntax error shows overlay while keeping state; fix clears overlay (H-6)", async () => {
+  it("E5: syntax error shows overlay while keeping state; fix clears overlay", async () => {
     const env = await setupApp();
     try {
       await env.page.click("#counter-1 .inc-btn");
@@ -202,7 +202,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E6: runtime mount exception keeps prior DOM/state and shows overlay (D-155)", async () => {
+  it("E6: runtime mount exception keeps prior DOM/state and shows overlay", async () => {
     const env = await setupApp();
     try {
       assert.strictEqual((await env.page.getText("#crashable-box")).trim(), "Crashable OK");
@@ -224,7 +224,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E7: added file resolves; deleted file returns 404 and does not serve stale content (H-4)", async () => {
+  it("E7: added file resolves; deleted file returns 404 and does not serve stale content", async () => {
     const env = await setupApp();
     try {
       const extraFile = path.join(env.tmpDir, "src/extra.js");
@@ -244,7 +244,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E8: rapid bursts of 10 saves within 30ms coalesce into a single update (H-8)", async () => {
+  it("E8: rapid bursts of 10 saves within 30ms coalesce into a single update", async () => {
     const env = await setupApp();
     try {
       await env.page.evaluate(() => {
@@ -279,7 +279,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E9: server restart causes client to detect new serverId and full reload once (H-8)", async () => {
+  it("E9: server restart causes client to detect new serverId and full reload once", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-hmr-restart-"));
     fs.cpSync(fixtureDir, tmpDir, { recursive: true });
     let server = await createDevServer({ rootDir: tmpDir, port: 0, silent: true });
@@ -306,7 +306,7 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
     }
   });
 
-  it("E10: parent template edit preserves child state for both keyed and unkeyed children (D-151)", async () => {
+  it("E10: parent template edit preserves child state for both keyed and unkeyed children", async () => {
     const env = await setupApp();
     try {
       await env.page.click("#unkeyed-child .child-btn");
@@ -331,6 +331,43 @@ describe("Instant hot updates in a real browser (E1-E10)", { skip: browserSkipRe
       assert.strictEqual(await env.page.getText("#item-2 .child-label"), "Beta: 21");
     } finally {
       await env.cleanup();
+    }
+  });
+
+  it("E11: updated component does not disappear from UI on hot update", async () => {
+    const environment = await setupApp();
+    try {
+      const initialCounterExists = await environment.page.evaluate(() => !!document.querySelector("#counter-1"));
+      assert.strictEqual(initialCounterExists, true, "Counter-1 must be present before hot update");
+
+      // Detach endMarker to reproduce boundary perturbation defect
+      await environment.page.evaluate(() => {
+        const rootContainer = document.querySelector(".app-root");
+        if (rootContainer) {
+          for (const node of Array.from(rootContainer.childNodes)) {
+            if (node.nodeType === 8 && node.data.includes("mix:hmr-end:") && node.data.includes("Counter")) {
+              node.remove();
+              break;
+            }
+          }
+        }
+      });
+
+      const counterFilePath = path.join(environment.tmpDir, "src/Counter.mix");
+      const sourceContent = fs.readFileSync(counterFilePath, "utf-8");
+      fs.writeFileSync(counterFilePath, sourceContent.replace("Count: {count()}", "Refreshed: {count()}"), "utf-8");
+
+      await environment.page.waitForCondition(
+        () => document.querySelector("#counter-1 .count-value")?.textContent?.includes("Refreshed:"),
+        { timeout: 3500 }
+      );
+
+      const updatedCounterExists = await environment.page.evaluate(() => !!document.querySelector("#counter-1"));
+      assert.strictEqual(updatedCounterExists, true, "Counter-1 must remain in the DOM after hot update");
+      const updatedCounterText = await environment.page.getText("#counter-1 .count-value");
+      assert.strictEqual(updatedCounterText, "Refreshed: 0");
+    } finally {
+      await environment.cleanup();
     }
   });
 });

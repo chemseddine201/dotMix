@@ -4,6 +4,7 @@
  */
 
 import * as ts from "typescript";
+import { applyTextEdits, type TextEdit } from "./source-map-chain.js";
 
 export interface ImportMetaEnvValues {
   readonly mode: string;
@@ -67,12 +68,12 @@ function resolveEnvPropertyLiteral(key: string, values: ImportMetaEnvValues): st
 }
 
 /**
- * Replaces `import.meta.env`, `import.meta.env.MODE`, `.DEV`, `.PROD`, and `.MIX_PUBLIC_*`
- * in compiled JavaScript using the TypeScript AST so strings, comments, and unrelated code remain byte-exact.
+ * Computes TextEdits replacing `import.meta.env`, `import.meta.env.MODE`, `.DEV`, `.PROD`, and `.MIX_PUBLIC_*`
+ * in compiled JavaScript using the TypeScript AST so positions can be tracked for source maps.
  */
-export function replaceImportMetaEnv(sourceCode: string, values: ImportMetaEnvValues): string {
+export function computeImportMetaEnvEdits(sourceCode: string, values: ImportMetaEnvValues): TextEdit[] {
   if (!sourceCode.includes("import") || !sourceCode.includes("env")) {
-    return sourceCode;
+    return [];
   }
 
   const sourceFile = ts.createSourceFile("module.js", sourceCode, ts.ScriptTarget.ES2023, true, ts.ScriptKind.JS);
@@ -128,19 +129,16 @@ export function replaceImportMetaEnv(sourceCode: string, values: ImportMetaEnvVa
   };
 
   visit(sourceFile);
-  if (replacements.length === 0) {
-    return sourceCode;
-  }
-
   replacements.sort((left, right) => left.start - right.start);
-  let rewrittenCode = sourceCode;
-  for (let index = replacements.length - 1; index >= 0; index--) {
-    const splice = replacements[index]!;
-    rewrittenCode =
-      rewrittenCode.slice(0, splice.start) +
-      splice.text +
-      rewrittenCode.slice(splice.end);
-  }
-  return rewrittenCode;
+  return replacements;
+}
+
+/**
+ * Replaces `import.meta.env`, `import.meta.env.MODE`, `.DEV`, `.PROD`, and `.MIX_PUBLIC_*`
+ * in compiled JavaScript using the TypeScript AST so strings, comments, and unrelated code remain byte-exact.
+ */
+export function replaceImportMetaEnv(sourceCode: string, values: ImportMetaEnvValues): string {
+  const edits = computeImportMetaEnvEdits(sourceCode, values);
+  return applyTextEdits(sourceCode, edits);
 }
 

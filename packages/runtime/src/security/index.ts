@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/security — Sanitizer boundary, WeakSet registry, WHATWG srcset parser,
- * safe URL validator, and dynamic CSS escape/property validator (D-107, D-108, D-109 / HAA-03).
+ * safe URL validator, and dynamic CSS escape/property validator.
  */
 
 export * from "./url-policy.js";

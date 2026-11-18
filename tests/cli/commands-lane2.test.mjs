@@ -24,9 +24,9 @@ function runCli(args, env = {}) {
   };
 }
 
-describe("Gate 37 Task 2.2: Lane 2 Commands (preview, test, lint, info, doctor)", () => {
-  // 1. T-37.5: Preview Server (D-163)
-  describe("T-37.5: mix preview", () => {
+describe(" Task 2.2: Lane 2 Commands (preview, test, lint, info, doctor)", () => {
+  // 1.: Preview Server
+  describe(": mix preview", () => {
     it("fails with exit code 1 if dist directory does not exist", () => {
       const res = runCli(["preview", "definitely-nonexistent-dist-dir"]);
       assert.equal(res.status, 1);
@@ -94,24 +94,24 @@ describe("Gate 37 Task 2.2: Lane 2 Commands (preview, test, lint, info, doctor)"
     });
   });
 
-  // 2. T-37.6: Test Runner (D-164, D-169, A1)
-  describe("T-37.6: mix test", () => {
+  // 2.: Test Runner
+  describe(": mix test", () => {
     it("runs unit and logic tests via node:test with exit code 0", () => {
       const res = runCli(["test", "tests/cli/build-bundler.test.mjs"]);
       assert.equal(res.status, 0);
-      assert.match(res.stdout, /Mix Framework — Test Runner/);
+      assert.match(res.stdout, /dotMix — Test Runner/);
       assert.match(res.stdout, /Production Bundler/);
     });
 
-    it("skips browser tests with exit code 2 when no browser is available (A1 & D-169)", () => {
+    it("skips browser tests with exit code 2 when no browser is available", () => {
       const res = runCli(["test", "--browser"], { MIX_BROWSER_PATH: "none" });
       assert.equal(res.status, 2);
       assert.match(res.stdout + res.stderr, /\[SKIP\] No compatible Chromium browser found/);
     });
   });
 
-  // 3. T-37.7: Linter & Syntax Fixes (D-165)
-  describe("T-37.7: mix lint", () => {
+  // 3.: Linter & Syntax Fixes
+  describe(": mix lint", () => {
     it("audits clean showcase sources without errors", () => {
       const res = runCli(["lint", "examples/showcase/src"]);
       assert.equal(res.status, 0);
@@ -157,12 +157,12 @@ describe("Gate 37 Task 2.2: Lane 2 Commands (preview, test, lint, info, doctor)"
     });
   });
 
-  // 4. T-37.9: Info & Doctor (D-167)
-  describe("T-37.9: mix info & mix doctor", () => {
+  // 4.: Info & Doctor
+  describe(": mix info & mix doctor", () => {
     it("mix info outputs system and node version details", () => {
       const res = runCli(["info"]);
       assert.equal(res.status, 0);
-      assert.match(res.stdout, /Mix Framework — Environment Information/);
+      assert.match(res.stdout, /dotMix — Environment Information/);
       // The CLI runs on the same Node binary as this test, whatever its major version.
       assert.ok(res.stdout.includes(process.version), `expected the running Node ${process.version} in:\n${res.stdout}`);
       assert.match(res.stdout, /Browser:/);

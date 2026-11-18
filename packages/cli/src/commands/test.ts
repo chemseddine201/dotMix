@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix test` Command (Gate 37 / T-37.6 / D-164 / D-169 / A1)
+ * @dotmix/cli — `mix test` Command
  * Zero-dependency native test runner integrating node:test + node:assert.
  * Component tests render through SSR; interactive DOM tests run via CDP in real Chrome/Edge.
  * Strict prohibition of happy-dom/jsdom.
@@ -56,7 +56,7 @@ export async function testCommand(parsed: ParsedCliArgs): Promise<number> {
           "[SKIP] No compatible Chromium browser found (checked standard paths and MIX_BROWSER_PATH). Skipping browser DOM tests."
         )
       );
-      // Per HAA directive A1 and D-169: exit code 2 when browser is not found
+      // Per HAA directive A1 and: exit code 2 when browser is not found
       return 2;
     }
   }

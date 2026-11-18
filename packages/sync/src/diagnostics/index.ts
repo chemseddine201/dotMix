@@ -1,5 +1,5 @@
 import { signal, type Signal } from '@dotmix/runtime';
-import type { D137Engine } from '../protocol/engine.js';
+import type { ReplicationEngine } from '../protocol/engine.js';
 
 export interface DiagnosticEventRecord {
   code: string;
@@ -25,9 +25,9 @@ export interface DiagnosticsController {
 }
 
 export class QuarantineInspector {
-  private readonly engineInstance: D137Engine;
+  private readonly engineInstance: ReplicationEngine;
 
-  constructor(engineInstance: D137Engine) {
+  constructor(engineInstance: ReplicationEngine) {
     this.engineInstance = engineInstance;
   }
 
@@ -82,7 +82,7 @@ export class QuarantineInspector {
   }
 }
 
-export function createDiagnosticsController(engineInstance: D137Engine): DiagnosticsController {
+export function createDiagnosticsController(engineInstance: ReplicationEngine): DiagnosticsController {
   const diagnosticsSignalInstance = signal<DiagnosticEventRecord[]>([]);
 
   const recordDiagnosticEvent = (code: string, detail: string, rawPayload?: unknown) => {

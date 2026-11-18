@@ -147,7 +147,7 @@ export function setAttribute(el: Element, name: string, value: unknown): void {
       return;
     }
     if (typeof value === "string") {
-      // Parse declarations and validate each property/value pair via D-108 security boundary
+      // Parse declarations and validate each property/value pair via security boundary
       const parts = value.split(";");
       for (const part of parts) {
         const trimmed = part.trim();

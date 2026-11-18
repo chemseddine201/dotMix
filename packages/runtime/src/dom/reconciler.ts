@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/reconciler — Keyed List Reconciliation & O(N log N) LIS
- * with Atomic Duplicate-Update Rejection (D-110 / HAA-02 Option A).
+ * with Atomic Duplicate-Update Rejection.
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";
@@ -111,7 +111,7 @@ function normalizeSameValueZeroKey(
   ) {
     throw new MixError(
       DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
-      `Invalid key "${String(rawKey)}" at index ${index}: keys must be non-null strings, finite numbers, or symbols (D-110).`
+      `Invalid key "${String(rawKey)}" at index ${index}: keys must be non-null strings, finite numbers, or symbols.`
     );
   }
   if (typeof rawKey === "number" && Object.is(rawKey, -0)) {
@@ -132,7 +132,7 @@ function reconcileKeyedListInternal<T>(
   ) => Node | readonly Node[],
   parentOwner: Owner | null
 ): void {
-  // Step 1 (D-110 / HAA-02 Option A Strict): Pre-reconciliation Key Validation
+  // Step 1: Pre-reconciliation Key Validation
   // Validate the ENTIRE incoming key collection upfront BEFORE any DOM/owner
   // allocation, movement, or disposal.
   const seenKeys = new Map<string | number | symbol, number>();
@@ -146,7 +146,7 @@ function reconcileKeyedListInternal<T>(
       // Atomic rejection: zero DOM mutations, zero owner allocations/disposals
       throw new MixError(
         DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
-        `Duplicate key "${String(key)}" detected at index ${i} (first seen at index ${firstSeenIdx}). Collection update atomically rejected (D-110 / HAA-02).`
+        `Duplicate key "${String(key)}" detected at index ${i} (first seen at index ${firstSeenIdx}). Collection update atomically rejected.`
       );
     }
     seenKeys.set(key, i);
@@ -246,7 +246,7 @@ function reconcileKeyedListInternal<T>(
 }
 
 /**
- * Direct imperative keyed list reconciler for `parent` container (D-110 / HAA-02).
+ * Direct imperative keyed list reconciler for `parent` container.
  * Maintains reconciliation state per container across consecutive calls.
  */
 export function renderKeyedList<T>(

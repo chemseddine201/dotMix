@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/transition — Enter/leave CSS lifecycle classes and delayed unmounting
- * (Transition / createTransition, Phase 19 / D-122).
+ *.
  */
 
 import {

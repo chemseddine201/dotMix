@@ -13,7 +13,7 @@ import { runtimeUrl } from "../support/module-urls.mjs";
 // Test and compiled components load the runtime from the URL Node resolves, so they share one instance.
 const { mount } = await import(runtimeUrl);
 
-describe("Gate 11: Two-Way Form Bindings (bind:*) & Declarative Async Blocks ({await}) (D-114)", () => {
+describe(": Two-Way Form Bindings (bind:*) & Declarative Async Blocks ({await})", () => {
   let win;
   let document;
 
@@ -154,7 +154,7 @@ export default function AsyncProfile() {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("3. Declarative {await} block transitions to catch branch on rejection and suppresses stale promises (D-104)", async () => {
+  it("3. Declarative {await} block transitions to catch branch on rejection and suppresses stale promises", async () => {
     const asyncErrSource = `
 export default function AsyncErr() {
   const p = signal(null);

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-137 Adapter Layer (Gate 34)
+ * @dotmix/sync — Adapter Layer
  */
 
 export * from "./contract.js";

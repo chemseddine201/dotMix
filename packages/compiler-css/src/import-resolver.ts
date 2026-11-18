@@ -168,7 +168,7 @@ export function inlinePartials(
   const importRegex = /@(?:import|use)\s+["']([^"']+)["'](?:\s+as\s+[^;]+)?\s*;/g;
   return source.replace(importRegex, (fullMatch, rawSpec: string) => {
     if (/^(?:https?:|url\()/i.test(rawSpec.trim())) {
-      // Leave external URL @imports untouched so compileCss enforces D-108
+      // Leave external URL @imports untouched so compileCss enforces
       return fullMatch;
     }
     const found = tryReadPartial(rawSpec.trim(), fromFile, lang, options);

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Frontier Tracking, Rolling Digest Anchors & Frontier Reconciliation (Gate 33 / D-137)
+ * @dotmix/sync — Frontier Tracking, Rolling Digest Anchors & Frontier Reconciliation
  */
 
 import { sha256Hex } from "./apply.js";

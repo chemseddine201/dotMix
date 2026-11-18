@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/forms/types — Types and interfaces for reactive form controllers and validation (D-124).
+ * @dotmix/runtime/forms/types — Types and interfaces for reactive form controllers and validation.
  */
 
 import type { CancellationToken } from "../core/index.js";

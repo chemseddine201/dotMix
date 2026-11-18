@@ -1,9 +1,9 @@
 /**
- * @dotmix/sync — Wire Envelope & Gate 33 Strict Decoding (Gate 34 / T-34.5)
+ * @dotmix/sync — Wire Envelope & Strict Decoding
  *
  * All wire payloads exchanged between replicas, multi-tab coordinators, and the
  * reference coordinator are packaged inside a WireEnvelope and decoded strictly
- * through the Gate 33 decoder with zero external dependencies.
+ * through the decoder with zero external dependencies.
  */
 
 import {
@@ -13,7 +13,7 @@ import {
   PROTOCOL_VERSION,
   type ReplicableOperation,
 } from "../protocol/types.js";
-import { D137_V331_LIMITS } from "../protocol/limits.js";
+import { SYNC_PROTOCOL_LIMITS } from "../protocol/limits.js";
 import { computeCanonicalByteSize } from "../protocol/canonical.js";
 import type { StreamRangeRequest, StreamRangeResponse } from "../protocol/antientropy.js";
 import type { DurableAckMessage } from "../protocol/types.js";
@@ -95,47 +95,47 @@ function findDisallowedPropertyKey(
 
 function validateDurableAckMessage(rawPayload: unknown): DecodeResult<DurableAckMessage> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "ACK payload must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "ACK payload must be an object" };
   }
   if (typeof rawPayload["collectionId"] !== "string" || !rawPayload["collectionId"]) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "ACK collectionId must be non-empty string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "ACK collectionId must be non-empty string" };
   }
   if (typeof rawPayload["fromReplicaId"] !== "string" || !rawPayload["fromReplicaId"]) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "ACK fromReplicaId must be non-empty string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "ACK fromReplicaId must be non-empty string" };
   }
   if (typeof rawPayload["epochNumber"] !== "number" || !Number.isInteger(rawPayload["epochNumber"]) || rawPayload["epochNumber"] < 1) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "ACK epochNumber must be positive integer" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "ACK epochNumber must be positive integer" };
   }
   if (!isObjectRecord(rawPayload["durableFrontier"])) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "ACK durableFrontier must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "ACK durableFrontier must be an object" };
   }
   return { ok: true, value: rawPayload as unknown as DurableAckMessage };
 }
 
 function validateStreamRangeRequest(rawPayload: unknown): DecodeResult<StreamRangeRequest> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "rangeRequest must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "rangeRequest must be an object" };
   }
   const requiredStringProperties = ["collectionId", "requesterReplicaId", "targetReplicaId", "streamKey"];
   for (const propertyName of requiredStringProperties) {
     if (typeof rawPayload[propertyName] !== "string" || !rawPayload[propertyName]) {
-      return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `rangeRequest ${propertyName} must be string` };
+      return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `rangeRequest ${propertyName} must be string` };
     }
   }
   const fromSeq = rawPayload["fromSeq"];
   const toSeq = rawPayload["toSeq"];
   if (typeof fromSeq !== "number" || typeof toSeq !== "number" || fromSeq < 1 || toSeq < fromSeq) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "rangeRequest fromSeq/toSeq invalid" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "rangeRequest fromSeq/toSeq invalid" };
   }
   return { ok: true, value: rawPayload as unknown as StreamRangeRequest };
 }
 
 function validateStreamRangeResponse(rawPayload: unknown): DecodeResult<StreamRangeResponse> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "rangeResponse must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "rangeResponse must be an object" };
   }
   if (!Array.isArray(rawPayload["operations"])) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "rangeResponse operations must be array" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "rangeResponse operations must be array" };
   }
   const decodedOperations: ReplicableOperation[] = [];
   for (let operationIndex = 0; operationIndex < rawPayload["operations"].length; operationIndex++) {
@@ -160,33 +160,33 @@ function validateStreamRangeResponse(rawPayload: unknown): DecodeResult<StreamRa
 
 function validateServerAck(rawPayload: unknown): DecodeResult<ServerAckPayload> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "serverAck payload must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "serverAck payload must be an object" };
   }
   if (typeof rawPayload["serverTimestamp"] !== "number") {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "serverAck serverTimestamp must be number" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "serverAck serverTimestamp must be number" };
   }
   return { ok: true, value: rawPayload as unknown as ServerAckPayload };
 }
 
 function validateServerReject(rawPayload: unknown): DecodeResult<ServerRejectPayload> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "serverReject payload must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "serverReject payload must be an object" };
   }
   if (typeof rawPayload["errorCode"] !== "string" || !rawPayload["errorCode"]) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "serverReject errorCode must be non-empty string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "serverReject errorCode must be non-empty string" };
   }
   if (typeof rawPayload["reason"] !== "string") {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "serverReject reason must be string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "serverReject reason must be string" };
   }
   return { ok: true, value: rawPayload as unknown as ServerRejectPayload };
 }
 
 function validateCertificateStructure(rawCandidate: unknown): DecodeResult<EpochMembershipCertificate> {
   if (!isObjectRecord(rawCandidate)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Certificate must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Certificate must be an object" };
   }
   if (rawCandidate["protocolVersion"] !== PROTOCOL_VERSION) {
-    return { ok: false, code: "D137_PROTOCOL_VERSION_MISMATCH", detail: "Invalid certificate protocolVersion" };
+    return { ok: false, code: "SYNC_PROTOCOL_VERSION_MISMATCH", detail: "Invalid certificate protocolVersion" };
   }
   const requiredStringProperties = [
     "collectionId",
@@ -197,7 +197,7 @@ function validateCertificateStructure(rawCandidate: unknown): DecodeResult<Epoch
   ];
   for (const propertyName of requiredStringProperties) {
     if (typeof rawCandidate[propertyName] !== "string" || !rawCandidate[propertyName]) {
-      return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `Certificate ${propertyName} must be non-empty string` };
+      return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `Certificate ${propertyName} must be non-empty string` };
     }
   }
   if (
@@ -205,17 +205,17 @@ function validateCertificateStructure(rawCandidate: unknown): DecodeResult<Epoch
     !Number.isInteger(rawCandidate["epochNumber"]) ||
     rawCandidate["epochNumber"] < 1
   ) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Certificate epochNumber must be positive integer" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Certificate epochNumber must be positive integer" };
   }
   if (!isObjectRecord(rawCandidate["memberBindings"]) || !isObjectRecord(rawCandidate["baselineStableFrontier"])) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Certificate bindings/frontier must be objects" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Certificate bindings/frontier must be objects" };
   }
   return { ok: true, value: rawCandidate as unknown as EpochMembershipCertificate };
 }
 
 function validateBootstrap(rawPayload: unknown): DecodeResult<BootstrapPayload> {
   if (!isObjectRecord(rawPayload)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "bootstrap payload must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "bootstrap payload must be an object" };
   }
   const certificateResult = validateCertificateStructure(rawPayload["certificate"]);
   if (!certificateResult.ok) {
@@ -232,19 +232,19 @@ function validateBootstrap(rawPayload: unknown): DecodeResult<BootstrapPayload> 
 }
 
 /**
- * Gate 33 Strict Wire Envelope Decoder
+ * Strict Wire Envelope Decoder
  */
 export function decodeWireEnvelope(rawEnvelope: unknown): DecodeResult<WireEnvelope> {
   if (!isObjectRecord(rawEnvelope)) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Wire envelope must be an object" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Wire envelope must be an object" };
   }
 
   const payloadByteSize = computeCanonicalByteSize(rawEnvelope);
-  if (payloadByteSize > D137_V331_LIMITS.MAX_WIRE_MESSAGE_BYTES) {
+  if (payloadByteSize > SYNC_PROTOCOL_LIMITS.MAX_WIRE_MESSAGE_BYTES) {
     return {
       ok: false,
-      code: "D137_WIRE_MESSAGE_TOO_LARGE",
-      detail: `Wire envelope size (${payloadByteSize} bytes) exceeds limit (${D137_V331_LIMITS.MAX_WIRE_MESSAGE_BYTES} bytes)`,
+      code: "SYNC_WIRE_MESSAGE_TOO_LARGE",
+      detail: `Wire envelope size (${payloadByteSize} bytes) exceeds limit (${SYNC_PROTOCOL_LIMITS.MAX_WIRE_MESSAGE_BYTES} bytes)`,
     };
   }
 
@@ -252,7 +252,7 @@ export function decodeWireEnvelope(rawEnvelope: unknown): DecodeResult<WireEnvel
   if (disallowedPropertyKey) {
     return {
       ok: false,
-      code: "D137_WIRE_UNKNOWN_FIELD",
+      code: "SYNC_WIRE_UNKNOWN_FIELD",
       detail: `Unknown field '${disallowedPropertyKey}' in wire envelope`,
     };
   }
@@ -260,7 +260,7 @@ export function decodeWireEnvelope(rawEnvelope: unknown): DecodeResult<WireEnvel
   if (rawEnvelope["protocolVersion"] !== PROTOCOL_VERSION) {
     return {
       ok: false,
-      code: "D137_PROTOCOL_VERSION_MISMATCH",
+      code: "SYNC_PROTOCOL_VERSION_MISMATCH",
       detail: `Unsupported envelope protocol version: '${String(rawEnvelope["protocolVersion"])}'`,
     };
   }
@@ -269,19 +269,19 @@ export function decodeWireEnvelope(rawEnvelope: unknown): DecodeResult<WireEnvel
   if (!VALID_ENVELOPE_TYPES.has(envelopeType)) {
     return {
       ok: false,
-      code: "D137_WIRE_TYPE_MISMATCH",
+      code: "SYNC_WIRE_TYPE_MISMATCH",
       detail: `Unknown wire envelope type: '${String(rawEnvelope["type"])}'`,
     };
   }
 
   if (typeof rawEnvelope["collectionId"] !== "string" || !rawEnvelope["collectionId"]) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Envelope collectionId must be non-empty string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Envelope collectionId must be non-empty string" };
   }
   if (typeof rawEnvelope["senderReplicaId"] !== "string" || !rawEnvelope["senderReplicaId"]) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Envelope senderReplicaId must be non-empty string" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Envelope senderReplicaId must be non-empty string" };
   }
   if (typeof rawEnvelope["timestamp"] !== "number" || rawEnvelope["timestamp"] <= 0) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Envelope timestamp must be positive integer" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Envelope timestamp must be positive integer" };
   }
 
   const rawPayload = rawEnvelope["payload"];
@@ -337,7 +337,7 @@ export function decodeWireEnvelope(rawEnvelope: unknown): DecodeResult<WireEnvel
 }
 
 /**
- * Creates a valid D-137 wire envelope.
+ * Creates a valid wire envelope.
  */
 export function createWireEnvelope<TPayload>(
   envelopeType: WireEnvelopeType,

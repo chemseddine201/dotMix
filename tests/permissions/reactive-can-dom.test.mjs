@@ -44,7 +44,7 @@ function withDom(fn) {
   }
 }
 
-describe("Gate 28 (T-28.1): Reactive <Can> DOM Swapping, Owner Disposal & Sibling Identity", () => {
+describe(": Reactive <Can> DOM Swapping, Owner Disposal & Sibling Identity", () => {
   test("1. Swaps DOM in place between children and fallback when role signal flips and disposes inactive branch owner", () => {
     withDom((document) => {
       const container = document.createElement("div");

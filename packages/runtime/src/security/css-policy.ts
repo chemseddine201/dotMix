@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/security/css-policy — Runtime Dynamic CSS Property & Escape Validation
- * (D-108, R-CSS-01..05).
+ *.
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";

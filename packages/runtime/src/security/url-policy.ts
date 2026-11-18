@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/security/url-policy — Safe URL protocol validation (R-URL-01)
- * and normative WHATWG `srcset` parser (D-107, HTML Standard §4.8.4.3.7).
+ * and normative WHATWG `srcset` parser.
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";

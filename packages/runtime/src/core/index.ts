@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/core — Pure platform-neutral Push-Pull reactive kernel, Owner lifecycle,
- * context inheritance, and generation-checked cancellation tokens (D-101..D-104).
+ * context inheritance, and generation-checked cancellation tokens.
  */
 
 export * from "./types.js";

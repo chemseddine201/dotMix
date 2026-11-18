@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Remote Operation Ingestion Pipeline (Gate 33 / D-137)
+ * @dotmix/sync — Remote Operation Ingestion Pipeline
  */
 
 import { assertActiveLeaseFencing } from "./leases.js";
@@ -52,7 +52,7 @@ export function recordEpochClosed(
   target: EngineIngestTarget,
   op: ReplicableOperation,
   detail?: string | undefined
-): { ok: false; code: string; disposition: "D137_EPOCH_CLOSED"; detail?: string | undefined } {
+): { ok: false; code: string; disposition: "SYNC_EPOCH_CLOSED"; detail?: string | undefined } {
   const opKey = toOperationKey(target.meta.collectionId, op.opDot);
   target.operationDigests.set(opKey, {
     opKey,
@@ -61,21 +61,21 @@ export function recordEpochClosed(
     replicaId: op.opDot.replicaId,
     sequence: op.opDot.sequence,
     kind: op.kind,
-    status: "D137_EPOCH_CLOSED",
+    status: "SYNC_EPOCH_CLOSED",
     payloadDigest: op.payloadDigest,
     observedDigests: [op.payloadDigest],
   });
   recordQuarantine(
     target.meta,
     target.quarantineJournal,
-    "D137_EPOCH_CLOSED",
+    "SYNC_EPOCH_CLOSED",
     detail ?? "Epoch closed",
     op
   );
   return {
     ok: false,
-    code: "D137_EPOCH_CLOSED",
-    disposition: "D137_EPOCH_CLOSED",
+    code: "SYNC_EPOCH_CLOSED",
+    disposition: "SYNC_EPOCH_CLOSED",
     detail,
   };
 }
@@ -90,7 +90,7 @@ export async function ingestRemoteOperation(
   const fenceCheck = assertActiveLeaseFencing(target.meta, callerTabId, expectedFencingTerm);
   if (!fenceCheck.ok) return fenceCheck;
 
-  // Decoupled Pre-Verification with Bounded Retries on Security State Change (T-31.8 / F-05)
+  // Decoupled Pre-Verification with Bounded Retries on Security State Change
   let retries = 0;
   const MAX_PREVERIFY_RETRIES = 3;
   let authCheck: PreVerifyResult | null = null;
@@ -98,7 +98,7 @@ export async function ingestRemoteOperation(
   while (retries <= MAX_PREVERIFY_RETRIES) {
     authCheck = await preVerifyIncomingOperationAsync(target.meta, op, channelPrincipal);
     if (!authCheck.ok) {
-      if (authCheck.code === "D137_EPOCH_CLOSED") return recordEpochClosed(target, op, authCheck.detail);
+      if (authCheck.code === "SYNC_EPOCH_CLOSED") return recordEpochClosed(target, op, authCheck.detail);
       recordQuarantine(target.meta, target.quarantineJournal, authCheck.code!, authCheck.detail!, op);
       return { ok: false, code: authCheck.code, detail: authCheck.detail };
     }
@@ -106,7 +106,7 @@ export async function ingestRemoteOperation(
     if (authCheck.envelope && authCheck.envelope.securityStateVersion === target.meta.securityStateVersion) {
       const secCheck = checkCommitTimeSecurityState(target.meta, op);
       if (!secCheck.ok) {
-        if (secCheck.code === "D137_EPOCH_CLOSED") return recordEpochClosed(target, op, secCheck.detail);
+        if (secCheck.code === "SYNC_EPOCH_CLOSED") return recordEpochClosed(target, op, secCheck.detail);
         recordQuarantine(target.meta, target.quarantineJournal, secCheck.code!, secCheck.detail!, op);
         return { ok: false, code: secCheck.code, detail: secCheck.detail };
       }
@@ -117,7 +117,7 @@ export async function ingestRemoteOperation(
     if (retries > MAX_PREVERIFY_RETRIES) {
       const err = {
         ok: false,
-        code: "D137_SECURITY_STATE_CHANGED",
+        code: "SYNC_SECURITY_STATE_CHANGED",
         detail: `Security state changed during pre-verification and exceeded retry bound (${MAX_PREVERIFY_RETRIES})`,
       };
       recordQuarantine(target.meta, target.quarantineJournal, err.code, err.detail, op);
@@ -132,7 +132,7 @@ export async function ingestRemoteOperation(
   const existingDigestRec = target.operationDigests.get(opKey);
   if (existingDigestRec) {
     if (existingDigestRec.status === "EQUIVOCATED" || existingDigestRec.status === "EXCISED_STREAM_QUARANTINED") {
-      return { ok: false, code: "D137_EQUIVOCATION_DETECTED", detail: "Stream already equivocated" };
+      return { ok: false, code: "SYNC_EQUIVOCATION_DETECTED", detail: "Stream already equivocated" };
     }
     if (existingDigestRec.payloadDigest === op.payloadDigest) {
       const st = existingDigestRec.status;
@@ -144,8 +144,8 @@ export async function ingestRemoteOperation(
       ) {
         return { ok: true, disposition: "IDEMPOTENT_DUPLICATE" };
       }
-      if (st === "QUARANTINED_REJECTED" || st === "D137_EPOCH_CLOSED" || st === "EVICTED_STREAM_BLOCKED_SUCCESSOR") {
-        return { ok: false, code: "D137_OPERATION_REJECTED", detail: `Operation previously rejected with ${st}` };
+      if (st === "QUARANTINED_REJECTED" || st === "SYNC_EPOCH_CLOSED" || st === "EVICTED_STREAM_BLOCKED_SUCCESSOR") {
+        return { ok: false, code: "SYNC_OPERATION_REJECTED", detail: `Operation previously rejected with ${st}` };
       }
     } else {
       // Same-dot conflicting payload -> Equivocation!
@@ -166,7 +166,7 @@ export async function ingestRemoteOperation(
         target.inboundDependencyBuffer
       );
       evictDependencyBufferForEquivocatedStream(target.getTxContext(), streamKey);
-      return { ok: false, code: "D137_EQUIVOCATION_DETECTED", detail: `Equivocation excised on ${opKey}` };
+      return { ok: false, code: "SYNC_EQUIVOCATION_DETECTED", detail: `Equivocation excised on ${opKey}` };
     }
   }
 
@@ -175,7 +175,7 @@ export async function ingestRemoteOperation(
     return { ok: true, disposition: "IDEMPOTENT_DUPLICATE" };
   }
 
-  // S81: With no digest record, seq <= max(digestPrunedFrontier, localDurableFrontier) -> D137_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON
+  // S81: With no digest record, seq <= max(digestPrunedFrontier, localDurableFrontier) -> SYNC_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON
   if (!existingDigestRec) {
     const prunedDigestSeq = target.meta.frontiers.digestPrunedFrontier[streamKey] ?? 0;
     const lateHorizon = Math.max(prunedDigestSeq, currentDurableSeq);
@@ -183,13 +183,13 @@ export async function ingestRemoteOperation(
       recordQuarantine(
         target.meta,
         target.quarantineJournal,
-        "D137_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON",
+        "SYNC_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON",
         `Late op ${opKey} at seq ${op.opDot.sequence} <= late horizon ${lateHorizon}`,
         op
       );
       return {
         ok: false,
-        code: "D137_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON",
+        code: "SYNC_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON",
         detail: `Late operation below pruned digest horizon (${op.opDot.sequence} <= ${lateHorizon})`,
       };
     }
@@ -228,7 +228,7 @@ export async function ingestRemoteOperation(
         target.inboundDependencyBuffer
       );
       evictDependencyBufferForEquivocatedStream(target.getTxContext(), streamKey);
-      return { ok: false, code: "D137_EQUIVOCATION_DETECTED", detail: `Buffered equivocation excised on ${opKey}` };
+      return { ok: false, code: "SYNC_EQUIVOCATION_DETECTED", detail: `Buffered equivocation excised on ${opKey}` };
     }
   }
 
@@ -248,13 +248,13 @@ export async function ingestRemoteOperation(
     recordQuarantine(
       target.meta,
       target.quarantineJournal,
-      "D137_EQUIVOCATION_DETECTED",
+      "SYNC_EQUIVOCATION_DETECTED",
       `Stream ${streamKey} is quarantined`,
       op
     );
     return {
       ok: false,
-      code: "D137_EQUIVOCATION_DETECTED",
+      code: "SYNC_EQUIVOCATION_DETECTED",
       detail: `Stream ${streamKey} is quarantined in epoch ${target.meta.epochNumber}`,
     };
   }

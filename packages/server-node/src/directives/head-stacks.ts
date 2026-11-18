@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node/directives/head-stacks — SSR StackCollector, HeadCollector, and HTML/stream injection (F9, T-38.6).
+ * @dotmix/server-node/directives/head-stacks — SSR StackCollector, HeadCollector, and HTML/stream injection.
  */
 
 import type { HeadCollector, HeadTagRecord, StackCollector } from "@dotmix/runtime";

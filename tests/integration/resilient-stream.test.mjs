@@ -1,5 +1,5 @@
 /**
- * Gate 18 (D-121): Resilient Resumable Island Streaming & Progressive Hydration Suite
+ *: Resilient Resumable Island Streaming & Progressive Hydration Suite
  *
  * Verifies:
  * 1. `formatIslandMarkup`: encodes signed resume tokens and inline metadata manifests
@@ -19,7 +19,7 @@ import {
   resilientHydrate
 } from "../../node_modules/@dotmix/stream/dist/index.js";
 
-describe("Gate 18: Resilient Streaming & Progressive Hydration (@dotmix/stream)", () => {
+describe(": Resilient Streaming & Progressive Hydration (@dotmix/stream)", () => {
   let win;
   let document;
 

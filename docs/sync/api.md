@@ -6,7 +6,7 @@ The `@dotmix/sync` package exposes two primary reactive primitives for local-fir
 - `syncCollection<T>()`: Replicable, ordered, collaborative collection backed by CRDT registers and fractional indexing.
 - `syncSignal<T>()`: Single collaborative reactive value backed by a Last-Write-Wins (LWW) register.
 
-Both primitives run on the **D-137 replication engine** by default (`engine: "d137"`), while retaining full compatibility with the legacy engine (`engine: "legacy"`) for phased migrations.
+Both primitives run on the **replicated state engine** by default (`engine: "replicated"`), while retaining full compatibility with the legacy engine (`engine: "legacy"`) for phased migrations.
 
 ```typescript
 import { syncCollection, syncSignal } from "@dotmix/sync";
@@ -14,14 +14,14 @@ import { syncCollection, syncSignal } from "@dotmix/sync";
 // Primary collaborative collection
 const tasksCollection = syncCollection<TaskItem>("project_tasks", {
   driver: "indexeddb",
-  engine: "d137",
+  engine: "replicated",
   idField: "id"
 });
 
 // Single collaborative reactive signal
 const themeSetting = syncSignal<string>("application_theme", "system", {
   driver: "indexeddb",
-  engine: "d137"
+  engine: "replicated"
 });
 ```
 
@@ -60,28 +60,28 @@ interface SyncCollection<T> {
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `key` | `string` | `"default_collection"` | Unique collection storage and stream identifier. |
-| `engine` | `"d137" \| "legacy"` | `"d137"` | Replication engine selector. Defaults to D-137. |
+| `engine` | `"replicated" \| "legacy"` | `"replicated"` | Replication engine selector. Defaults to replicated engine. |
 | `driver` | `"indexeddb" \| "memory" \| "opfs"` | `"indexeddb"` | Storage driver backend. OPFS is restricted to legacy engine in release 1. |
 | `idField` | `keyof T \| ((item: T) => string)` | `"id"` | Property or resolver extracting the unique item identifier. |
 | `initialItems` | `readonly T[]` | `[]` | Seed records materialized synchronously on initial uninitialized startup. |
 | `syncEngine` | `SyncEngine` | Global Default | Custom or shared `SyncEngine` instance managing transports. |
 
 ### 2.3 Closing a Collection (`close()`)
-`close(): Promise<void>` closes the connection of the storage driver behind the collection. Await it before another engine, a migration or `finalizeMigration()` opens the same database (`mix_sync_d137:<collectionId>` for D-137, `mix_sync_db` for legacy); an open connection can block the other open or version upgrade.
+`close(): Promise<void>` closes the connection of the storage driver behind the collection. Await it before another engine, a migration or `finalizeMigration()` opens the same database (`dotmix_sync:<collectionId>` for replicated engine, `mix_sync_db` for legacy); an open connection can block the other open or version upgrade.
 
 ### 2.4 `finalizeMigration()`
 ```typescript
 function finalizeMigration(
   collectionId: string,
   options?: {
-    store?: StoreBackend;       // default: IndexedDB database mix_sync_d137:<collectionId>
+    store?: StoreBackend;       // default: IndexedDB database dotmix_sync:<collectionId>
     legacyFactory?: IDBFactory; // default: globalThis.indexedDB (holds mix_sync_db)
   }
 ): Promise<FinalizeMigrationResult>;
 
 interface FinalizeMigrationResult {
   readonly ok: boolean;
-  readonly code?: string;   // "D137_MIGRATION_FAILED" on failure
+  readonly code?: string;   // "SYNC_MIGRATION_FAILED" on failure
   readonly detail?: string;
 }
 ```
@@ -91,34 +91,34 @@ Requires migration stage `checkpoint_committed` (already `finalized` returns `{ 
 
 ### 2.5 `errorCode()`
 
-On `engine: "d137"` collections, `errorCode(): string | undefined` returns the `D137_*` code behind an `"error"` status: for example `D137_OPFS_NOT_SUPPORTED`, `D137_MIGRATION_FAILED` or `D137_STORAGE_QUOTA_EXCEEDED`. The value is `undefined` when there is no error.
+On `engine: "replicated"` collections, `errorCode(): string | undefined` returns the `SYNC_*` code behind an `"error"` status: for example `SYNC_OPFS_NOT_SUPPORTED`, `SYNC_MIGRATION_FAILED` or `SYNC_STORAGE_QUOTA_EXCEEDED`. The value is `undefined` when there is no error.
 
-## 3. Behavior Changes & Architectural Deltas (D-149 / D-146)
+## 3. Behavior Changes & Architectural Deltas
 
-The D-137 engine introduces several critical behavioral differences compared to the legacy sync engine:
+The replicated engine introduces several critical behavioral differences compared to the legacy sync engine:
 
-### 3.1 Deprecation of `compact()` as a Manual No-Op (D-149)
+### 3.1 Deprecation of `compact()` as a Manual No-Op
 - **Legacy Behavior:** `compact()` manually deleted tombstones from memory and truncated the local mutation log.
-- **D-137 Behavior:** In D-137, history cannot be arbitrarily truncated by clients because cryptographic digest chains and causal validation require complete operation history. Compaction is automated and governed by **certified epoch checkpoints** and the cluster **stable frontier** (`compactionFrontier`).
-- **API Contract:** Calling `collection.compact()` on the D-137 engine is a safe, deprecated no-op that returns:
+- **Replicated Engine Behavior:** In the replicated engine, history cannot be arbitrarily truncated by clients because cryptographic digest chains and causal validation require complete operation history. Compaction is automated and governed by **certified epoch checkpoints** and the cluster **stable frontier** (`compactionFrontier`).
+- **API Contract:** Calling `collection.compact()` on the replicated engine is a safe, deprecated no-op that returns:
   ```json
   { "purgedTombstones": 0, "prunedLogEntries": 0 }
   ```
 
 ### 3.2 Fractional Indexing & Conflict-Free Reordering
 - **Legacy Behavior:** Moving an item relied on integer `targetIndex` coordinates, causing index drifting and interleaving under concurrent reorders.
-- **D-137 Behavior:** Items are ordered by immutable string keys generated through fractional indexing (`generateKeyBetween`). Concurrent moves compute intermediate keys between neighboring elements. When two peers move items into identical positions concurrently, deterministic Lamport stamp ordering breaks ties cleanly without cyclic graphs.
+- **Replicated Engine Behavior:** Items are ordered by immutable string keys generated through fractional indexing (`generateKeyBetween`). Concurrent moves compute intermediate keys between neighboring elements. When two peers move items into identical positions concurrently, deterministic Lamport stamp ordering breaks ties cleanly without cyclic graphs.
 
-### 3.3 Compensating Rollbacks (D-146 Option b)
+### 3.3 Compensating Rollbacks
 - **Legacy Behavior:** `rollback()` restored a pre-mutation whole-state snapshot, destructively overwriting concurrent remote mutations that arrived in the interim.
-- **D-137 Behavior:** Stored historical records are immutable and append-only. When `rollback(mutationId)` is invoked:
+- **Replicated Engine Behavior:** Stored historical records are immutable and append-only. When `rollback(mutationId)` is invoked:
   1. The pending optimistic intent is removed from the local overlay.
   2. If the operation was already committed locally, the engine issues a **compensating mutation** that restores the prior field values under a fresh Lamport timestamp.
   3. History is never truncated, ensuring that remote peers converge identically regardless of local rollbacks.
 
 ### 3.4 Replicated Collection `clear()`
 - **Legacy Behavior:** `clear()` was local-only and did not replicate across the network.
-- **D-137 Behavior:** Calling `clear()` scans all live entry incarnations in the collection and emits authenticated tombstone delete operations for each incarnation, replicating the clearance deterministically across the cluster.
+- **Replicated Engine Behavior:** Calling `clear()` scans all live entry incarnations in the collection and emits authenticated tombstone delete operations for each incarnation, replicating the clearance deterministically across the cluster.
 
 ### 3.5 Optimistic Local Overlay
 - Mutations (`insert`, `update`, `delete`, `reorder`, `clear`) update the user interface **immediately** via an in-memory pending intent overlay (`overlayHost`).
@@ -153,7 +153,7 @@ Values are encapsulated in an LWW register. Concurrent updates resolve by highes
 
 ## 5. Observability & Diagnostics
 
-The D-137 engine exposes comprehensive runtime telemetry without exposing sensitive user payload data:
+The replicated engine exposes comprehensive runtime telemetry without exposing sensitive user payload data:
 
 ### 5.1 Diagnostic Signals
 Applications can observe diagnostic events through the engine's diagnostic controller:
@@ -162,11 +162,11 @@ import { createDiagnosticsController } from "@dotmix/sync";
 
 const diagnostics = activeEngine.diagnostics();
 // Diagnostics signal emits structured event codes:
-// "D137_EQUIVOCATION_DETECTED"
-// "D137_GAP_BUFFER_OVERFLOW"
-// "D137_FENCE_FAILED"
-// "D137_PROTOCOL_VERSION_MISMATCH"
-// "D137_MIGRATION_FAILED"
+// "SYNC_EQUIVOCATION_DETECTED"
+// "SYNC_GAP_BUFFER_OVERFLOW"
+// "SYNC_FENCE_FAILED"
+// "SYNC_PROTOCOL_VERSION_MISMATCH"
+// "SYNC_MIGRATION_FAILED"
 ```
 
 ### 5.2 Quarantine Inspector API

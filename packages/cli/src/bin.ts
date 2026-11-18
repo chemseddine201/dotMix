@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @dotmix/cli — Command Line Executable & Dispatcher (Gate 37 / T-37.1 / D-159)
+ * @dotmix/cli — Command Line Executable & Dispatcher
  */
 
 import fs from "node:fs";
@@ -39,7 +39,7 @@ ${colors.bold("CORE COMMANDS:")}
 
 ${colors.bold("GLOBAL OPTIONS:")}
   ${colors.yellow("-h, --help")}       Show this help message
-  ${colors.yellow("-v, --version")}    Print Mix Framework version
+  ${colors.yellow("-v, --version")}    Print dotMix version
   ${colors.yellow("--debug")}          Print full stack traces on error
   ${colors.yellow("--json")}           Output results as machine-readable JSON
   ${colors.yellow("--silent")}         Suppress non-essential terminal outputs
@@ -81,7 +81,7 @@ export async function dispatch(): Promise<number> {
     if (parsed.values.json) {
       console.log(JSON.stringify({ name: "@dotmix/cli", version: DOTMIX_VERSION }));
     } else {
-      console.log(`Mix Framework v${DOTMIX_VERSION}`);
+      console.log(`dotMix v${DOTMIX_VERSION}`);
     }
     return 0;
   }

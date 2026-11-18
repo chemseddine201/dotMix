@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/sync",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Local-First Offline-First Reactive CRDT State Sync Engine for Mix/Tix",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -15,10 +17,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@dotmix/runtime": "0.1.1"
+    "@dotmix/runtime": "0.2.0"
   },
   "devDependencies": {
-    "@dotmix/diagnostics": "0.1.1"
+    "@dotmix/diagnostics": "0.2.0"
   },
   "license": "MIT"
 }

@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — Zero-Dependency Terminal & ANSI Formatting Utilities (Gate 37 / D-159)
+ * @dotmix/cli — Zero-Dependency Terminal & ANSI Formatting Utilities
  */
 
 export interface TerminalColors {
@@ -60,7 +60,7 @@ export const colors = createTerminalColors();
 
 export function banner(title: string, subtitle?: string): string {
   const line = colors.cyan("─".repeat(50));
-  const heading = colors.bold(colors.cyan(`● Mix Framework — ${title}`));
+  const heading = colors.bold(colors.cyan(`● dotMix — ${title}`));
   if (subtitle) {
     return `\n${line}\n${heading}\n${colors.dim(subtitle)}\n${line}\n`;
   }

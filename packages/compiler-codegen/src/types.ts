@@ -18,6 +18,7 @@ export interface CodegenOptions {
    */
   runtimeImportPath?: string;
   sourceMap?: boolean;
+  source?: string;
   hmr?: boolean;
   mode?: "development" | "production" | string;
   scopeId?: string;

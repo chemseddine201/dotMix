@@ -1,5 +1,5 @@
 /**
- * @dotmix/stream — Resilient Resumable Island Streaming & Progressive Hydration (Gate 18 / D-121)
+ * @dotmix/stream — Resilient Resumable Island Streaming & Progressive Hydration
  */
 
 export * from "./types.js";

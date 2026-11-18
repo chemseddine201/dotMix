@@ -1,5 +1,5 @@
 /**
- * Gate 24 Test Suite — Cross-File Component Intelligence & External CSS Completions (@dotmix/language-server — D-127)
+ * Test Suite — Cross-File Component Intelligence & External CSS Completions
  *
  * Verifies:
  * 1. Multi-file Go-To-Definition: jumping from <MetricCard /> template tags and import statements to target files
@@ -16,7 +16,7 @@ import {
   CompletionItemKind,
 } from "../../node_modules/@dotmix/language-server/dist/index.js";
 
-describe("Gate 24: Cross-File Component Intelligence & External CSS Completions (D-127)", () => {
+describe(": Cross-File Component Intelligence & External CSS Completions", () => {
   const service = new MixLanguageService();
 
   test("1. Cross-file Go-To-Definition jumps from component tag and import statement to source file", () => {

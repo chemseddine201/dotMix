@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D137 Protocol Core (Gate 33)
+ * @dotmix/sync — Sync Protocol Core
  */
 
 export * from "./types.js";

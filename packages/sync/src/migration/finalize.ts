@@ -1,6 +1,6 @@
 /**
  * @dotmix/sync — finalizeMigration(): removes a collection's legacy data after the first
- * verified D-137 checkpoint (HAA-19).
+ * verified checkpoint.
  *
  * Until it runs, the legacy database is untouched and `engine: "legacy"` still reads the
  * old data (rollback). After it runs, rollback is no longer possible for that collection.
@@ -14,7 +14,7 @@ import { deleteLegacyCollection } from "./legacy-source.js";
 import type { LegacyArchiveRecord } from "./types.js";
 
 export interface FinalizeMigrationOptions {
-  /** The collection's D-137 store. Defaults to its IndexedDB database. */
+  /** The collection's store. Defaults to its IndexedDB database. */
   readonly store?: StoreBackend | undefined;
   /** The IndexedDB factory that holds the legacy database. Defaults to globalThis.indexedDB. */
   readonly legacyFactory?: IDBFactory | undefined;
@@ -26,7 +26,7 @@ export interface FinalizeMigrationResult {
   readonly detail?: string | undefined;
 }
 
-const MIGRATION_FAILED_CODE = "D137_MIGRATION_FAILED";
+const MIGRATION_FAILED_CODE = "SYNC_MIGRATION_FAILED";
 
 function resolveStore(collectionId: string, explicitStore?: StoreBackend): StoreBackend | undefined {
   if (explicitStore) return explicitStore;

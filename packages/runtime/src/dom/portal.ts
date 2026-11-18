@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/dom/portal — Surgical portal mounting (Teleport / createPortal, Phase 19 / D-122).
+ * @dotmix/runtime/dom/portal — Surgical portal mounting.
  */
 
 import {

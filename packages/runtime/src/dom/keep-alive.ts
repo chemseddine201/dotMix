@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/keep-alive — LRU offscreen component caching with live signal preservation
- * (KeepAlive / createKeepAlive, Phase 19 / D-122).
+ *.
  */
 
 import {

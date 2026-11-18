@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Operation Allocation, Draft Building & Single-Flight Queue (Gate 33 / D-137)
+ * @dotmix/sync — Operation Allocation, Draft Building & Single-Flight Queue
  */
 
 import { assertActiveLeaseFencing } from "./leases.js";
@@ -18,7 +18,7 @@ import {
 import { updateRollingStreamDigest } from "./frontiers.js";
 import { drainCausalDependencyBuffer } from "./dependency.js";
 import {
-  D137_V331_LIMITS,
+  SYNC_PROTOCOL_LIMITS,
   PROTOCOL_VERSION,
   type CausalDot,
   type LamportStamp,
@@ -144,13 +144,13 @@ export function allocateLocalMutation(
     if (!fenceCheck.ok) return fenceCheck;
 
     if (engine.meta.replicaId.includes(":")) {
-      return { ok: false, code: "D137_INVALID_REPLICA_ID", detail: "Replica ID cannot contain ':'" };
+      return { ok: false, code: "SYNC_INVALID_REPLICA_ID", detail: "Replica ID cannot contain ':'" };
     }
 
     if (engine.meta.lifecycleState !== "ACTIVE") {
       return {
         ok: false,
-        code: "D137_LIFECYCLE_NOT_ACTIVE",
+        code: "SYNC_LIFECYCLE_NOT_ACTIVE",
         detail: `Cannot allocate local mutation in lifecycle state ${engine.meta.lifecycleState}`,
       };
     }
@@ -164,20 +164,20 @@ export function allocateLocalMutation(
     ) {
       return {
         ok: false,
-        code: "D137_REVOKED_AUTHOR_KEY",
+        code: "SYNC_REVOKED_AUTHOR_KEY",
         detail: `Local replica ${engine.meta.replicaId} is not a valid member or key is revoked in epoch ${engine.meta.epochNumber}`,
       };
     }
 
     // Check soft backpressure limits
     if (
-      engine.mutationJournal.size >= D137_V331_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT ||
-      engine.syncOutbox.size >= D137_V331_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT
+      engine.mutationJournal.size >= SYNC_PROTOCOL_LIMITS.MAX_UNCOMPACTED_JOURNAL_OPS_SOFT_LIMIT ||
+      engine.syncOutbox.size >= SYNC_PROTOCOL_LIMITS.MAX_OUTBOX_OPS_SOFT_LIMIT
     ) {
       engine.meta.lifecycleState = "READ_ONLY_COMPACTION_BACKPRESSURE";
       return {
         ok: false,
-        code: "D137_COMPACTION_BACKPRESSURE_LIMIT_REACHED",
+        code: "SYNC_COMPACTION_BACKPRESSURE_LIMIT_REACHED",
         detail: "Journal or outbox reached 50,000 uncompacted operations; compaction required",
       };
     }
@@ -233,7 +233,7 @@ export function allocateLocalMutation(
     if (engine.meta.securityStateVersion !== tentativeSecurityVersion) {
       return {
         ok: false,
-        code: "D137_SECURITY_STATE_CHANGED",
+        code: "SYNC_SECURITY_STATE_CHANGED",
         detail: "Security state changed during local allocation signing",
       };
     }
@@ -241,7 +241,7 @@ export function allocateLocalMutation(
     if (engine.meta.revokedKeyIds && engine.meta.revokedKeyIds.includes(signedOp.authorKeyId)) {
       return {
         ok: false,
-        code: "D137_REVOKED_AUTHOR_KEY",
+        code: "SYNC_REVOKED_AUTHOR_KEY",
         detail: "Author key was revoked during local signing",
       };
     }
@@ -252,7 +252,7 @@ export function allocateLocalMutation(
     ) {
       return {
         ok: false,
-        code: "D137_CONCURRENT_ALLOCATION_CONFLICT",
+        code: "SYNC_CONCURRENT_ALLOCATION_CONFLICT",
         detail: `Epoch changed during signing: expected ${opDot.epochNumber}/${signedOp.epochCertificateId}, current ${engine.meta.epochNumber}/${engine.meta.epochCertificateId}`,
       };
     }
@@ -260,7 +260,7 @@ export function allocateLocalMutation(
     if (engine.meta.nextLocalSequence !== tentativeSeq) {
       return {
         ok: false,
-        code: "D137_CONCURRENT_ALLOCATION_CONFLICT",
+        code: "SYNC_CONCURRENT_ALLOCATION_CONFLICT",
         detail: `Sequence changed during signing: expected ${tentativeSeq}, current ${engine.meta.nextLocalSequence}`,
       };
     }

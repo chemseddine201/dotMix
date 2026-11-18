@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Snapshot Creation, Digest Verification & Two-Snapshot Recovery (Gate 33 / D-137)
+ * @dotmix/sync — Snapshot Creation, Digest Verification & Two-Snapshot Recovery
  */
 
 import {

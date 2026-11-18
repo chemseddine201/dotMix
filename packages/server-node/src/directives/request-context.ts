@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node/directives/request-context — Per-request SSR context for session & CSRF tokens (F8, F13, T-38.6).
+ * @dotmix/server-node/directives/request-context — Per-request SSR context for session & CSRF tokens.
  */
 
 import crypto from "node:crypto";

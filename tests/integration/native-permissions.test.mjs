@@ -1,5 +1,5 @@
 /**
- * Gate 25: Native Fine-Grained Permissions Engine (@dotmix/runtime/permissions & @dotmix/router)
+ *: Native Fine-Grained Permissions Engine (@dotmix/runtime/permissions & @dotmix/router)
  *
  * Verifies:
  * 1. Core RBAC/ABAC ability definitions, last-rule-wins semantics, and explicit cannot() overrides.
@@ -29,7 +29,7 @@ import {
 } from "../../node_modules/@dotmix/runtime/dist/permissions/index.js";
 import { createRouter, createMemoryHistory } from "../../node_modules/@dotmix/router/dist/index.js";
 
-describe("Gate 25: Native Fine-Grained Permissions Engine (@dotmix/runtime/permissions)", () => {
+describe(": Native Fine-Grained Permissions Engine (@dotmix/runtime/permissions)", () => {
   test("1. Core RBAC/ABAC definitions, wildcards, and explicit cannot overrides", () => {
     const ability = defineAbility((can, cannot) => {
       // Super admin can manage all

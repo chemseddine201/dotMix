@@ -9,6 +9,7 @@ export interface BundleChunkInfo {
   readonly gzipBytes: number;
   readonly isEntry: boolean;
   readonly isDynamicEntry: boolean;
+  readonly map?: string;
 }
 
 export interface BundleAssetInfo {

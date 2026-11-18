@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/compiler-frontend",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Lexer and template parser for dotMix .mix and .tix components",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -21,8 +23,8 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.1.1",
-    "@dotmix/ast": "0.1.1",
+    "@dotmix/diagnostics": "0.2.0",
+    "@dotmix/ast": "0.2.0",
     "acorn": "8.14.0",
     "@sveltejs/acorn-typescript": "1.0.13"
   },

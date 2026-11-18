@@ -1,7 +1,7 @@
 /**
- * @dotmix/cli — Dev Server Module Dependency Graph & HMR Propagation (Gate 36 / T-36.3)
+ * @dotmix/cli — Dev Server Module Dependency Graph & HMR Propagation
  *
- * Implements H-5 & D-152:
+ * Implements &:
  * - Records bidirectional importer/importedModule edges between served modules
  * - Tracks monotonic per-module version counters (?v=<n>)
  * - Computes update boundaries and full-reload decisions:

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-137 Collection Projection & Incarnation Resolution (Gate 34)
+ * @dotmix/sync — Collection Projection & Incarnation Resolution
  *
  * Implements deterministic winner selection for concurrent externalId incarnations,
  * position-based fractional index sorting, and conflicted ID reporting.

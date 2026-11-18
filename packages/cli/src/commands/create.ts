@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix create` and `mix init` Command (Gate 37 / T-37.2 / D-160)
+ * @dotmix/cli — `mix create` and `mix init` Command
  */
 
 import path from "node:path";

@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/interop",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Bridges dotMix components and reactive signals into other frameworks",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -24,10 +26,10 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@dotmix/runtime": "0.1.1"
+    "@dotmix/runtime": "0.2.0"
   },
   "devDependencies": {
-    "@dotmix/diagnostics": "0.1.1"
+    "@dotmix/diagnostics": "0.2.0"
   },
   "license": "MIT"
 }

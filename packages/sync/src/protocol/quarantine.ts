@@ -1,10 +1,10 @@
 /**
- * @dotmix/sync — Enforceable Storage Bounds, Buffer Eviction & Quarantine Tiering (Gate 33 / D-137)
+ * @dotmix/sync — Enforceable Storage Bounds, Buffer Eviction & Quarantine Tiering
  */
 
 import { canonicalizeValue } from "./apply.js";
 import {
-  D137_V331_LIMITS,
+  SYNC_PROTOCOL_LIMITS,
   type EntryStateRecord,
   type InTransactionContext,
   type OriginStreamKey,
@@ -26,36 +26,36 @@ export function computeOperationByteSize(op: ReplicableOperation): number {
 
 export function validateOperationSize(op: ReplicableOperation): { ok: boolean; code?: string; detail?: string } {
   const size = computeOperationByteSize(op);
-  if (size > D137_V331_LIMITS.MAX_OPERATION_PAYLOAD_BYTES) {
+  if (size > SYNC_PROTOCOL_LIMITS.MAX_OPERATION_PAYLOAD_BYTES) {
     return {
       ok: false,
-      code: "D137_OPERATION_PAYLOAD_TOO_LARGE",
-      detail: `Operation size ${size} bytes exceeds limit ${D137_V331_LIMITS.MAX_OPERATION_PAYLOAD_BYTES}`,
+      code: "SYNC_OPERATION_PAYLOAD_TOO_LARGE",
+      detail: `Operation size ${size} bytes exceeds limit ${SYNC_PROTOCOL_LIMITS.MAX_OPERATION_PAYLOAD_BYTES}`,
     };
   }
-  if ("indexKey" in op && typeof op.indexKey === "string" && encoder.encode(op.indexKey).length > D137_V331_LIMITS.MAX_INDEX_KEY_BYTES) {
+  if ("indexKey" in op && typeof op.indexKey === "string" && encoder.encode(op.indexKey).length > SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES) {
     return {
       ok: false,
-      code: "D137_INDEX_KEY_TOO_LONG",
-      detail: `Index key exceeds limit ${D137_V331_LIMITS.MAX_INDEX_KEY_BYTES}`,
+      code: "SYNC_INDEX_KEY_TOO_LONG",
+      detail: `Index key exceeds limit ${SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES}`,
     };
   }
-  if ("newIndexKey" in op && typeof op.newIndexKey === "string" && encoder.encode(op.newIndexKey).length > D137_V331_LIMITS.MAX_INDEX_KEY_BYTES) {
+  if ("newIndexKey" in op && typeof op.newIndexKey === "string" && encoder.encode(op.newIndexKey).length > SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES) {
     return {
       ok: false,
-      code: "D137_INDEX_KEY_TOO_LONG",
-      detail: `New index key exceeds limit ${D137_V331_LIMITS.MAX_INDEX_KEY_BYTES}`,
+      code: "SYNC_INDEX_KEY_TOO_LONG",
+      detail: `New index key exceeds limit ${SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES}`,
     };
   }
   if (
     op.kind === "clear" &&
     op.targetIncarnations &&
-    op.targetIncarnations.length > D137_V331_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK
+    op.targetIncarnations.length > SYNC_PROTOCOL_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK
   ) {
     return {
       ok: false,
-      code: "D137_CLEAR_CHUNK_TARGETS_EXCEEDED",
-      detail: `Clear chunk contains ${op.targetIncarnations.length} targets, exceeding limit ${D137_V331_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK}`,
+      code: "SYNC_CLEAR_CHUNK_TARGETS_EXCEEDED",
+      detail: `Clear chunk contains ${op.targetIncarnations.length} targets, exceeding limit ${SYNC_PROTOCOL_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK}`,
     };
   }
   return { ok: true };
@@ -63,25 +63,25 @@ export function validateOperationSize(op: ReplicableOperation): { ok: boolean; c
 
 export function validateEntrySize(entry: EntryStateRecord): { ok: boolean; code?: string; detail?: string } {
   const size = computeEntryByteSize(entry);
-  if (size > D137_V331_LIMITS.MAX_ENTRY_TOTAL_BYTES) {
+  if (size > SYNC_PROTOCOL_LIMITS.MAX_ENTRY_TOTAL_BYTES) {
     return {
       ok: false,
-      code: "D137_ENTRY_SIZE_LIMIT_EXCEEDED",
-      detail: `Accumulated entry size ${size} bytes exceeds limit ${D137_V331_LIMITS.MAX_ENTRY_TOTAL_BYTES}`,
+      code: "SYNC_ENTRY_SIZE_LIMIT_EXCEEDED",
+      detail: `Accumulated entry size ${size} bytes exceeds limit ${SYNC_PROTOCOL_LIMITS.MAX_ENTRY_TOTAL_BYTES}`,
     };
   }
   return { ok: true };
 }
 
 const TIER1_CRITICAL_CODES = new Set<string>([
-  "D137_EQUIVOCATION_DETECTED",
-  "D137_EQUIVOCATION_ON_COMPACTED_HISTORY",
-  "D137_STATE_TARGET_EQUIVOCATION",
-  "D137_INVALID_AUTHOR_SIGNATURE",
-  "D137_REVOKED_AUTHOR_KEY",
-  "D137_BOTH_SNAPSHOTS_CORRUPT",
+  "SYNC_EQUIVOCATION_DETECTED",
+  "SYNC_EQUIVOCATION_ON_COMPACTED_HISTORY",
+  "SYNC_STATE_TARGET_EQUIVOCATION",
+  "SYNC_INVALID_AUTHOR_SIGNATURE",
+  "SYNC_REVOKED_AUTHOR_KEY",
+  "SYNC_BOTH_SNAPSHOTS_CORRUPT",
   "SNAPSHOT_N_CORRUPT_FALLBACK_TO_N_MINUS_1",
-  "D137_SNAPSHOT_MEMBERSHIP_CERTIFICATE_MISMATCH",
+  "SYNC_SNAPSHOT_MEMBERSHIP_CERTIFICATE_MISMATCH",
   "LEGACY_CACHE_DIVERGENCE_RECONCILED",
   "LEGACY_EQUAL_MUTATION_ID_CONFLICT",
 ]);
@@ -96,7 +96,7 @@ export function recordQuarantine(
   const seq = meta.nextQuarantineSeq++;
   const priorityTier: 1 | 2 = TIER1_CRITICAL_CODES.has(reasonCode) ? 1 : 2;
 
-  if (quarantineJournal.size >= D137_V331_LIMITS.MAX_QUARANTINE_RECORDS) {
+  if (quarantineJournal.size >= SYNC_PROTOCOL_LIMITS.MAX_QUARANTINE_RECORDS) {
     let victimKey: string | null = null;
     // Always evict oldest Tier 2 first
     for (const [k, rec] of quarantineJournal.entries()) {
@@ -141,7 +141,7 @@ export function blockStreamAndEvictSuccessors(
   const firstSeq = prevEq ? Math.min(prevEq.firstEquivocatedSeq, failedSeq) : failedSeq;
   const combinedDigests = [...new Set([...(prevEq?.observedDigests ?? []), failedOp.payloadDigest])]
     .sort()
-    .slice(0, D137_V331_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT);
+    .slice(0, SYNC_PROTOCOL_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT);
 
   ctx.meta.activeEpochEquivocations[streamKey] = {
     streamKey,
@@ -263,20 +263,20 @@ export function bufferOutOfOrderOperation(
 ): { ok: boolean; disposition?: "BUFFERED_OUT_OF_ORDER"; code?: string; detail?: string } {
   const byteSize = computeOperationByteSize(op);
   if (
-    ctx.meta.totalGapBufferOps >= D137_V331_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION ||
-    ctx.meta.totalGapBufferBytes + byteSize > D137_V331_LIMITS.MAX_GAP_BUFFER_BYTES_PER_COLLECTION
+    ctx.meta.totalGapBufferOps >= SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION ||
+    ctx.meta.totalGapBufferBytes + byteSize > SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_BYTES_PER_COLLECTION
   ) {
     recordQuarantine(
       ctx.meta,
       ctx.quarantineJournal,
-      "D137_GAP_BUFFER_OVERFLOW",
+      "SYNC_GAP_BUFFER_OVERFLOW",
       `Gap buffer overflow: ${ctx.meta.totalGapBufferOps} ops, ${ctx.meta.totalGapBufferBytes} bytes`,
       op
     );
     return {
       ok: false,
-      code: "D137_GAP_BUFFER_OVERFLOW",
-      detail: `Gap buffer capacity exceeded (max ${D137_V331_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION} ops)`,
+      code: "SYNC_GAP_BUFFER_OVERFLOW",
+      detail: `Gap buffer capacity exceeded (max ${SYNC_PROTOCOL_LIMITS.MAX_GAP_BUFFER_OPS_PER_COLLECTION} ops)`,
     };
   }
   ctx.inboundGapBuffer.set(opKey, {

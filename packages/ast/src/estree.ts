@@ -1,6 +1,6 @@
 /**
  * @dotmix/ast/estree — Structural, self-contained ESTree-compatible expression interfaces and type guards.
- * Prevents third-party AST parser types from leaking into public .d.ts declarations (HAA-04).
+ * Prevents third-party AST parser types from leaking into public .d.ts declarations.
  */
 
 import type { SourceSpan } from "@dotmix/diagnostics";

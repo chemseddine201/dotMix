@@ -300,7 +300,7 @@ export class ReplicableArray<T> {
     for (const remote of remoteEntries) {
       const local = this.entries.get(remote.id);
       if (!local) {
-        // D-136: Stale-peer tombstone resurrection fencing
+        //: Stale-peer tombstone resurrection fencing
         // If the entry is not marked deleted, but its ID was previously purged on this node,
         // or its mutation timestamp is at or before our compaction horizon:
         if (

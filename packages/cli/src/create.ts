@@ -1,7 +1,7 @@
 /**
  * @dotmix/cli — Comprehensive Project Template Generator (`mix create` / `mix init`)
  *
- * Implements Gate 37 / T-37.2 & D-160:
+ * Implements &:
  * - Templates: `minimal`, `standard` (default), `showcase`, `sync-crdt`
  * - Stylesheet preprocessors: scss, sass, less, pcss, css
  * - Package managers: auto-detection or override (pnpm, npm, yarn, bun)

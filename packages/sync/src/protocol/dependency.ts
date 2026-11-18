@@ -1,6 +1,6 @@
 /**
- * @dotmix/sync — Causal Dependency Buffer & Drainage Invariants (Gate 33 / D-137)
- * Enforces T-31.5, F-01, F-06, F-07, F-13, F-14, D-141.
+ * @dotmix/sync — Causal Dependency Buffer & Drainage Invariants
+ * Enforces, F-01, F-06, F-07, F-13, F-14.
  */
 
 import {
@@ -17,7 +17,7 @@ import {
   recordQuarantine,
 } from "./quarantine.js";
 import {
-  D137_V331_LIMITS,
+  SYNC_PROTOCOL_LIMITS,
   type CausalDot,
   type InTransactionContext,
   type OperationApplyResult,
@@ -59,7 +59,7 @@ export function classifyCausalDependency(
   if (targetDot.sequence < 1) {
     return {
       ok: false,
-      code: "D137_INVALID_DEPENDENCY_TARGET",
+      code: "SYNC_INVALID_DEPENDENCY_TARGET",
       detail: `Target sequence ${targetDot.sequence} must be >= 1`,
     };
   }
@@ -68,7 +68,7 @@ export function classifyCausalDependency(
   if (targetDot.epochNumber !== meta.epochNumber) {
     return {
       ok: false,
-      code: "D137_INVALID_DEPENDENCY_TARGET",
+      code: "SYNC_INVALID_DEPENDENCY_TARGET",
       detail: `Target epoch ${targetDot.epochNumber} does not match current epoch ${meta.epochNumber}`,
     };
   }
@@ -77,7 +77,7 @@ export function classifyCausalDependency(
   if (!meta.epochMemberBindings[targetDot.replicaId]) {
     return {
       ok: false,
-      code: "D137_INVALID_DEPENDENCY_TARGET",
+      code: "SYNC_INVALID_DEPENDENCY_TARGET",
       detail: `Target author ${targetDot.replicaId} is not a member of current epoch`,
     };
   }
@@ -88,7 +88,7 @@ export function classifyCausalDependency(
   if (targetDigestRec?.kind && targetDigestRec.kind !== "insert") {
     return {
       ok: false,
-      code: "D137_INVALID_DEPENDENCY_TARGET",
+      code: "SYNC_INVALID_DEPENDENCY_TARGET",
       detail: `Target dot ${toIncarnationId(targetDot)} is recorded as ${targetDigestRec.kind}, not insert`,
     };
   }
@@ -96,7 +96,7 @@ export function classifyCausalDependency(
   if (targetJournalRec && targetJournalRec.operation.kind !== "insert") {
     return {
       ok: false,
-      code: "D137_INVALID_DEPENDENCY_TARGET",
+      code: "SYNC_INVALID_DEPENDENCY_TARGET",
       detail: `Target dot ${toIncarnationId(targetDot)} is a journaled ${targetJournalRec.operation.kind}, not insert`,
     };
   }
@@ -120,12 +120,12 @@ export function classifyCausalDependency(
 
     // Enforce dependency buffer limits
     if (
-      meta.totalDependencyBufferOps + 1 > D137_V331_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION ||
-      meta.totalDependencyBufferBytes + byteSize > D137_V331_LIMITS.MAX_DEPENDENCY_BUFFER_BYTES_PER_COLLECTION
+      meta.totalDependencyBufferOps + 1 > SYNC_PROTOCOL_LIMITS.MAX_DEPENDENCY_BUFFER_OPS_PER_COLLECTION ||
+      meta.totalDependencyBufferBytes + byteSize > SYNC_PROTOCOL_LIMITS.MAX_DEPENDENCY_BUFFER_BYTES_PER_COLLECTION
     ) {
       return {
         ok: false,
-        code: "D137_DEPENDENCY_BUFFER_OVERFLOW",
+        code: "SYNC_DEPENDENCY_BUFFER_OVERFLOW",
         detail: `Dependency buffer capacity exceeded (${meta.totalDependencyBufferOps} ops, ${meta.totalDependencyBufferBytes} bytes)`,
       };
     }
@@ -151,7 +151,7 @@ export function classifyCausalDependency(
   // Target sequence <= durable, but not in entriesState and not compacted -> invalid
   return {
     ok: false,
-    code: "D137_INVALID_DEPENDENCY_TARGET",
+    code: "SYNC_INVALID_DEPENDENCY_TARGET",
     detail: `Target dot ${toIncarnationId(targetDot)} does not exist and was not compacted`,
   };
 }
@@ -251,7 +251,7 @@ export function drainTransitive(
               recordQuarantine(
                 ctx.meta,
                 ctx.quarantineJournal,
-                applyRes.code ?? "D137_DEPENDENCY_APPLY_FAILED",
+                applyRes.code ?? "SYNC_DEPENDENCY_APPLY_FAILED",
                 applyRes.detail ?? "Failed to apply unblocked dependency op",
                 op
               );
@@ -328,7 +328,7 @@ export function drainTransitive(
           recordQuarantine(
             ctx.meta,
             ctx.quarantineJournal,
-            applyRes.code ?? "D137_DRAIN_STATE_FAILURE",
+            applyRes.code ?? "SYNC_DRAIN_STATE_FAILURE",
             applyRes.detail ?? "Failed to apply gap buffered op",
             gapRec.operation
           );

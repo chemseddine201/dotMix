@@ -1,6 +1,6 @@
 /* global process */
 /**
- * Gate 37 reviewer fixes F1-F4 (2026-11-13):
+ * reviewer fixes F1-F4 (2026-11-13):
  * F1/F2 scaffolded projects depend on @dotmix/cli and run `mix test`;
  * F3 `mix add page --route` reports a route it could not register;
  * F4 the scaffold message lists only styles that were actually created.
@@ -30,7 +30,7 @@ function scaffold(template) {
   return { root, app: path.join(root, "app"), stdout: res.stdout };
 }
 
-describe("Gate 37 fixes F1-F4", () => {
+describe(" fixes F1-F4", () => {
   for (const template of ["minimal", "standard"]) {
     it(`F1/F2: ${template} template depends on @dotmix/cli and uses mix test`, () => {
       const { root, app } = scaffold(template);

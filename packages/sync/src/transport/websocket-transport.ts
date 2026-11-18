@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-137 WebSocket Sync Transport (Gate 34 / T-34.5)
+ * @dotmix/sync — WebSocket Sync Transport
  *
  * Implements real-time duplex wire envelope streaming, handshake authentication,
  * and automatic anti-entropy range pull upon reconnect with zero external dependencies.

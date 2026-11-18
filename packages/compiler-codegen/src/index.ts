@@ -1,5 +1,5 @@
 /**
- * @dotmix/compiler-codegen — Ahead-of-Time direct DOM JavaScript code generator (Phase Gate 5).
+ * @dotmix/compiler-codegen — Ahead-of-Time direct DOM JavaScript code generator.
  *
  * Compiles a validated `ComponentDescriptor` into readable, deterministic ES2023 JavaScript
  * that binds fine-grained reactive primitives directly to surgical DOM operations with

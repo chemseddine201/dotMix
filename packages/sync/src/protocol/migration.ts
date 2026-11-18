@@ -1,6 +1,6 @@
 /**
- * @dotmix/sync — Legacy v1 Migration with Full Deleted-State & Cryptographic Identity Preservation (Gate 33 / D-137)
- * Ratified D-142: Migration ops are local-only, preserve order/indexKey, replay pending mutations, use meta.epochNumber.
+ * @dotmix/sync — Legacy v1 Migration with Full Deleted-State & Cryptographic Identity Preservation
+ * Ratified: Migration ops are local-only, preserve order/indexKey, replay pending mutations, use meta.epochNumber.
  */
 
 import { toIncarnationId, toOperationKey } from "./apply.js";

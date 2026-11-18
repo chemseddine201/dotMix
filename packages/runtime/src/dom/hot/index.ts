@@ -1,7 +1,7 @@
 /**
  * @dotmix/runtime/dom/hot — Dev-Only HMR Runtime Instance Registry & Transactional State Transfer
  *
- * Implements H-1, H-7, D-151, D-153, D-155:
+ * Implements:
  * - Module-keyed instance registry with composite keys across parent-child trees
  * - DOM instance boundaries using start & end comment markers (reusing KeepAlive boundary primitive)
  * - State transfer store carrying over signal values by identifier key across re-instantiations
@@ -149,20 +149,34 @@ export function generateInstanceKey(moduleId: string, props?: Record<string, unk
   return `${moduleId}#${String(localKey)}`;
 }
 
-function removeNodesBetween(startMarker: Comment, endMarker: Comment): void {
-  const p = startMarker.parentNode;
-  if (!p) return;
-  let curr: Node | null = startMarker.nextSibling;
-  while (curr && curr !== endMarker) {
-    const next: Node | null = curr.nextSibling;
-    p.removeChild(curr);
-    curr = next;
+function removeNodesBetween(startMarker: Comment, endMarker: Comment): boolean {
+  const parentNode = startMarker.parentNode;
+  if (!parentNode || endMarker.parentNode !== parentNode) return false;
+  let current: Node | null = startMarker.nextSibling;
+  const nodesToRemove: Node[] = [];
+  let foundEnd = false;
+  while (current) {
+    if (current === endMarker) {
+      foundEnd = true;
+      break;
+    }
+    nodesToRemove.push(current);
+    current = current.nextSibling;
   }
+  if (!foundEnd) {
+    return false;
+  }
+  for (const node of nodesToRemove) {
+    if (node.parentNode === parentNode) {
+      parentNode.removeChild(node);
+    }
+  }
+  return true;
 }
 
 /**
  * Executes a transactional hot swap for all mounted instances of moduleId.
- * If newComponentFn throws during setup, the swap is aborted and old state is kept (D-155 / E6).
+ * If newComponentFn throws during setup, the swap is aborted and old state is kept.
  */
 export function hmrSwapComponent(
   moduleId: string,
@@ -174,6 +188,11 @@ export function hmrSwapComponent(
   }
 
   for (const instance of Array.from(instances)) {
+    if (typeof document !== "undefined" && instance.startMarker && !instance.startMarker.isConnected && !instance.startMarker.parentNode) {
+      instances.delete(instance);
+      continue;
+    }
+
     // 1. Snapshot live signal values into transfer store
     let store = stateTransferStore.get(instance.instanceKey);
     if (!store) {
@@ -218,11 +237,33 @@ export function hmrSwapComponent(
     }
 
     // 3. Swap DOM between markers
-    const p = instance.startMarker.parentNode;
-    if (p) {
-      removeNodesBetween(instance.startMarker, instance.endMarker);
-      for (const node of newNodes) {
-        p.insertBefore(node, instance.endMarker);
+    const parentContainer = instance.startMarker.parentNode;
+    if (parentContainer) {
+      try {
+        if (instance.endMarker.parentNode !== parentContainer) {
+          parentContainer.insertBefore(instance.endMarker, instance.startMarker.nextSibling);
+        } else {
+          let isFollowing = false;
+          let walker: Node | null = instance.startMarker.nextSibling;
+          while (walker) {
+            if (walker === instance.endMarker) {
+              isFollowing = true;
+              break;
+            }
+            walker = walker.nextSibling;
+          }
+          if (!isFollowing) {
+            parentContainer.insertBefore(instance.endMarker, instance.startMarker.nextSibling);
+          }
+        }
+
+        removeNodesBetween(instance.startMarker, instance.endMarker);
+        for (const node of newNodes) {
+          parentContainer.insertBefore(node, instance.endMarker);
+        }
+      } catch (swapError: unknown) {
+        showErrorOverlay(swapError);
+        return false;
       }
     }
 

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Replays pending v1 mutations into migrated D-137 state (D-142 / I19).
+ * @dotmix/sync — Replays pending v1 mutations into migrated state.
  *
  * The legacy engine stores a mutation as { id: MutationId, idStr, storeKey, op, payload,
  * state } where payload is { id, value, indexKey } (insert), { id, partial } (update),

@@ -3,7 +3,7 @@
  *
  * The legacy engine stores one database, `mix_sync_db` (version 1), with the stores
  * `snapshots` ({ key, value: ArrayEntry[] }) and `mutation_log` (keyPath `idStr`).
- * D-137 never upgrades that database (HAA-19). Migration reads it; finalization removes
+ * never upgrades that database. Migration reads it; finalization removes
  * one collection's records from it.
  */
 

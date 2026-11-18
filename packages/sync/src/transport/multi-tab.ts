@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Multi-Tab Lease Coordination & Follower Refresh (Gate 34 / T-34.6)
+ * @dotmix/sync — Multi-Tab Lease Coordination & Follower Refresh
  *
  * Implements clock-safe tab lease fencing, BroadcastChannel heartbeats,
  * leader election / failover, and post-commit follower notifications with
@@ -12,7 +12,7 @@ import {
   type TabLeaseMeta,
   type TabLeaseRecord,
 } from "../protocol/leases.js";
-import { D137_V331_LIMITS } from "../protocol/limits.js";
+import { SYNC_PROTOCOL_LIMITS } from "../protocol/limits.js";
 import { type ProtocolVersion, PROTOCOL_VERSION } from "../protocol/types.js";
 
 export type TabRole = "primary" | "follower" | "candidate";
@@ -78,7 +78,7 @@ export class MultiTabCoordinator {
     this.tabIdentifier = options.tabIdentifier;
     this.heartbeatIntervalMilliseconds = options.heartbeatIntervalMilliseconds ?? 1000;
     this.staleTimeoutMilliseconds =
-      options.staleTimeoutMilliseconds ?? D137_V331_LIMITS.TAB_LEASE_TAKEOVER_STALE_MS;
+      options.staleTimeoutMilliseconds ?? SYNC_PROTOCOL_LIMITS.TAB_LEASE_TAKEOVER_STALE_MS;
     this.getSystemTime = options.clock ?? (() => Date.now());
     this.leaseStateMap = options.sharedLeaseStateMap ?? new Map<string, TabLeaseRecord>();
 
@@ -172,7 +172,7 @@ export class MultiTabCoordinator {
     if (this.currentRole !== "primary") {
       return {
         ok: false,
-        code: "D137_STALE_TAB_LEASE_FENCED",
+        code: "SYNC_STALE_TAB_LEASE_FENCED",
         detail: `Tab ${this.tabIdentifier} is not active primary (current role: ${this.currentRole})`,
       };
     }

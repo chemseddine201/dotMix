@@ -146,7 +146,7 @@ function setupDomGlobals() {
   };
 }
 
-describe("Gate 27 Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
+describe(" Golden-Path E2E Harness (All 10 Scaffold Variants)", () => {
   for (const lang of LANGUAGES) {
     for (const style of STYLES) {
       const variantId = `${lang.name}-${style}`;

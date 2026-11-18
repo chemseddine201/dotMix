@@ -1,11 +1,11 @@
 /**
- * D137-v33-reference: Protocol Types & Constants
- * Protocol Version: D-137.v3.3.1
+ * Sync-v33-reference: Protocol Types & Constants
+ * Protocol Version: replicated.v3.3.1
  */
 
-export type ProtocolVersion = "D-137.v3.3.1";
-export const PROTOCOL_VERSION: ProtocolVersion = "D-137.v3.3.1";
-export const PROTOCOL_FAMILY_PREFIX = "D-137";
+export type ProtocolVersion = "replicated.v3.3.1";
+export const PROTOCOL_VERSION: ProtocolVersion = "replicated.v3.3.1";
+export const PROTOCOL_FAMILY_PREFIX = "replicated";
 export type EpochNumber = number;
 export type SequenceNumber = number;
 export type ReplicaId = string;
@@ -82,7 +82,7 @@ export type OperationDisposition =
   | "QUARANTINED_REJECTED"
   | "EXCISED_STREAM_QUARANTINED"
   | "EVICTED_STREAM_BLOCKED_SUCCESSOR"
-  | "D137_EPOCH_CLOSED";
+  | "SYNC_EPOCH_CLOSED";
 
 export interface OperationApplyResult {
   readonly ok: boolean;
@@ -332,10 +332,10 @@ export interface InTransactionContext {
   snapshotsV2?: Map<number, SnapshotRecord> | undefined;
 }
 
-import { D137_V331_LIMITS } from "./limits.js";
+import { SYNC_PROTOCOL_LIMITS } from "./limits.js";
 import { computeCanonicalByteSize } from "./canonical.js";
 
-export { D137_V331_LIMITS };
+export { SYNC_PROTOCOL_LIMITS };
 
 export type DecodeResult<T> =
   | { readonly ok: true; readonly value: T }
@@ -353,23 +353,23 @@ function checkUnknownKeys(targetObject: Record<string, unknown>, allowedKeys: Se
 }
 
 function validateDot(raw: unknown, label: string): DecodeResult<CausalDot> {
-  if (!isObject(raw)) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label} must be an object` };
+  if (!isObject(raw)) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label} must be an object` };
   const unknownKey = checkUnknownKeys(raw, new Set(["epochNumber", "replicaId", "sequence"]));
-  if (unknownKey) return { ok: false, code: "D137_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${label}` };
+  if (unknownKey) return { ok: false, code: "SYNC_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${label}` };
   const { epochNumber, replicaId, sequence } = raw;
-  if (typeof epochNumber !== "number" || !Number.isInteger(epochNumber) || epochNumber < 1) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label}.epochNumber must be positive integer` };
-  if (typeof replicaId !== "string" || !replicaId) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label}.replicaId must be non-empty string` };
-  if (replicaId.includes(":")) return { ok: false, code: "D137_INVALID_REPLICA_ID", detail: `${label}.replicaId cannot contain ':'` };
-  if (typeof sequence !== "number" || !Number.isInteger(sequence) || sequence < 1) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label}.sequence must be positive integer` };
+  if (typeof epochNumber !== "number" || !Number.isInteger(epochNumber) || epochNumber < 1) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label}.epochNumber must be positive integer` };
+  if (typeof replicaId !== "string" || !replicaId) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label}.replicaId must be non-empty string` };
+  if (replicaId.includes(":")) return { ok: false, code: "SYNC_INVALID_REPLICA_ID", detail: `${label}.replicaId cannot contain ':'` };
+  if (typeof sequence !== "number" || !Number.isInteger(sequence) || sequence < 1) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label}.sequence must be positive integer` };
   return { ok: true, value: { epochNumber, replicaId, sequence } };
 }
 
 function validateStamp(raw: unknown, label: string): DecodeResult<LamportStamp> {
-  if (!isObject(raw)) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label} must be an object` };
+  if (!isObject(raw)) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label} must be an object` };
   const unknownKey = checkUnknownKeys(raw, new Set(["lamport", "epochNumber", "replicaId", "sequence"]));
-  if (unknownKey) return { ok: false, code: "D137_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${label}` };
+  if (unknownKey) return { ok: false, code: "SYNC_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${label}` };
   const { lamport } = raw;
-  if (typeof lamport !== "number" || !Number.isInteger(lamport) || lamport < 0) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `${label}.lamport must be non-negative integer` };
+  if (typeof lamport !== "number" || !Number.isInteger(lamport) || lamport < 0) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `${label}.lamport must be non-negative integer` };
   const dotResult = validateDot({ epochNumber: raw["epochNumber"], replicaId: raw["replicaId"], sequence: raw["sequence"] }, label);
   if (!dotResult.ok) return dotResult;
   return { ok: true, value: { lamport, ...dotResult.value } };
@@ -386,33 +386,33 @@ const DELETE_KEYS = new Set([...BASE_OP_KEYS]);
 const CLEAR_KEYS = new Set([...BASE_OP_KEYS, "targetIncarnations", "clearBatchMeta"]);
 
 export function decodeWireOperation(raw: unknown): DecodeResult<ReplicableOperation> {
-  if (!isObject(raw)) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Operation must be an object" };
-  if (raw["kind"] === "clear" && Array.isArray(raw["targetIncarnations"]) && raw["targetIncarnations"].length > D137_V331_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK) {
-    return { ok: false, code: "D137_CLEAR_CHUNK_TARGETS_EXCEEDED", detail: `clear targets exceed ${D137_V331_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK}` };
+  if (!isObject(raw)) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Operation must be an object" };
+  if (raw["kind"] === "clear" && Array.isArray(raw["targetIncarnations"]) && raw["targetIncarnations"].length > SYNC_PROTOCOL_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK) {
+    return { ok: false, code: "SYNC_CLEAR_CHUNK_TARGETS_EXCEEDED", detail: `clear targets exceed ${SYNC_PROTOCOL_LIMITS.CLEAR_MAX_TARGETS_PER_CHUNK}` };
   }
   const byteSize = computeCanonicalByteSize(raw);
-  if (byteSize > D137_V331_LIMITS.MAX_OPERATION_PAYLOAD_BYTES) {
-    return { ok: false, code: "D137_OPERATION_PAYLOAD_TOO_LARGE", detail: `Payload ${byteSize} exceeds limit` };
+  if (byteSize > SYNC_PROTOCOL_LIMITS.MAX_OPERATION_PAYLOAD_BYTES) {
+    return { ok: false, code: "SYNC_OPERATION_PAYLOAD_TOO_LARGE", detail: `Payload ${byteSize} exceeds limit` };
   }
   if (raw["protocolVersion"] !== PROTOCOL_VERSION) {
-    return { ok: false, code: "D137_PROTOCOL_VERSION_MISMATCH", detail: `Unsupported version '${String(raw["protocolVersion"])}'` };
+    return { ok: false, code: "SYNC_PROTOCOL_VERSION_MISMATCH", detail: `Unsupported version '${String(raw["protocolVersion"])}'` };
   }
   const kind = raw["kind"];
   if (kind !== "insert" && kind !== "update" && kind !== "move" && kind !== "delete" && kind !== "clear") {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `Invalid kind '${String(kind)}'` };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `Invalid kind '${String(kind)}'` };
   }
   const allowedKeys = kind === "insert" ? INSERT_KEYS : kind === "update" ? UPDATE_KEYS : kind === "move" ? MOVE_KEYS : kind === "delete" ? DELETE_KEYS : CLEAR_KEYS;
   const unknownKey = checkUnknownKeys(raw, allowedKeys);
-  if (unknownKey) return { ok: false, code: "D137_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${kind}` };
+  if (unknownKey) return { ok: false, code: "SYNC_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownKey}' in ${kind}` };
 
   for (const requiredField of ["collectionId", "epochCertificateId", "authorKeyId", "payloadDigest", "authorSignature"]) {
-    if (typeof raw[requiredField] !== "string" || !raw[requiredField]) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: `Invalid ${requiredField}` };
+    if (typeof raw[requiredField] !== "string" || !raw[requiredField]) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: `Invalid ${requiredField}` };
   }
   if (typeof raw["externalId"] !== "string" || (kind !== "clear" && !raw["externalId"])) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Invalid externalId" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Invalid externalId" };
   }
   if (typeof raw["epochNumber"] !== "number" || !Number.isInteger(raw["epochNumber"]) || raw["epochNumber"] < 1) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Invalid epochNumber" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Invalid epochNumber" };
   }
 
   const opDot = validateDot(raw["opDot"], "opDot");
@@ -438,9 +438,9 @@ export function decodeWireOperation(raw: unknown): DecodeResult<ReplicableOperat
   };
 
   if (kind === "insert") {
-    if (typeof raw["indexKey"] !== "string") return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "indexKey must be string" };
-    if (encoder.encode(raw["indexKey"]).length > D137_V331_LIMITS.MAX_INDEX_KEY_BYTES) return { ok: false, code: "D137_INDEX_KEY_TOO_LONG", detail: "indexKey too long" };
-    if (!isObject(raw["initialFields"])) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "initialFields must be object" };
+    if (typeof raw["indexKey"] !== "string") return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "indexKey must be string" };
+    if (encoder.encode(raw["indexKey"]).length > SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES) return { ok: false, code: "SYNC_INDEX_KEY_TOO_LONG", detail: "indexKey too long" };
+    if (!isObject(raw["initialFields"])) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "initialFields must be object" };
     const left = raw["leftNeighborIncarnation"] !== null ? validateDot(raw["leftNeighborIncarnation"], "leftNeighbor") : { ok: true as const, value: null };
     if (!left.ok) return left;
     const right = raw["rightNeighborIncarnation"] !== null ? validateDot(raw["rightNeighborIncarnation"], "rightNeighbor") : { ok: true as const, value: null };
@@ -450,7 +450,7 @@ export function decodeWireOperation(raw: unknown): DecodeResult<ReplicableOperat
 
   if (kind === "update") {
     if (!isObject(raw["partialFields"]) || !Array.isArray(raw["removedFields"]) || !isObject(raw["baseFieldStamps"])) {
-      return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Invalid update fields structure" };
+      return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Invalid update fields structure" };
     }
     const baseFieldStamps: Record<string, LamportStamp> = {};
     for (const [fieldName, stampValue] of Object.entries(raw["baseFieldStamps"])) {
@@ -462,8 +462,8 @@ export function decodeWireOperation(raw: unknown): DecodeResult<ReplicableOperat
   }
 
   if (kind === "move") {
-    if (typeof raw["newIndexKey"] !== "string") return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "newIndexKey must be string" };
-    if (encoder.encode(raw["newIndexKey"]).length > D137_V331_LIMITS.MAX_INDEX_KEY_BYTES) return { ok: false, code: "D137_INDEX_KEY_TOO_LONG", detail: "newIndexKey too long" };
+    if (typeof raw["newIndexKey"] !== "string") return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "newIndexKey must be string" };
+    if (encoder.encode(raw["newIndexKey"]).length > SYNC_PROTOCOL_LIMITS.MAX_INDEX_KEY_BYTES) return { ok: false, code: "SYNC_INDEX_KEY_TOO_LONG", detail: "newIndexKey too long" };
     const basePos = validateStamp(raw["basePosStamp"], "basePosStamp");
     if (!basePos.ok) return basePos;
     const left = raw["leftNeighborIncarnation"] !== null ? validateDot(raw["leftNeighborIncarnation"], "leftNeighbor") : { ok: true as const, value: null };
@@ -476,19 +476,19 @@ export function decodeWireOperation(raw: unknown): DecodeResult<ReplicableOperat
   if (kind === "delete") return { ok: true, value: { ...base, kind: "delete" } };
 
   // Clear
-  if (!Array.isArray(raw["targetIncarnations"])) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "targetIncarnations must be array" };
+  if (!Array.isArray(raw["targetIncarnations"])) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "targetIncarnations must be array" };
   const targets: CausalDot[] = [];
   for (let targetIndex = 0; targetIndex < raw["targetIncarnations"].length; targetIndex++) {
     const dotValidationResult = validateDot(raw["targetIncarnations"][targetIndex], `targetIncarnations[${targetIndex}]`);
     if (!dotValidationResult.ok) return dotValidationResult;
     targets.push(dotValidationResult.value);
   }
-  if (!isObject(raw["clearBatchMeta"])) return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "clearBatchMeta must be object" };
+  if (!isObject(raw["clearBatchMeta"])) return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "clearBatchMeta must be object" };
   const meta = raw["clearBatchMeta"];
   const unknownMetaKey = checkUnknownKeys(meta, new Set(["batchId", "chunkIndex", "totalChunks"]));
-  if (unknownMetaKey) return { ok: false, code: "D137_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownMetaKey}' in clearBatchMeta` };
+  if (unknownMetaKey) return { ok: false, code: "SYNC_WIRE_UNKNOWN_FIELD", detail: `Unknown field '${unknownMetaKey}' in clearBatchMeta` };
   if (typeof meta["batchId"] !== "string" || !meta["batchId"] || typeof meta["chunkIndex"] !== "number" || !Number.isInteger(meta["chunkIndex"]) || meta["chunkIndex"] < 0 || typeof meta["totalChunks"] !== "number" || !Number.isInteger(meta["totalChunks"]) || meta["totalChunks"] < 1) {
-    return { ok: false, code: "D137_WIRE_TYPE_MISMATCH", detail: "Invalid clearBatchMeta fields" };
+    return { ok: false, code: "SYNC_WIRE_TYPE_MISMATCH", detail: "Invalid clearBatchMeta fields" };
   }
 
   return { ok: true, value: { ...base, kind: "clear", targetIncarnations: targets, clearBatchMeta: { batchId: meta["batchId"], chunkIndex: meta["chunkIndex"], totalChunks: meta["totalChunks"] } } };

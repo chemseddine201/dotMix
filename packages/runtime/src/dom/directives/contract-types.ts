@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/directives/contract-types — Shared TypeScript contract types
- * for Gate 38 Dual-Mode Directives runtime helpers (T-38.0b).
+ * for Dual-Mode Directives runtime helpers.
  */
 
 export type DirectiveChildren = unknown;

@@ -56,10 +56,10 @@ test("Foundation 1: Workspace package graph is strictly acyclic (DAG)", async ()
   }
 });
 
-test("Foundation 2: Layer boundaries, zero runtime in compiler, and router boundaries (Gate 12 / D-115)", async () => {
+test("Foundation 2: Layer boundaries, zero runtime in compiler, and router boundaries", async () => {
   const packagesDir = path.join(rootDir, "packages");
 
-  // Router boundary checks (Gate 12 / D-115):
+  // Router boundary checks:
   if (fs.existsSync(path.join(packagesDir, "router"))) {
     const routerPkg = JSON.parse(fs.readFileSync(path.join(packagesDir, "router", "package.json"), "utf-8"));
     assert.strictEqual(

@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Offline Outbox Replay & Lossless Local State Cluster Export (Gate 33 / D-137)
+ * @dotmix/sync — Offline Outbox Replay & Lossless Local State Cluster Export
  */
 
 import { canonicalizeValue, toIncarnationId, compareCausalDots } from "./apply.js";

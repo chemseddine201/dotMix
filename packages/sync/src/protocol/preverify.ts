@@ -1,8 +1,8 @@
 /**
- * @dotmix/sync — Wire Decoding, Cryptographic Verification & Certificate Validation (Gate 33 / D-137)
+ * @dotmix/sync — Wire Decoding, Cryptographic Verification & Certificate Validation
  *
  * Enforces pre-transaction validation, size bounds, canonical signing,
- * G32-1 floor monotonicity (closed-epoch streams omitted), and Gate 32 Risk D-1 non-retryable errors.
+ * G32-1 floor monotonicity (closed-epoch streams omitted), and Risk D-1 non-retryable errors.
  */
 
 import { canonicalizeValue, sha256Hex } from "./apply.js";
@@ -136,26 +136,26 @@ export async function validateEpochMembershipCertificate(
   foundingOrBootstrapSnapshot?: SnapshotRecord | undefined
 ): Promise<PreVerifyResult> {
   if (!cert || typeof cert !== "object") {
-    return { ok: false, code: "D137_CERTIFICATE_INVALID", detail: "Certificate missing or invalid" };
+    return { ok: false, code: "SYNC_CERTIFICATE_INVALID", detail: "Certificate missing or invalid" };
   }
   if (cert.collectionId !== expectedCollectionId) {
     return {
       ok: false,
-      code: "D137_COLLECTION_MISMATCH",
+      code: "SYNC_COLLECTION_MISMATCH",
       detail: `Certificate collectionId ${cert.collectionId} does not match expected ${expectedCollectionId}`,
     };
   }
   if (typeof cert.epochNumber !== "number" || cert.epochNumber < 1) {
     return {
       ok: false,
-      code: "D137_INVALID_EPOCH_NUMBER",
+      code: "SYNC_INVALID_EPOCH_NUMBER",
       detail: `Invalid epochNumber ${cert.epochNumber}`,
     };
   }
   if (!cert.epochCertificateId || typeof cert.epochCertificateId !== "string") {
     return {
       ok: false,
-      code: "D137_INVALID_CERTIFICATE_ID",
+      code: "SYNC_INVALID_CERTIFICATE_ID",
       detail: "Certificate identifier missing or empty",
     };
   }
@@ -163,7 +163,7 @@ export async function validateEpochMembershipCertificate(
   if (!cert.memberBindings || typeof cert.memberBindings !== "object") {
     return {
       ok: false,
-      code: "D137_MEMBER_BINDINGS_INVALID",
+      code: "SYNC_MEMBER_BINDINGS_INVALID",
       detail: "Member bindings missing or invalid",
     };
   }
@@ -171,14 +171,14 @@ export async function validateEpochMembershipCertificate(
   if (!coordBinding || coordBinding.role !== "WRITER_REPLICA" || cert.coordinatorKeyId !== coordBinding.authorKeyId) {
     return {
       ok: false,
-      code: "D137_COORDINATOR_BINDING_INVALID",
+      code: "SYNC_COORDINATOR_BINDING_INVALID",
       detail: `Coordinator binding missing, invalid role, or key mismatch for ${cert.coordinatorReplicaId}`,
     };
   }
   if (!cert.coordinatorSignature) {
     return {
       ok: false,
-      code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+      code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
       detail: "Coordinator signature missing on certificate",
     };
   }
@@ -209,7 +209,7 @@ export async function validateEpochMembershipCertificate(
   if (!isValidSig) {
     return {
       ok: false,
-      code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+      code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
       detail: `Coordinator signature verification failed for ${cert.coordinatorReplicaId}`,
     };
   }
@@ -221,7 +221,7 @@ export async function validateEpochMembershipCertificate(
       if (floor > snapSeq) {
         return {
           ok: false,
-          code: "D137_CERTIFICATE_FRONTIER_EXCEEDS_SNAPSHOT",
+          code: "SYNC_CERTIFICATE_FRONTIER_EXCEEDS_SNAPSHOT",
           detail: `Certificate baseline floor ${floor} for stream ${streamKey} exceeds snapshot included frontier ${snapSeq}`,
         };
       }
@@ -260,22 +260,22 @@ export async function preVerifyIncomingOperationAsync(
   if (op.opDot.replicaId.includes(":")) {
     return {
       ok: false,
-      code: "D137_INVALID_REPLICA_ID",
+      code: "SYNC_INVALID_REPLICA_ID",
       detail: `Replica ID ${op.opDot.replicaId} contains forbidden character ':'`,
     };
   }
 
   if (!channelPrincipal.channelAuthenticated) {
-    return { ok: false, code: "D137_UNAUTHENTICATED_CHANNEL", detail: "Transport channel principal unauthenticated" };
+    return { ok: false, code: "SYNC_UNAUTHENTICATED_CHANNEL", detail: "Transport channel principal unauthenticated" };
   }
 
   if (op.protocolVersion !== PROTOCOL_VERSION) {
-    return { ok: false, code: "D137_PROTOCOL_VERSION_MISMATCH", detail: `Unsupported version ${op.protocolVersion}` };
+    return { ok: false, code: "SYNC_PROTOCOL_VERSION_MISMATCH", detail: `Unsupported version ${op.protocolVersion}` };
   }
 
   const folded = meta.foldedEpochBaseline?.[op.opDot.replicaId];
   if (folded && op.epochNumber <= folded.maxFoldedEpoch) {
-    return { ok: false, code: "D137_LATE_OP_FOLDED_OR_RETIRED_EPOCH", detail: `Epoch ${op.epochNumber} folded` };
+    return { ok: false, code: "SYNC_LATE_OP_FOLDED_OR_RETIRED_EPOCH", detail: `Epoch ${op.epochNumber} folded` };
   }
 
   if (op.epochNumber !== meta.epochNumber || op.epochCertificateId !== meta.epochCertificateId) {
@@ -285,12 +285,12 @@ export async function preVerifyIncomingOperationAsync(
       if (op.opDot.sequence > closingFloor) {
         return {
           ok: false,
-          code: "D137_EPOCH_CLOSED",
+          code: "SYNC_EPOCH_CLOSED",
           detail: `Operation ${op.opDot.epochNumber}:${op.opDot.replicaId}:${op.opDot.sequence} exceeds closing frontier ${closingFloor}`,
         };
       }
     }
-    return { ok: false, code: "D137_EPOCH_MISMATCH", detail: "Operation epoch does not match local epoch" };
+    return { ok: false, code: "SYNC_EPOCH_MISMATCH", detail: "Operation epoch does not match local epoch" };
   }
 
   if (
@@ -300,7 +300,7 @@ export async function preVerifyIncomingOperationAsync(
   ) {
     return {
       ok: false,
-      code: "D137_STAMP_DOT_MISMATCH",
+      code: "SYNC_STAMP_DOT_MISMATCH",
       detail: `Op stamp does not match opDot`,
     };
   }
@@ -312,7 +312,7 @@ export async function preVerifyIncomingOperationAsync(
   ) {
     return {
       ok: false,
-      code: "D137_LAMPORT_BOUND_VIOLATION",
+      code: "SYNC_LAMPORT_BOUND_VIOLATION",
       detail: `Invalid stamp lamport value: ${op.stamp.lamport}`,
     };
   }
@@ -321,18 +321,18 @@ export async function preVerifyIncomingOperationAsync(
   if (!binding || (binding.role !== "WRITER_REPLICA" && binding.role !== "MIGRATION_AUTHORITY")) {
     return {
       ok: false,
-      code: "D137_AUTHOR_NOT_IN_EPOCH_MEMBERSHIP",
+      code: "SYNC_AUTHOR_NOT_IN_EPOCH_MEMBERSHIP",
       detail: `Replica ${op.opDot.replicaId} not authorized writer`,
     };
   }
 
   if (meta.revokedKeyIds && (meta.revokedKeyIds.includes(op.authorKeyId) || binding.authorKeyId !== op.authorKeyId)) {
-    return { ok: false, code: "D137_REVOKED_AUTHOR_KEY", detail: `Author key mismatch or revoked` };
+    return { ok: false, code: "SYNC_REVOKED_AUTHOR_KEY", detail: `Author key mismatch or revoked` };
   }
 
   const expectedDigest = computeOperationDigest(op);
   if (op.payloadDigest !== expectedDigest) {
-    return { ok: false, code: "D137_PAYLOAD_DIGEST_MISMATCH", detail: "Payload digest does not match canonical payload" };
+    return { ok: false, code: "SYNC_PAYLOAD_DIGEST_MISMATCH", detail: "Payload digest does not match canonical payload" };
   }
 
   const signingPayload = computeOperationSigningPayload(op);
@@ -344,7 +344,7 @@ export async function preVerifyIncomingOperationAsync(
   );
 
   if (!valid) {
-    return { ok: false, code: "D137_INVALID_AUTHOR_SIGNATURE", detail: "Cryptographic author signature verification failed" };
+    return { ok: false, code: "SYNC_INVALID_AUTHOR_SIGNATURE", detail: "Cryptographic author signature verification failed" };
   }
 
   return {
@@ -363,7 +363,7 @@ export function checkCommitTimeSecurityState(
   if (meta.revokedKeyIds && meta.revokedKeyIds.includes(op.authorKeyId)) {
     return {
       ok: false,
-      code: "D137_REVOKED_AUTHOR_KEY",
+      code: "SYNC_REVOKED_AUTHOR_KEY",
       detail: `Author key ${op.authorKeyId} has been revoked`,
     };
   }
@@ -374,14 +374,14 @@ export function checkCommitTimeSecurityState(
       if (op.opDot.sequence > closingFloor) {
         return {
           ok: false,
-          code: "D137_EPOCH_CLOSED",
+          code: "SYNC_EPOCH_CLOSED",
           detail: `Operation ${op.opDot.epochNumber}:${op.opDot.replicaId}:${op.opDot.sequence} exceeds closing frontier ${closingFloor}`,
         };
       }
     }
     return {
       ok: false,
-      code: "D137_EPOCH_MISMATCH",
+      code: "SYNC_EPOCH_MISMATCH",
       detail: `Operation epoch ${op.epochNumber} (${op.epochCertificateId}) does not match local epoch ${meta.epochNumber} (${meta.epochCertificateId})`,
     };
   }
@@ -389,14 +389,14 @@ export function checkCommitTimeSecurityState(
   if (!binding || (binding.role !== "WRITER_REPLICA" && binding.role !== "MIGRATION_AUTHORITY")) {
     return {
       ok: false,
-      code: "D137_AUTHOR_NOT_IN_EPOCH_MEMBERSHIP",
+      code: "SYNC_AUTHOR_NOT_IN_EPOCH_MEMBERSHIP",
       detail: `Replica ${op.opDot.replicaId} is not an authorized writer in epoch ${meta.epochNumber}`,
     };
   }
   if (binding.authorKeyId !== op.authorKeyId) {
     return {
       ok: false,
-      code: "D137_REVOKED_AUTHOR_KEY",
+      code: "SYNC_REVOKED_AUTHOR_KEY",
       detail: `Author key ${op.authorKeyId} does not match current membership binding for replica ${op.opDot.replicaId}`,
     };
   }
@@ -404,7 +404,7 @@ export function checkCommitTimeSecurityState(
 }
 
 /**
- * Gate 32 Risk D-1 & G32-1 Certificate Transition Validation
+ * Risk D-1 & G32-1 Certificate Transition Validation
  */
 export async function validateTransitionCertificateInvariants(
   ctx: PreVerifyContext | ReplicaMetaRecord,
@@ -412,21 +412,21 @@ export async function validateTransitionCertificateInvariants(
 ): Promise<PreVerifyResult> {
   const meta = "meta" in ctx ? ctx.meta : ctx;
   if (cert.collectionId !== meta.collectionId) {
-    return { ok: false, code: "D137_COLLECTION_MISMATCH", detail: "Certificate collection mismatch" };
+    return { ok: false, code: "SYNC_COLLECTION_MISMATCH", detail: "Certificate collection mismatch" };
   }
   if (cert.epochNumber !== meta.epochNumber + 1) {
     return {
       ok: false,
-      code: "D137_EPOCH_MISMATCH",
+      code: "SYNC_EPOCH_MISMATCH",
       detail: `Transition certificate epoch ${cert.epochNumber} must be current + 1 (${meta.epochNumber + 1})`,
     };
   }
 
-  // Gate 32 Risk D-1 (Permanent Case 2): Non-member check
+  // Risk D-1 (Permanent Case 2): Non-member check
   if (!(meta.replicaId in meta.epochCertificate.memberBindings)) {
     return {
       ok: false,
-      code: "D137_CERTIFICATE_NOT_A_MEMBER",
+      code: "SYNC_CERTIFICATE_NOT_A_MEMBER",
       detail: `Receiving replica ${meta.replicaId} is not a member of current certificate`,
     };
   }
@@ -436,7 +436,7 @@ export async function validateTransitionCertificateInvariants(
   if (!currentCoordBinding || !cert.coordinatorSignature) {
     return {
       ok: false,
-      code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+      code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
       detail: "Current coordinator binding missing or signature missing",
     };
   }
@@ -451,19 +451,19 @@ export async function validateTransitionCertificateInvariants(
   if (!isValidSig) {
     return {
       ok: false,
-      code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+      code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
       detail: `Coordinator signature verification failed against current coordinator ${currentCoordId}`,
     };
   }
 
-  // G32-1 & Gate 32 Risk D-1 (Permanent Case 1): Monotonicity check on listed streams
+  // G32-1 & Risk D-1 (Permanent Case 1): Monotonicity check on listed streams
   for (const [streamKey, currentFloor] of Object.entries(meta.epochCertificate.baselineStableFrontier)) {
     if (!(streamKey in cert.baselineStableFrontier)) continue;
     const newFloor = cert.baselineStableFrontier[streamKey] ?? 0;
     if (newFloor < currentFloor) {
       return {
         ok: false,
-        code: "D137_CERTIFICATE_FLOOR_REGRESSION",
+        code: "SYNC_CERTIFICATE_FLOOR_REGRESSION",
         detail: `Baseline floor for stream ${streamKey} decreased from ${currentFloor} to ${newFloor}`,
       };
     }
@@ -475,7 +475,7 @@ export async function validateTransitionCertificateInvariants(
     if (newFloor > durable) {
       return {
         ok: false,
-        code: "D137_EPOCH_TRANSITION_NOT_READY",
+        code: "SYNC_EPOCH_TRANSITION_NOT_READY",
         detail: `Baseline floor ${newFloor} for stream ${streamKey} exceeds local durable frontier ${durable}`,
       };
     }
@@ -483,7 +483,7 @@ export async function validateTransitionCertificateInvariants(
     if (newFloor < currentFloor) {
       return {
         ok: false,
-        code: "D137_CERTIFICATE_FLOOR_REGRESSION",
+        code: "SYNC_CERTIFICATE_FLOOR_REGRESSION",
         detail: `Baseline floor for stream ${streamKey} decreased from ${currentFloor} to ${newFloor}`,
       };
     }

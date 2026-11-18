@@ -1,7 +1,7 @@
 /**
  * @dotmix/cli/hmr-client/overlay — Dev-only error overlay in an isolated Shadow DOM
  *
- * Implements H-6, D-155:
+ * Implements:
  * - Traps compiler and runtime errors without tearing down app state
  * - Uses Shadow DOM to prevent app CSS interference
  * - Can be dismissed manually or automatically cleared when error resolves

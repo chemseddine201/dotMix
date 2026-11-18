@@ -13,7 +13,7 @@ import { runtimeUrl } from "../support/module-urls.mjs";
 // Test and compiled components load the runtime from the URL Node resolves, so they share one instance.
 const { createContext, provideContext, useContext, createRoot, mount } = await import(runtimeUrl);
 
-describe("Gate 10: Component Composition — Slots (<slot>) & Context API (D-113)", () => {
+describe(": Component Composition — Slots (<slot>) & Context API", () => {
   let win;
   let document;
 

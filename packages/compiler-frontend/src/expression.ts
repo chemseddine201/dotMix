@@ -205,13 +205,13 @@ export function parseEmbeddedExpression(
       typeof err === "object" && err !== null && "pos" in err && typeof (err as { pos: unknown }).pos === "number"
         ? (err as { pos: number }).pos
         : exprStart;
-    // D-133 (Option b): Detect JSX-style logical/conditional markup `{cond && <el/>}` or `{cond ? <a/> : <b/>}`
+    // (Option b): Detect JSX-style logical/conditional markup `{cond && <el/>}` or `{cond ? <a/> : <b/>}`
     const probeSlice = source.slice(exprStart, Math.min(limitOffset, exprStart + 300));
     if (/(?:&&|\|\||\?|:)\s*<(?:[A-Za-z$]|\/)/.test(probeSlice)) {
       throw new MixDiagnosticError({
         code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
         message:
-          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead (D-133).",
+          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
         severity: "error",
         span: lineMap.span(exprStart, Math.min(limitOffset, pos + 1))
       });
@@ -236,7 +236,7 @@ export function parseEmbeddedExpression(
       throw new MixDiagnosticError({
         code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
         message:
-          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead (D-133).",
+          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
         severity: "error",
         span: lineMap.span(exprStart, Math.min(limitOffset, afterExpr + 1))
       });
@@ -250,12 +250,12 @@ export function parseEmbeddedExpression(
   }
 
   const rawExpression = source.slice(exprStart, rawNode.end);
-  // D-133 (Option b): Reject JSX logical/conditional markup that Acorn parsed as comparison/type-assertion
+  // (Option b): Reject JSX logical/conditional markup that Acorn parsed as comparison/type-assertion
   if (/(?:&&|\|\||\?|:)\s*<(?:[A-Za-z$]|\/)/.test(rawExpression)) {
     throw new MixDiagnosticError({
       code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
       message:
-        "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead (D-133).",
+        "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
       severity: "error",
       span: lineMap.span(exprStart, rawNode.end)
     });

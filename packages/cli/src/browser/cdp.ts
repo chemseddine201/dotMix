@@ -1,7 +1,7 @@
 /**
  * Zero-dependency Chrome DevTools Protocol (CDP) client for real-browser testing.
  * Uses Node 22 built-in fetch and WebSocket to control Chrome/Edge/Chromium instances.
- * Implements D-169.
+ * Implements.
  */
 
 import { spawn, type ChildProcess } from "node:child_process";

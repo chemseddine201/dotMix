@@ -1,5 +1,5 @@
 /**
- * Gate 17 (D-120): Universal Polyglot Component ABI Integration Suite
+ *: Universal Polyglot Component ABI Integration Suite
  *
  * Verifies:
  * 1. TC39 Signals Standard interoperability bridge (`toTc39Signal`, `fromTc39Signal`, `isSignal`)
@@ -25,7 +25,7 @@ import {
   defineMixCustomElement
 } from "../../node_modules/@dotmix/interop/dist/index.js";
 
-describe("Gate 17: Universal Polyglot Component ABI (@dotmix/interop)", () => {
+describe(": Universal Polyglot Component ABI (@dotmix/interop)", () => {
   let win;
   let document;
 

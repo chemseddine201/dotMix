@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Migration Subsystem Index (Gate 34 / T-34.3)
+ * @dotmix/sync — Migration Subsystem Index
  */
 
 export * from "./types.js";

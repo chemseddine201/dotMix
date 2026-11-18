@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix upgrade` Command (Gate 37 / T-37.10 / D-168)
+ * @dotmix/cli — `mix upgrade` Command
  *
  * Dependency lifecycle management and automated AST codemods:
  * - Semver inspection and comparison against npm registry.

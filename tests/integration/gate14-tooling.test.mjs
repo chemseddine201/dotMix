@@ -1,5 +1,5 @@
 /**
- * Gate 14 Test Suite — Build Tooling & Bundler Integration (@dotmix/vite-plugin, @dotmix/cli — D-117)
+ * Test Suite — Build Tooling & Bundler Integration
  *
  * Verifies:
  * 1. Vite plugin transforms .mix and .tix components to executable JS with SourceMap
@@ -18,7 +18,7 @@ import os from "node:os";
 import { mix } from "../../node_modules/@dotmix/vite-plugin/dist/index.js";
 import { check, build, create } from "../../node_modules/@dotmix/cli/dist/index.js";
 
-describe("Gate 14: Build Tooling & Bundler Integration (D-117)", () => {
+describe(": Build Tooling & Bundler Integration", () => {
   test("1. Vite plugin transforms .mix component, extracts virtual CSS, and supports load()", () => {
     const plugin = mix();
     const filename = "/virtual/Button.mix";

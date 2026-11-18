@@ -1,5 +1,5 @@
 /**
- * Gate 20 (D-123): Data Router Loaders, Actions, Lazy Splitting & Prefetching Suite
+ *: Data Router Loaders, Actions, Lazy Splitting & Prefetching Suite
  *
  * Verifies:
  * 1. Route `loader` execution with `useLoaderData`
@@ -26,7 +26,7 @@ import {
   useHead
 } from "../../node_modules/@dotmix/router/dist/index.js";
 
-describe("Gate 20: Data Router Loaders, Actions, Lazy Splitting & Prefetching (@dotmix/router)", () => {
+describe(": Data Router Loaders, Actions, Lazy Splitting & Prefetching (@dotmix/router)", () => {
   let win;
   let document;
 

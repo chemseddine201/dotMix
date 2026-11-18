@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node/directives/ssr-render — SSR entry helpers for RequestContext, partial extraction, and head/stack injection (T-38.6).
+ * @dotmix/server-node/directives/ssr-render — SSR entry helpers for RequestContext, partial extraction, and head/stack injection.
  */
 
 import type { HeadCollector, RequestContext, StackCollector } from "@dotmix/runtime";

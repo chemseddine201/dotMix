@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] — 2026-11-18
+
+All `@dotmix/*` packages move to 0.2.0 together.
+
+### Added
+- Configuration file loading: `mix.config.ts`, `mix.config.mjs`, and `mix.config.js` with CLI-flag precedence.
+- Real source maps support for client and SSR builds via `mix build --sourcemap`.
+
+### Changed
+- **Breaking:** `mix build --target` now accepts only `client` or `ssr`. The legacy `static` target was removed (use `--prerender`).
+- **Breaking:** The sync engine's public names were renamed from the development codename `d137` to `replicated` / `SYNC_*` / `ReplicationEngine` / `createReplicated*` / `SYNC_PROTOCOL_LIMITS`. Backward-compatible deprecated aliases are preserved for previous export names, and the `"d137"` engine configuration string remains accepted.
+- **Breaking:** Local sync storage names for IndexedDB and BroadcastChannel were updated (`dotmix_sync_*` / `dotmix:sync:*`). Existing local sync databases start clean.
+- VS Code extension publisher identifier updated to `dotmix` (extension ID `dotmix.vscode-mix`).
+
+### Fixed
+- CLI banner and help output branded to "dotMix" without legacy strings.
+- Internal planning codes removed from comments, error messages, and documentation.
+- Hot module replacement (HMR): fixed issue where edited components could disappear from the DOM on hot update due to detached boundary markers or unhandled swap errors.
+
 ## [0.1.1] — 2026-11-16
 
 All `@dotmix/*` packages move to 0.1.1 together.

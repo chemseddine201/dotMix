@@ -1,11 +1,11 @@
 /**
- * Gate 12 Test Suite — Production Client Router (@dotmix/router — D-115)
+ * Test Suite — Production Client Router
  *
  * Verifies:
  * 1. Radix-Trie route matching engine (static, param, wildcard, nested layouts)
  * 2. Navigation drivers (Memory, Browser, Hash)
  * 3. Reactive navigation primitives (useRoute, useParams, useSearchParams, useNavigate)
- * 4. Async navigation guards and D-104 CancellationToken cancellation on rapid route switches
+ * 4. Async navigation guards and CancellationToken cancellation on rapid route switches
  * 5. Nested <RouterView /> layout preservation (parent does NOT remount when child route changes)
  * 6. <Link /> navigation, activeClass toggle, and R-URL-01 unsafe protocol rejection
  * 7. Zero external runtime dependencies in @dotmix/router
@@ -36,7 +36,7 @@ import { createRoot } from "../../node_modules/@dotmix/runtime/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "../..");
 
-describe("Gate 12: Production Client Router (@dotmix/router — D-115)", () => {
+describe(": Production Client Router", () => {
   test("1. Package Boundaries: Zero external runtime dependencies in @dotmix/router", () => {
     const routerPkgPath = path.join(rootDir, "packages/router/package.json");
     assert.ok(fs.existsSync(routerPkgPath), "@dotmix/router package.json must exist");
@@ -158,7 +158,7 @@ describe("Gate 12: Production Client Router (@dotmix/router — D-115)", () => {
     router.destroy();
   });
 
-  test("4. Async Navigation Guards with D-104 CancellationToken cancellation on rapid route switches", async () => {
+  test("4. Async Navigation Guards with CancellationToken cancellation on rapid route switches", async () => {
     const history = createMemoryHistory("/");
     let cancelCount = 0;
     let slowNavCompleted = false;

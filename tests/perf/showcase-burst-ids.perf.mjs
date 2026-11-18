@@ -1,5 +1,5 @@
 /**
- * Phase 4 Permanent Regression Test Suite: Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)
+ * Permanent Regression Test Suite: Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)
  *
  * Verifies:
  * 1. Synchronously inserting 1,000 tasks in a tight loop produces 1,000 unique IDs
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { syncCollection, SyncEngine, MemoryDriver } from "../../node_modules/@dotmix/sync/dist/index.js";
 import { perfBudgetScale } from "./budget-scale.mjs";
 
-describe("Phase 4: Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)", () => {
+describe(": Showcase Unique Task IDs & Burst Stress (FINDING-SHOWCASE-01)", () => {
   function createTaskIdGenerator() {
     let taskSequence = 0;
     return function generateTaskId() {

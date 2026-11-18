@@ -5,11 +5,13 @@
 import {
   extractAndTranspileScript,
   generateSourceMap,
+  buildComponentSpanTable,
+  type TemplateExpressionSpan,
   stripDirectiveImportsFromJs,
   type ComponentDescriptor,
-  type SourceMapV3,
-  type SpanEntry
+  type SourceMapV3
 } from "@dotmix/compiler-semantic";
+import type { TemplateNode } from "@dotmix/ast";
 import { compileCss, preprocessCss, computeScopeHash } from "@dotmix/compiler-css";
 import {
   AUTO_IMPORTABLE_RUNTIME_PRIMITIVES,
@@ -295,18 +297,55 @@ export function generate(
   // 5. Generate SourceMapV3 if requested (default: true)
   let map: SourceMapV3 | undefined;
   if (options?.sourceMap !== false) {
-    const spanTable: SpanEntry[] = [
-      {
-        genStart: 0,
-        genEnd: jsCode.length,
-        srcStart: descriptor.ast.span.start.offset,
-        srcEnd: descriptor.ast.span.end.offset,
-        kind: "origin"
+    const originalSource = options?.source ?? "";
+    const templateExpressions: TemplateExpressionSpan[] = [];
+
+    const collectExpressions = (nodes: readonly TemplateNode[]): void => {
+      for (const node of nodes) {
+        if (node.type === "Interpolation") {
+          const raw = node.rawExpression;
+          const nodeSlice = originalSource.slice(node.span.start.offset, node.span.end.offset);
+          const rawIndex = nodeSlice.indexOf(raw);
+          const startOffset = node.span.start.offset + (rawIndex !== -1 ? rawIndex : 0);
+          templateExpressions.push({ raw, startOffset });
+        } else if ("children" in node && Array.isArray((node as { children?: readonly TemplateNode[] }).children)) {
+          collectExpressions((node as { children: readonly TemplateNode[] }).children);
+        } else if (node.type === "IfBlock") {
+          collectExpressions(node.consequent);
+          if (node.alternate) {
+            collectExpressions(Array.isArray(node.alternate) ? node.alternate : [node.alternate]);
+          }
+        } else if (node.type === "EachBlock") {
+          collectExpressions(node.children);
+          if (node.empty) collectExpressions(node.empty);
+        }
       }
-    ];
+    };
+    collectExpressions(descriptor.ast.template);
+
+    let spanTable = buildComponentSpanTable(
+      originalSource,
+      jsCode,
+      descriptor.ast.script?.content,
+      descriptor.ast.script?.contentSpan.start.offset,
+      templateExpressions
+    );
+
+    if (spanTable.length === 0) {
+      spanTable = [
+        {
+          genStart: 0,
+          genEnd: jsCode.length,
+          srcStart: descriptor.ast.span.start.offset,
+          srcEnd: descriptor.ast.span.end.offset,
+          kind: "origin"
+        }
+      ];
+    }
+
     map = generateSourceMap(
       filename,
-      "",
+      originalSource,
       jsCode,
       spanTable
     );

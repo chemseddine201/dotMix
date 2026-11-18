@@ -16,7 +16,7 @@ function assertDeepFrozen(obj, path = "root") {
   }
 }
 
-test("Gate 2 (T-SYN-01..06): Expression boundary extraction across strings, template literals, regexes, comments, and parens (R-SYN-01, R-SYN-01a)", () => {
+test(" (T-SYN-01..06): Expression boundary extraction across strings, template literals, regexes, comments, and parens (R-SYN-01, R-SYN-01a)", () => {
   const source = `<script lang="ts">
   const count = signal(0);
 </script>
@@ -52,7 +52,7 @@ test("Gate 2 (T-SYN-01..06): Expression boundary extraction across strings, temp
   assert.strictEqual(interp.rawExpression, '({ label: "ok" as const }).label');
 });
 
-test("Gate 2 (T-SYN-07..08): Unterminated and invalid expressions emit MixDiagnosticError with exact spans", () => {
+test(" (T-SYN-07..08): Unterminated and invalid expressions emit MixDiagnosticError with exact spans", () => {
   assert.throws(
     () => parse(`<div>{ count( </div>`),
     err => {
@@ -84,7 +84,7 @@ test("Gate 2 (T-SYN-07..08): Unterminated and invalid expressions emit MixDiagno
   );
 });
 
-test("Gate 2 (D-105, R-SYN-02, R-SYN-03, TECH-06): Dynamic element <{~expr}> preserves attributes and compares closing tag by token sequence", () => {
+test(": Dynamic element <{~expr}> preserves attributes and compares closing tag by token sequence", () => {
   const source = `<{~isHeader() ? "h1" : "p"} id="dyn" class={cls()} @click={handleClick} ref={headingRef}>
   <span>Inside Dynamic</span>
 </{~ /* comment ignored in R-SYN-02 */ isHeader( ) ? "h1" : "p" }>`;
@@ -132,7 +132,7 @@ test("Gate 2 (D-105, R-SYN-02, R-SYN-03, TECH-06): Dynamic element <{~expr}> pre
   );
 });
 
-test("Gate 2 (TECH-07): PascalCase tags parse into ComponentCallNode while lowercase tags parse into ElementNode", () => {
+test(": PascalCase tags parse into ComponentCallNode while lowercase tags parse into ElementNode", () => {
   const source = `<Card title="Wrapper">
   <Header label={title()} @save={onSave} />
   <div class="body"><input type="text" disabled></div>
@@ -161,7 +161,7 @@ test("Gate 2 (TECH-07): PascalCase tags parse into ComponentCallNode while lower
   assert.strictEqual(input.selfClosing, true);
 });
 
-test("Gate 2: Control flow {#if}/{:else if}/{:else} and keyed {#each} blocks (D-110)", () => {
+test(": Control flow {#if}/{:else if}/{:else} and keyed {#each} blocks", () => {
   const source = `{#if status() === "loading"}
   <p>Loading...</p>
 {:else if status() === "error"}
@@ -199,7 +199,7 @@ test("Gate 2: Control flow {#if}/{:else if}/{:else} and keyed {#each} blocks (D-
   assert.strictEqual(li.attributes[0].type, "DirectiveAttribute");
   assert.strictEqual(li.attributes[0].name, "mix-html");
 
-  // Unkeyed {#each} must be rejected per D-110
+  // Unkeyed {#each} must be rejected
   assert.throws(
     () => parse(`{#each items() as item}<li>{item}</li>{/each}`),
     err => {
@@ -211,7 +211,7 @@ test("Gate 2: Control flow {#if}/{:else if}/{:else} and keyed {#each} blocks (D-
   );
 });
 
-test("Gate 2: SourceSpan 1-based line/column accuracy and walk visitor traversal", () => {
+test(": SourceSpan 1-based line/column accuracy and walk visitor traversal", () => {
   const source = `<script>
   const x = 1;
 </script>
@@ -261,7 +261,7 @@ test("Gate 2: SourceSpan 1-based line/column accuracy and walk visitor traversal
   assert.match(frame, /6 \| {3}<p>\{x\}<\/p>/);
 });
 
-test("HAA-06 Language Upgrade: Functional React-style components, <$tagName>, {if}/{elseif}/{else}/{endif}, and {each (item, idx) in list}/{endeach}", () => {
+test(" Language Upgrade: Functional React-style components, <$tagName>, {if}/{elseif}/{else}/{endif}, and {each (item, idx) in list}/{endeach}", () => {
   const source = `interface Props {
   headingTag?: string;
 }

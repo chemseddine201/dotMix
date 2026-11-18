@@ -1,7 +1,7 @@
 /**
  * @dotmix/runtime/forms — Signal-backed reactive form controller & validation engine
  *
- * Implements Phase Gate 21 / Decision D-124.
+ * Implements Phase Decision.
  */
 
 export * from "./types.js";

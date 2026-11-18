@@ -5,6 +5,8 @@
 export {
   removeSideEffectImports,
   removeJavaScriptComments,
+  computeRemoveSideEffectImportsEdits,
+  computeRemoveCommentsEdits,
   listStaticImportSpecifiers,
   listDynamicImportSpecifiers
 } from "./module-transforms.js";
@@ -15,5 +17,6 @@ export {
 } from "./script-typecheck.js";
 export {
   replaceImportMetaEnv,
+  computeImportMetaEnvEdits,
   type ImportMetaEnvValues
 } from "./import-meta-env.js";

@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix doctor` Command (Gate 37 / T-37.9 / D-167)
+ * @dotmix/cli — `mix doctor` Command
  * Automated project health verification across 10 critical configuration vectors.
  */
 

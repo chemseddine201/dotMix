@@ -18,7 +18,7 @@ import { projectDirectiveTemplateNode } from "./directives/index.js";
 
 /**
  * Projects a `.tix` ComponentNode into a virtual `.tix.ts` file with a 100% byte-covered
- * `SourceMapSpanTable` (`verbatim | origin | internal`) per D-106, R-TC-01..03, and R-SP-01..05.
+ * `SourceMapSpanTable` (`verbatim | origin | internal`), R-TC-01..03, and R-SP-01..05.
  */
 export function projectTypeScript(
   ast: ComponentNode,

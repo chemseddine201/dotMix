@@ -1,5 +1,5 @@
 /**
- * @dotmix/interop — Universal Polyglot Component ABI (Gate 17 / D-120)
+ * @dotmix/interop — Universal Polyglot Component ABI
  *
  * Bridges Mix/Tix compiler-native components and reactive signals directly into:
  * - TC39 Signals Standard

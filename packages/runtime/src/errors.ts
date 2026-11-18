@@ -1,7 +1,7 @@
 /**
  * @dotmix/runtime/errors — Self-contained runtime MixError class and diagnostic codes.
  *
- * Zero-Dependency Architecture Invariant (HAA-04):
+ * Zero-Dependency Architecture Invariant:
  * Uses `import type` only from @dotmix/diagnostics. Under `verbatimModuleSyntax: true`,
  * all type references are completely erased at compile time, emitting zero runtime
  * import/require statements and requiring zero bundler.
@@ -48,7 +48,8 @@ export const DiagnosticCodes = {
   MIX_ERR_CONDITIONAL_WITHOUT_BASE: "MIX_ERR_CONDITIONAL_WITHOUT_BASE",
   MIX_ERR_CONDITIONAL_CONFLICT: "MIX_ERR_CONDITIONAL_CONFLICT",
   MIX_ERR_CONDITIONAL_ELSE_ALONE: "MIX_ERR_CONDITIONAL_ELSE_ALONE",
-  MIX_WARN_INERT_INTERACTIVE: "MIX_WARN_INERT_INTERACTIVE"
+  MIX_WARN_INERT_INTERACTIVE: "MIX_WARN_INERT_INTERACTIVE",
+  MIX_ERR_CONFIG_INVALID: "MIX_ERR_CONFIG_INVALID"
 } as const satisfies Record<string, IDiagnosticCode>;
 
 export type DiagnosticCode = (typeof DiagnosticCodes)[keyof typeof DiagnosticCodes];

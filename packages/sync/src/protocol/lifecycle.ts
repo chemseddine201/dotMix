@@ -1,6 +1,6 @@
 /**
- * @dotmix/sync — Lifecycle State Machine, Epoch Advance & Remote Sync (Gate 33 / D-137)
- * Enforces T-31.9, D-139 Option A, Gate 32 Risk D-1, Defect 7, Defect 8.
+ * @dotmix/sync — Lifecycle State Machine, Epoch Advance & Remote Sync
+ * Enforces Option A Risk D-1, Defect 7, Defect 8.
  */
 
 import { toIncarnationId } from "./apply.js";
@@ -113,16 +113,16 @@ export async function ingestEpochTransitionCertificate(
     ) {
       return {
         ok: false,
-        code: "D137_EPOCH_TRANSITION_INVALID",
+        code: "SYNC_EPOCH_TRANSITION_INVALID",
         detail: `Transition certificate invalid: collection=${cert.collectionId}, epoch=${cert.epochNumber}, certId=${cert.epochCertificateId}`,
       };
     }
 
-    // Gate 32 Risk D-1 (Permanent Case 2): Non-member check
+    // Risk D-1 (Permanent Case 2): Non-member check
     if (!(engine.meta.replicaId in engine.meta.epochCertificate.memberBindings)) {
       return {
         ok: false,
-        code: "D137_CERTIFICATE_NOT_A_MEMBER",
+        code: "SYNC_CERTIFICATE_NOT_A_MEMBER",
         detail: `Receiving replica ${engine.meta.replicaId} is not a member of current certificate`,
       };
     }
@@ -133,7 +133,7 @@ export async function ingestEpochTransitionCertificate(
     if (!currentCoordBinding || !cert.coordinatorSignature) {
       return {
         ok: false,
-        code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+        code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
         detail: "Current coordinator binding missing or signature missing on transition certificate",
       };
     }
@@ -149,19 +149,19 @@ export async function ingestEpochTransitionCertificate(
     if (!isValidSig) {
       return {
         ok: false,
-        code: "D137_CERTIFICATE_SIGNATURE_INVALID",
+        code: "SYNC_CERTIFICATE_SIGNATURE_INVALID",
         detail: `Coordinator signature verification failed against current coordinator ${currentCoordId}`,
       };
     }
 
-    // G32-1 & Gate 32 Risk D-1 (Permanent Case 1): Monotonicity check on listed streams
+    // G32-1 & Risk D-1 (Permanent Case 1): Monotonicity check on listed streams
     for (const [streamKey, currentFloor] of Object.entries(engine.meta.epochCertificate.baselineStableFrontier)) {
       if (!(streamKey in cert.baselineStableFrontier)) continue;
       const newFloor = cert.baselineStableFrontier[streamKey] ?? 0;
       if (newFloor < currentFloor) {
         return {
           ok: false,
-          code: "D137_CERTIFICATE_FLOOR_REGRESSION",
+          code: "SYNC_CERTIFICATE_FLOOR_REGRESSION",
           detail: `Baseline floor for stream ${streamKey} decreased from ${currentFloor} to ${newFloor}`,
         };
       }
@@ -173,7 +173,7 @@ export async function ingestEpochTransitionCertificate(
       if (newFloor > durable) {
         return {
           ok: false,
-          code: "D137_EPOCH_TRANSITION_NOT_READY",
+          code: "SYNC_EPOCH_TRANSITION_NOT_READY",
           detail: `Baseline floor ${newFloor} for stream ${streamKey} exceeds local durable frontier ${durable}`,
         };
       }
@@ -181,7 +181,7 @@ export async function ingestEpochTransitionCertificate(
       if (newFloor < currentFloor) {
         return {
           ok: false,
-          code: "D137_CERTIFICATE_FLOOR_REGRESSION",
+          code: "SYNC_CERTIFICATE_FLOOR_REGRESSION",
           detail: `Baseline floor for stream ${streamKey} decreased from ${currentFloor} to ${newFloor}`,
         };
       }
@@ -212,7 +212,7 @@ export async function ingestEpochTransitionCertificate(
             }
             engine.syncOutbox.delete(opKey);
             const dig = engine.operationDigests.get(opKey);
-            if (dig) dig.status = "D137_EPOCH_CLOSED";
+            if (dig) dig.status = "SYNC_EPOCH_CLOSED";
           }
           for (const [gKey, gRec] of engine.inboundGapBuffer.entries()) {
             if (gRec.streamKey === streamKey && gRec.sequence > closingFloor) {
@@ -260,12 +260,12 @@ export async function executeSelfCertifiedEpochAdvance(
   engine: LifecycleEngineTarget
 ): Promise<{ ok: boolean; code?: string | undefined; detail?: string | undefined }> {
   if (!engine.meta.authorPrivateKeyHex) {
-    return { ok: false, code: "D137_SIGNING_KEY_REQUIRED", detail: "Author private key required to self-certify epoch advance" };
+    return { ok: false, code: "SYNC_SIGNING_KEY_REQUIRED", detail: "Author private key required to self-certify epoch advance" };
   }
 
   const writers = Object.entries(engine.meta.epochMemberBindings).filter(([_, b]) => b.role === "WRITER_REPLICA");
   if (writers.length !== 1 || writers[0]![0] !== engine.meta.replicaId) {
-    return { ok: false, code: "D137_MULTI_WRITER_COORDINATOR_REQUIRED", detail: "Only single-writer topologies may self-certify epoch advance" };
+    return { ok: false, code: "SYNC_MULTI_WRITER_COORDINATOR_REQUIRED", detail: "Only single-writer topologies may self-certify epoch advance" };
   }
 
   const nextEpoch = engine.meta.epochNumber + 1;
@@ -321,7 +321,7 @@ export async function executeEnableRemoteSync(
   }
 
   if (!coordinatorCertOrRemoteSnapshot || !("entries" in coordinatorCertOrRemoteSnapshot)) {
-    return { ok: false, code: "D137_REMOTE_SNAPSHOT_REQUIRED", detail: "Remote cluster snapshot required to join existing cluster" };
+    return { ok: false, code: "SYNC_REMOTE_SNAPSHOT_REQUIRED", detail: "Remote cluster snapshot required to join existing cluster" };
   }
 
   const remoteSnap = coordinatorCertOrRemoteSnapshot as SnapshotRecord;
@@ -331,12 +331,12 @@ export async function executeEnableRemoteSync(
 
   const expectedSnapDigest = computeCanonicalSnapshotDigest(remoteSnap);
   if (remoteSnap.snapshotDigest !== expectedSnapDigest) {
-    return { ok: false, code: "D137_SNAPSHOT_DIGEST_MISMATCH", detail: "Bootstrap snapshot digest verification failed" };
+    return { ok: false, code: "SYNC_SNAPSHOT_DIGEST_MISMATCH", detail: "Bootstrap snapshot digest verification failed" };
   }
 
   const joinerPublicKey = engine.meta.epochMemberBindings?.[engine.meta.replicaId]?.authorPublicKeyHex;
   if (!joinerPublicKey) {
-    return { ok: false, code: "D137_JOIN_IDENTITY_INVALID", detail: "Joiner own public key is unknown in local metadata" };
+    return { ok: false, code: "SYNC_JOIN_IDENTITY_INVALID", detail: "Joiner own public key is unknown in local metadata" };
   }
 
   let targetReplicaId: string;
@@ -346,14 +346,14 @@ export async function executeEnableRemoteSync(
     targetReplicaId = assignedReplicaId;
     binding = remoteSnap.epochCertificate.memberBindings?.[targetReplicaId];
     if (!binding || binding.authorPublicKeyHex !== joinerPublicKey) {
-      return { ok: false, code: "D137_JOIN_IDENTITY_INVALID", detail: `Coordinator certificate does not contain valid member binding for replica ${targetReplicaId}` };
+      return { ok: false, code: "SYNC_JOIN_IDENTITY_INVALID", detail: `Coordinator certificate does not contain valid member binding for replica ${targetReplicaId}` };
     }
   } else {
     const matchingBindings = Object.entries(remoteSnap.epochCertificate.memberBindings ?? {}).filter(
       ([_, b]) => b.authorPublicKeyHex === joinerPublicKey
     );
     if (matchingBindings.length !== 1) {
-      return { ok: false, code: "D137_JOIN_IDENTITY_INVALID", detail: `Coordinator certificate must contain exactly one member binding for joiner public key (found ${matchingBindings.length})` };
+      return { ok: false, code: "SYNC_JOIN_IDENTITY_INVALID", detail: `Coordinator certificate must contain exactly one member binding for joiner public key (found ${matchingBindings.length})` };
     }
     targetReplicaId = matchingBindings[0]![0];
     binding = matchingBindings[0]![1];
@@ -364,7 +364,7 @@ export async function executeEnableRemoteSync(
   const existingIncluded = remoteSnap.frontiers.snapshotIncludedFrontier[targetStreamKey] ?? 0;
   const existingBaseline = remoteSnap.baselineStableFrontier?.[targetStreamKey] ?? 0;
   if (existingDurable > 0 || existingIncluded > 0 || existingBaseline > 0) {
-    return { ok: false, code: "D137_JOIN_IDENTITY_INVALID", detail: `Snapshot frontiers already contain operations for stream ${targetStreamKey}; cannot restart at seq 1` };
+    return { ok: false, code: "SYNC_JOIN_IDENTITY_INVALID", detail: `Snapshot frontiers already contain operations for stream ${targetStreamKey}; cannot restart at seq 1` };
   }
 
   const replayPlan = planClusterExportReplay(engine.entriesState, remoteSnap, engine.meta.collectionId, remoteSnap.epochNumber);

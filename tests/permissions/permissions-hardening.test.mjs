@@ -12,7 +12,7 @@ import {
   useAbility
 } from "../../node_modules/@dotmix/runtime/dist/permissions/index.js";
 
-describe("Gate 28 (T-28.3): Permissions Hardening (Subject Detection, Branded Signals, Async Guard, Memoized Proxy)", () => {
+describe(": Permissions Hardening (Subject Detection, Branded Signals, Async Guard, Memoized Proxy)", () => {
   it("1. constructor.name subject detection emits a warning and is disabled when strictSubjects: true", () => {
     class Invoice {
       constructor(id) {

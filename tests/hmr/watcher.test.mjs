@@ -10,7 +10,7 @@ import { createDevServer } from "../../node_modules/@dotmix/cli/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, "fixtures/test-app");
 
-describe("Gate 36 (T-36.0): Watcher Idle Reads Invariant (D-156)", () => {
+describe(": Watcher Idle Reads Invariant", () => {
   it("idle server makes zero file-content reads for 3 seconds", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-watcher-test-"));
     fs.cpSync(fixtureDir, tmpDir, { recursive: true });

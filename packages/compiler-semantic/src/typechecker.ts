@@ -1,5 +1,5 @@
 /**
- * @dotmix/compiler-semantic/typechecker — TypeScript 6.0.3 Compiler API verification adapter (D-106, D-131, R-TC-01..03).
+ * @dotmix/compiler-semantic/typechecker — TypeScript 6.0.3 Compiler API verification adapter.
  */
 
 import * as ts from "typescript";
@@ -56,7 +56,7 @@ ${AUTH_USER_TYPE_HINT}`;
 }
 
 /**
- * Verifies a `.tix` ComponentNode or ComponentDescriptor using the official TypeScript 6.0.3 Compiler API (D-106, D-131).
+ * Verifies a `.tix` ComponentNode or ComponentDescriptor using the official TypeScript 6.0.3 Compiler API.
  */
 export function typecheckTix(
   astOrDesc: ComponentNode | ComponentDescriptor,

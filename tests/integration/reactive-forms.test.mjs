@@ -1,5 +1,5 @@
 /**
- * Gate 21 (D-124): Reactive Typed Form & Validation Engine Suite
+ *: Reactive Typed Form & Validation Engine Suite
  *
  * Verifies:
  * 1. `createForm` initializes per-field signals (value, error, touched, dirty, validating)
@@ -17,7 +17,7 @@ import {
   validators
 } from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 21: Reactive Typed Forms & Validation (@dotmix/runtime/forms)", () => {
+describe(": Reactive Typed Forms & Validation (@dotmix/runtime/forms)", () => {
   test("1. Initializes per-field signals and updates value/dirty state", () => {
     const form = createForm({
       initialValues: {
@@ -168,7 +168,7 @@ describe("Gate 21: Reactive Typed Forms & Validation (@dotmix/runtime/forms)", (
     assert.strictEqual(submittedData, null);
 
     // Fill valid data
-    form.field("title").setValue("Implement Gate 21");
+    form.field("title").setValue("Implement");
     assert.strictEqual(form.field("title").error(), null);
     assert.strictEqual(form.isValid(), true);
 
@@ -180,7 +180,7 @@ describe("Gate 21: Reactive Typed Forms & Validation (@dotmix/runtime/forms)", (
     assert.strictEqual(success2, true);
     assert.strictEqual(form.isSubmitting(), false);
     assert.deepStrictEqual(submittedData, {
-      title: "Implement Gate 21",
+      title: "Implement",
       category: "engineering"
     });
   });

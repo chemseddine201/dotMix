@@ -1,7 +1,7 @@
 /**
- * @dotmix/cli — Event-Driven File Watcher with 15ms Coalescing & Zero Idle Reads (Gate 36 / T-36.2)
+ * @dotmix/cli — Event-Driven File Watcher with 15ms Coalescing & Zero Idle Reads
  *
- * Implements H-4, H-8 & D-156:
+ * Implements &:
  * - Native recursive fs.watch on root directory, ignoring excluded directories (node_modules, dist, .git, etc.)
  * - 15ms coalescing buffer so rapid editor burst saves emit exactly one event per file
  * - Change-only hashing: only reads and hashes the specific file that triggered the OS event

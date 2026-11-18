@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix preview` Command (Gate 37 / T-37.5 / D-163)
+ * @dotmix/cli — `mix preview` Command
  * Zero-dependency static HTTP server for production dist/ verification.
  * Implements SPA routing fallback, MIME typing, and gzip/brotli compression.
  */
@@ -11,6 +11,7 @@ import zlib from "node:zlib";
 import os from "node:os";
 import { exec } from "node:child_process";
 import type { ParsedCliArgs } from "../args.js";
+import { resolveCommandOptions } from "../config.js";
 import { colors, banner } from "../terminal.js";
 
 const MIME_MAP: Record<string, string> = {
@@ -160,10 +161,11 @@ export function createPreviewServer(options: PreviewOptions = {}): Promise<http.
 }
 
 export async function previewCommand(parsed: ParsedCliArgs): Promise<number> {
-  const dir = parsed.positional[0] || parsed.values.target || "dist";
-  const port = parsed.values.port ? parseInt(parsed.values.port, 10) : 4173;
-  const host = parsed.values.host || "localhost";
-  const open = parsed.values.open ?? false;
+  const options = await resolveCommandOptions(parsed, process.cwd());
+  const dir = options.preview.dir;
+  const port = options.preview.port;
+  const host = options.preview.host;
+  const open = options.preview.open;
   const silent = parsed.values.silent ?? false;
 
   try {

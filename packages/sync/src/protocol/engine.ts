@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Production Protocol Engine & Facade (Gate 33 / D-137)
+ * @dotmix/sync — Production Protocol Engine & Facade
  */
 
 import {
@@ -80,7 +80,7 @@ export function makeReactiveMeta(raw: ReplicaMetaRecord): ReplicaMetaRecord {
   });
 }
 
-export class D137Engine {
+export class ReplicationEngine {
   public meta: ReplicaMetaRecord;
   public entriesState = new Map<string, EntryStateRecord>();
   public snapshotsV2 = new Map<number, SnapshotRecord>();
@@ -170,7 +170,7 @@ export class D137Engine {
   public recordEpochClosed(
     op: ReplicableOperation,
     detail?: string | undefined
-  ): { ok: false; code: string; disposition: "D137_EPOCH_CLOSED"; detail?: string | undefined } {
+  ): { ok: false; code: string; disposition: "SYNC_EPOCH_CLOSED"; detail?: string | undefined } {
     return recordClosed(this, op, detail);
   }
 

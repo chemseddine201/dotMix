@@ -13,7 +13,12 @@ import {
   projectTypeScript,
   replaceImportMetaEnv,
   rewriteJsModuleSpecifiers,
-  transpileSourceModule
+  transpileSourceModule,
+  computeImportMetaEnvEdits,
+  computeJsModuleSpecifierEdits,
+  shiftMapThroughEdits,
+  applyTextEdits,
+  type SourceMapV3
 } from "@dotmix/compiler-semantic";
 import { generate, type CodegenOptions } from "@dotmix/compiler-codegen";
 import { compileCss, minifyStylesheet, preprocessCss } from "@dotmix/compiler-css";
@@ -50,7 +55,7 @@ export interface BuildOptions {
   outDir?: string | undefined;
   minify?: boolean | undefined;
   silent?: boolean | undefined;
-  target?: ("client" | "ssr" | "static") | undefined;
+  target?: ("client" | "ssr") | undefined;
   sourcemap?: boolean | undefined;
   clean?: boolean | undefined;
   analyze?: boolean | undefined;
@@ -84,6 +89,8 @@ export function build(options: BuildOptions = {}): BuildResult {
   const watchedFilesSet = new Set<string>();
   /** Compiled JavaScript modules keyed by their path relative to src/ ("components/Card.js"). */
   const compiledModules = new Map<string, string>();
+  /** Source maps for compiled JavaScript modules, keyed like compiledModules. */
+  const compiledSourceMaps = new Map<string, SourceMapV3>();
   /** Per-file stylesheets (server output only), keyed like compiledModules. */
   const compiledStylesheets = new Map<string, string>();
   /** Type projections of .tix components (server output only). */
@@ -112,9 +119,11 @@ export function build(options: BuildOptions = {}): BuildResult {
     };
     const ast = parse(source, { filename, readFile: (rel) => readExternalStyle(rel) });
     const desc = analyze(ast, { filename, source });
-    const codegenOptions: CodegenOptions & { mode?: string } = {
+    const codegenOptions: CodegenOptions & { mode?: string; source?: string } = {
       filename,
+      source,
       mode,
+      sourceMap: Boolean(options.sourcemap),
       resolveStyle: (src: string, fromFile: string) => readExternalStyle(src, fromFile),
     };
     const codegen = generate(desc, codegenOptions);
@@ -122,8 +131,25 @@ export function build(options: BuildOptions = {}): BuildResult {
       watchedFilesSet.add(dependency);
     }
 
-    const compiledWithEnv = replaceImportMetaEnv(codegen.js, envValues);
-    compiledModules.set(toModuleKey(file, ".js"), rewriteJsModuleSpecifiers(compiledWithEnv, toEmittedModuleSpecifier));
+    const moduleKey = toModuleKey(file, ".js");
+    let currentJs = codegen.js;
+    let currentMap = codegen.map;
+
+    if (options.sourcemap && currentMap) {
+      const envEdits = computeImportMetaEnvEdits(currentJs, envValues);
+      currentMap = shiftMapThroughEdits(currentMap, currentJs, envEdits);
+      currentJs = applyTextEdits(currentJs, envEdits);
+
+      const specifierEdits = computeJsModuleSpecifierEdits(currentJs, toEmittedModuleSpecifier);
+      currentMap = shiftMapThroughEdits(currentMap, currentJs, specifierEdits);
+      currentJs = applyTextEdits(currentJs, specifierEdits);
+
+      compiledSourceMaps.set(moduleKey, currentMap);
+    } else {
+      const compiledWithEnv = replaceImportMetaEnv(currentJs, envValues);
+      currentJs = rewriteJsModuleSpecifiers(compiledWithEnv, toEmittedModuleSpecifier);
+    }
+    compiledModules.set(moduleKey, currentJs);
     // Global stylesheets a component imports (`./styles/global.scss`) are project files too; the
     // stylesheet loop below adds them to the merged stylesheet once, so keep only the component's own CSS.
     const componentCss = codegen.css !== undefined && codegen.globalCss !== undefined
@@ -141,11 +167,35 @@ export function build(options: BuildOptions = {}): BuildResult {
   for (const scriptFile of scriptFiles) {
     watchedFilesSet.add(scriptFile);
     const source = fs.readFileSync(scriptFile, "utf-8");
-    const transpiledCode = replaceImportMetaEnv(
-      transpileSourceModule(source, scriptFile.endsWith(".ts")),
-      envValues
-    );
-    compiledModules.set(toModuleKey(scriptFile, ".js"), rewriteJsModuleSpecifiers(transpiledCode, toEmittedModuleSpecifier));
+    const moduleKey = toModuleKey(scriptFile, ".js");
+
+    if (options.sourcemap) {
+      const transpiled = transpileSourceModule(source, scriptFile.endsWith(".ts"), {
+        sourceMap: true,
+        filename: path.relative(inDir, scriptFile).replace(/\\/g, "/")
+      });
+      let currentJs = transpiled.code;
+      let currentMap = transpiled.map;
+
+      if (currentMap) {
+        const envEdits = computeImportMetaEnvEdits(currentJs, envValues);
+        currentMap = shiftMapThroughEdits(currentMap, currentJs, envEdits);
+        currentJs = applyTextEdits(currentJs, envEdits);
+
+        const specifierEdits = computeJsModuleSpecifierEdits(currentJs, toEmittedModuleSpecifier);
+        currentMap = shiftMapThroughEdits(currentMap, currentJs, specifierEdits);
+        currentJs = applyTextEdits(currentJs, specifierEdits);
+
+        compiledSourceMaps.set(moduleKey, currentMap);
+      }
+      compiledModules.set(moduleKey, currentJs);
+    } else {
+      const transpiledCode = replaceImportMetaEnv(
+        transpileSourceModule(source, scriptFile.endsWith(".ts")),
+        envValues
+      );
+      compiledModules.set(moduleKey, rewriteJsModuleSpecifiers(transpiledCode, toEmittedModuleSpecifier));
+    }
   }
 
   for (const styleFile of styleFiles) {
@@ -178,7 +228,25 @@ export function build(options: BuildOptions = {}): BuildResult {
     // Server output: one plain module per source module, no hashing and no HTML shell.
     for (const [modulePath, moduleCode] of compiledModules) {
       const modulePathOnDisk = path.join(outDir, ...modulePath.split("/"));
-      writeOutputFile(modulePathOnDisk, moduleCode);
+      let codeToWrite = moduleCode;
+      if (options.sourcemap) {
+        const map = compiledSourceMaps.get(modulePath);
+        if (map) {
+          const mapPathOnDisk = `${modulePathOnDisk}.map`;
+          const mapFileName = `${path.basename(modulePathOnDisk)}.map`;
+          const serializedMap = JSON.stringify({
+            version: 3,
+            file: path.basename(modulePathOnDisk),
+            sources: map.sources,
+            ...(map.sourcesContent ? { sourcesContent: map.sourcesContent } : {}),
+            names: map.names ?? [],
+            mappings: map.mappings
+          });
+          writeOutputFile(mapPathOnDisk, serializedMap);
+          codeToWrite = `${moduleCode}\n//# sourceMappingURL=${mapFileName}\n`;
+        }
+      }
+      writeOutputFile(modulePathOnDisk, codeToWrite);
       chunks.push(describeFile(path.relative(outDir, modulePathOnDisk), moduleCode, modulePath === "main.js"));
     }
     for (const [stylesheetPath, stylesheetCode] of compiledStylesheets) {
@@ -193,6 +261,8 @@ export function build(options: BuildOptions = {}): BuildResult {
     const basePath = normalizeBasePath(options.base);
     const emitted = emitProductionModules({
       modules: compiledModules,
+      sourceMaps: compiledSourceMaps,
+      sourcemap: options.sourcemap,
       outputDirectory: outDir,
       basePath,
       removeComments: shouldMinify
@@ -232,7 +302,13 @@ export function build(options: BuildOptions = {}): BuildResult {
     version: "1.0",
     target: options.target ?? "client",
     entry: chunks.find((chunk) => chunk.isEntry)?.file ?? null,
-    chunks: chunks.map((chunk) => ({ name: chunk.name, file: chunk.file, isEntry: chunk.isEntry, size: chunk.sizeBytes })),
+    chunks: chunks.map((chunk) => ({
+      name: chunk.name,
+      file: chunk.file,
+      ...(chunk.map ? { map: chunk.map } : {}),
+      isEntry: chunk.isEntry,
+      size: chunk.sizeBytes
+    })),
     assets: assets.map((asset) => ({ file: asset.file, size: asset.sizeBytes }))
   };
   writeOutputFile(manifestPath, JSON.stringify(manifest, null, 2));

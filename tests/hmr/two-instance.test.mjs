@@ -11,7 +11,7 @@ import { generate } from "../../node_modules/@dotmix/compiler-codegen/dist/index
 import { runtimeUrl } from "../support/module-urls.mjs";
 import { Window } from "happy-dom";
 
-describe("Gate 36 (T-36.1): Two-instance Event Handler Scoping (H-2)", () => {
+describe(": Two-instance Event Handler Scoping", () => {
   it("clicking instance A invokes instance A's own handler, not instance B", async () => {
     const window = new Window();
     globalThis.window = window;

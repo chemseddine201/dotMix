@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix dev` Development Server with @dotmix/vite-plugin Pipeline, HMR, Bare-Specifier Resolution & SPA Fallback (Gate 29 / T-29.1)
+ * @dotmix/cli — `mix dev` Development Server with @dotmix/vite-plugin Pipeline, HMR, Bare-Specifier Resolution & SPA Fallback
  */
 
 import http from "node:http";
@@ -14,13 +14,8 @@ import { STYLE_FILE_REGEX } from "./scanner.js";
 import { createFileWatcher } from "./watcher.js";
 import { ModuleGraph } from "./module-graph.js";
 import {
-  HMR_CLIENT_SOURCE,
-  rewriteModuleImportsForDev,
-  resolveDevSourceFile,
-  resolveMixModuleFile,
-  resolveMixPackageRequest,
-  getOrSynthesizeIndexHtml,
-  createStyleInjectorJs
+  HMR_CLIENT_SOURCE, rewriteModuleImportsForDev, resolveDevSourceFile,
+  resolveMixModuleFile, resolveMixPackageRequest, getOrSynthesizeIndexHtml, createStyleInjectorJs
 } from "./specifier-rewriter.js";
 import { servePublicFile } from "./public-files.js";
 import { normalizeDriveLetter } from "./normalize-path.js";
@@ -34,6 +29,7 @@ export interface DevServerOptions {
   host?: string;
   silent?: boolean;
   mode?: string;
+  cors?: boolean;
 }
 
 export interface HmrUpdatePayload {
@@ -240,7 +236,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
     return fallbackPayload;
   };
 
-  // Set up event-driven coalescing watcher with zero idle reads (T-36.2 / H-4, H-8, D-156)
+  // Set up event-driven coalescing watcher with zero idle reads
   const watcher = createFileWatcher(rootDir, (event) => {
     if (event.type === "delete") {
       moduleCache.delete(event.path);
@@ -252,22 +248,27 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
   }, { coalesceMs: 15, maxCoalesceMs: 300 });
 
   const server = http.createServer((req, res) => {
+    if (options.cors) {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "*");
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+    }
+
     const urlObj = new URL(req.url ?? "/", `http://${host}`);
     const pathname = decodeURIComponent(urlObj.pathname);
 
     // 1. SSE HMR stream
     if (pathname === "/__mix_hmr") {
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive"
-      });
+      res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
       const initialPayload = JSON.stringify({ type: "connected", serverId, seq: serverSeq });
       res.write(`: connected\ndata: ${initialPayload}\n\n`);
       sseClients.add(res);
-      req.on("close", () => {
-        sseClients.delete(res);
-      });
+      req.on("close", () => { sseClients.delete(res); });
       return;
     }
 
@@ -291,10 +292,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
 
     // 2. HMR client runtime script
     if (pathname === "/@dotmix/hmr-client.js") {
-      res.writeHead(200, {
-        "Content-Type": "application/javascript; charset=utf-8",
-        "Cache-Control": "no-store"
-      });
+      res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" });
       res.end(HMR_CLIENT_SOURCE);
       return;
     }

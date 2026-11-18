@@ -21,8 +21,8 @@
     { "path": "packages/server-node" },
     { "path": "packages/helpers" },
     { "path": "editors/vscode-mix" },
-    { "path": "tools/d137-reference" },
-    { "path": "tools/d137-coordinator" }
+    { "path": "tools/sync-reference" },
+    { "path": "tools/sync-coordinator" }
   ]
 }
 

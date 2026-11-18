@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix lint` Command (Gate 37 / T-37.7 / D-165)
+ * @dotmix/cli — `mix lint` Command
  * Static analysis, unused import detection, slot consistency, and deprecated syntax audit.
  * Automated migration of legacy control-flow syntax with --fix.
  */
@@ -56,7 +56,7 @@ export function lintSource(
         col: (match.index ?? 0) + 1,
         severity: "warning",
         rule: "deprecated-control-flow",
-        message: `Deprecated '{#${match[1]}}' syntax. Use canonical '{${match[1]}}' instead. (D-112/D-133)`,
+        message: `Deprecated '{#${match[1]}}' syntax. Use canonical '{${match[1]}}' instead.`,
         fixable: true,
       });
     }
@@ -97,7 +97,7 @@ export function lintSource(
         col: (match.index ?? 0) + 1,
         severity: "error",
         rule: "no-jsx-conditional",
-        message: "JSX-style '{condition && <Element/>}' is prohibited in dotMix templates. Use '{if condition} ... {endif}' instead. (D-133 Option b)",
+        message: "JSX-style '{condition && <Element/>}' is prohibited in dotMix templates. Use '{if condition} ... {endif}' instead.",
         fixable: false,
       });
     }

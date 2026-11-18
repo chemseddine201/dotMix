@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — Atomic Architectural Code Generator (`mix add` / `mix generate`) (Gate 37 / T-37.8 / D-166)
+ * @dotmix/cli — Atomic Architectural Code Generator (`mix add` / `mix generate`)
  */
 
 import fs from "node:fs";
@@ -109,7 +109,7 @@ export async function addCommand(parsed: ParsedCliArgs): Promise<number> {
   }
 
   if (type === "sync") {
-    // D-166: synced collection module; uses only the public syncCollection API (D-149).
+    //: synced collection module; uses only the public syncCollection API.
     const syncCwd = process.cwd();
     const syncIsTs = isTypeScriptProject(syncCwd);
     const syncName = toPascal(rawName);

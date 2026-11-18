@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/directives/contract — Complete typed runtime helper contract
- * and implementations for Gate 38 Dual-Mode Directives (F1..F14, T-38.4).
+ * and implementations for Dual-Mode Directives.
  */
 
 export * from "./contract-types.js";

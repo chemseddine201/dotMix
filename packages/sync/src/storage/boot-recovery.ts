@@ -19,7 +19,7 @@ import {
 } from "../protocol/frontiers.js";
 import { computeCanonicalSnapshotDigest } from "../protocol/snapshots.js";
 import { validateEpochMembershipCertificate } from "../protocol/preverify.js";
-import { D137Engine } from "../protocol/engine.js";
+import { ReplicationEngine } from "../protocol/engine.js";
 import type {
   InTransactionContext,
   MutationJournalRecord,
@@ -53,7 +53,7 @@ export interface BootRecoveryResult {
   code?: string;
   detail?: string;
   snapshot?: SnapshotRecordLike;
-  engine?: D137Engine;
+  engine?: ReplicationEngine;
 }
 
 export function computeSnapshotDigestSync(snapshotRecord: SnapshotRecordLike): string {
@@ -192,7 +192,7 @@ export async function recoverFromStoreOnBoot(
   const memberBinding = acceptedSnapshot.epochCertificate.memberBindings[selectedReplicaId];
   const assignedAuthorKeyId = memberBinding?.authorKeyId ?? "key-default";
 
-  const reconstructedEngine = new D137Engine(
+  const reconstructedEngine = new ReplicationEngine(
     collectionId,
     selectedReplicaId,
     acceptedSnapshot.epochNumber,
@@ -357,7 +357,7 @@ interface PersistedRecordCache {
 }
 
 /** What each engine last wrote, per store: record key -> entry (ref + serialized). */
-const persistedRecordCaches = new WeakMap<D137Engine, PersistedRecordCache>();
+const persistedRecordCaches = new WeakMap<ReplicationEngine, PersistedRecordCache>();
 
 /**
  * Persists engine state into a StoreBackend in one atomic transaction.
@@ -370,7 +370,7 @@ const persistedRecordCaches = new WeakMap<D137Engine, PersistedRecordCache>();
  */
 export async function persistEngineToStore(
   backend: StoreBackend,
-  engine: D137Engine
+  engine: ReplicationEngine
 ): Promise<void> {
   if (!backend.isOpen()) {
     await backend.open();

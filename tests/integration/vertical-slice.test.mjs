@@ -22,7 +22,7 @@ async function compileAndImport(source, filename = "Counter.mix") {
   return { ast, descriptor, codegen, Component: mod.default };
 }
 
-describe("Gate 5: Unmocked End-to-End Vertical Slice (.mix / .tix -> AST -> Semantic -> Codegen -> Runtime -> DOM)", () => {
+describe(": Unmocked End-to-End Vertical Slice (.mix / .tix -> AST -> Semantic -> Codegen -> Runtime -> DOM)", () => {
   let win;
   let document;
 
@@ -97,7 +97,7 @@ describe("Gate 5: Unmocked End-to-End Vertical Slice (.mix / .tix -> AST -> Sema
     const injectedStyle = document.head.querySelector(`style[data-mix-style="${codegen.scopeId}"]`);
     assert.ok(injectedStyle !== null);
 
-    // Verify initial DOM structure & dynamic element <{~headingTag}> with preserved attributes (D-105, TECH-06)
+    // Verify initial DOM structure & dynamic element <{~headingTag}> with preserved attributes
     const section = root.querySelector("section.counter-card");
     assert.ok(section !== null);
     assert.equal(section.hasAttribute(codegen.scopeAttribute), true);
@@ -172,9 +172,9 @@ describe("Gate 5: Unmocked End-to-End Vertical Slice (.mix / .tix -> AST -> Sema
 
     const { Component } = await compileAndImport(tixSource, "TodoBoard.tix");
     const host = document.createElement("div");
-    const mounted = mount(Component, host, { heading: "Gate 5 Roadmap" });
+    const mounted = mount(Component, host, { heading: " Roadmap" });
 
-    assert.equal(host.querySelector("h3").textContent, "Gate 5 Roadmap");
+    assert.equal(host.querySelector("h3").textContent, " Roadmap");
     const initialItems = [...host.querySelectorAll("li")];
     assert.equal(initialItems.length, 2);
     assert.deepEqual(

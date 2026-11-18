@@ -1,6 +1,6 @@
 /**
- * D-137 Canonicalization & Deterministic Serialization
- * (F-07, F-12, D-137 §3.3.1, Gate 33)
+ * Canonicalization & Deterministic Serialization
+ *
  *
  * Implements deterministic canonical JSON serialization, stable key sorting,
  * and key formatting with zero external dependencies.
@@ -32,7 +32,7 @@ export function toIncarnationId(dot: StructuredDot): string {
  * Deterministically serializes any JavaScript value to a canonical JSON string:
  * - Omits undefined object properties.
  * - Sorts object keys lexicographically (Unicode code point order).
- * - Rejects non-finite numbers (NaN, Infinity) with D137_NON_CANONICAL_VALUE.
+ * - Rejects non-finite numbers (NaN, Infinity) with SYNC_NON_CANONICAL_VALUE.
  * - Serializes booleans, strings, arrays, objects deterministically.
  */
 export function canonicalizeValue(sourceValue: unknown): string {
@@ -41,7 +41,7 @@ export function canonicalizeValue(sourceValue: unknown): string {
   if (valueType === "boolean") return sourceValue ? "true" : "false";
   if (valueType === "number") {
     if (!Number.isFinite(sourceValue as number)) {
-      throw new Error("D137_NON_CANONICAL_VALUE: Non-finite number encountered");
+      throw new Error("SYNC_NON_CANONICAL_VALUE: Non-finite number encountered");
     }
     return JSON.stringify(sourceValue);
   }
@@ -64,7 +64,7 @@ export function canonicalizeValue(sourceValue: unknown): string {
     }
     return `{${serializedPairs.join(",")}}`;
   }
-  throw new Error(`D137_NON_CANONICAL_VALUE: Unsupported value type: ${valueType}`);
+  throw new Error(`SYNC_NON_CANONICAL_VALUE: Unsupported value type: ${valueType}`);
 }
 
 /**

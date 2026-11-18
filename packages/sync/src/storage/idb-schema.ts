@@ -1,13 +1,13 @@
 /**
- * @dotmix/sync — IndexedDB Schema v2 & Database Lifecycle (I22, D-143)
+ * @dotmix/sync — IndexedDB Schema v2 & Database Lifecycle
  *
- * Implements the D-137 database (DB_VERSION=2, one database per collection) with exactly 13 object stores and
+ * Implements the database (DB_VERSION=2, one database per collection) with exactly 13 object stores and
  * non-destructive upgrade from v1 (retaining snapshots and mutation_log).
  * Zero external dependencies.
  */
 
-export const DB_NAME = "mix_sync_d137";
-/** The legacy engine's database. D-137 only reads it during migration (HAA-19). */
+export const DB_NAME = "dotmix_sync";
+/** The legacy engine's database. only reads it during migration. */
 export const LEGACY_DB_NAME = "mix_sync_db";
 
 export function collectionDatabaseName(collectionId: string): string {
@@ -112,7 +112,7 @@ export function reqToPromise<R>(req: IDBRequestLike<R>): Promise<R> {
 }
 
 /**
- * Opens or upgrades a D-137 collection database to version 2.
+ * Opens or upgrades a collection database to version 2.
  */
 export async function openDatabase(
   name: string = DB_NAME,

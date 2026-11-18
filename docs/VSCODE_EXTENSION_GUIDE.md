@@ -90,14 +90,16 @@ Customize behavior in VS Code `settings.json`:
 
 ## 🛠️ Uninstallation
 
+If you previously installed the extension under the legacy identifier, remove `$HOME/.vscode/extensions/mix-framework.vscode-mix` before installing the new build.
+
 If you ever need to remove the linked extension:
 
 ```powershell
 # Windows
-cmd /c rmdir "$HOME\.vscode\extensions\mix-framework.vscode-mix"
+cmd /c rmdir "$HOME\.vscode\extensions\dotmix.vscode-mix"
 
 # macOS / Linux
-rm "$HOME/.vscode/extensions/mix-framework.vscode-mix"
+rm "$HOME/.vscode/extensions/dotmix.vscode-mix"
 ```
 Then reload your VS Code window.
 

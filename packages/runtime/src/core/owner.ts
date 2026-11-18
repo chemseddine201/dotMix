@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/core/owner — Ownership hierarchy, disposal (D-102), and detached roots (D-103).
+ * @dotmix/runtime/core/owner — Ownership hierarchy, disposal, and detached roots.
  */
 
 import {
@@ -62,7 +62,7 @@ export function disposeOwner(owner: Owner): void {
   }
   owner.children.clear();
 
-  // 2. Dispose and unlink all owned computations (D-102)
+  // 2. Dispose and unlink all owned computations
   for (const comp of [...owner.computations]) {
     comp.state = ComputationState.DISPOSED;
     if (comp.kind === "Effect") {
@@ -132,7 +132,7 @@ export function disposeOwner(owner: Owner): void {
 }
 
 /**
- * D-103: Creates a root ownership scope with an explicit `dispose` callback.
+ *: Creates a root ownership scope with an explicit `dispose` callback.
  * When `detachedParent` is supplied, inherits context and error handling from `detachedParent`
  * without attaching to `detachedParent.children` automatic disposal.
  */

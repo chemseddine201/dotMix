@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Authenticated Anti-Entropy Range Pull Protocol (Gate 33 / D-137)
+ * @dotmix/sync — Authenticated Anti-Entropy Range Pull Protocol
  */
 
 import { sha256Hex } from "./apply.js";
@@ -137,7 +137,7 @@ export async function handleStreamRangeRequest(
   if (!rateLimiter.isAllowed(request.requesterReplicaId)) {
     return {
       ok: false,
-      code: "D137_RATE_LIMIT_EXCEEDED",
+      code: "SYNC_RATE_LIMIT_EXCEEDED",
       detail: `Rate limit exceeded for requester ${request.requesterReplicaId}`,
     };
   }
@@ -145,14 +145,14 @@ export async function handleStreamRangeRequest(
   if (request.collectionId !== engine.meta.collectionId) {
     return {
       ok: false,
-      code: "D137_COLLECTION_MISMATCH",
+      code: "SYNC_COLLECTION_MISMATCH",
       detail: `Collection mismatch: requested ${request.collectionId}, local ${engine.meta.collectionId}`,
     };
   }
   if (request.epochNumber !== engine.meta.epochNumber) {
     return {
       ok: false,
-      code: "D137_EPOCH_MISMATCH",
+      code: "SYNC_EPOCH_MISMATCH",
       detail: `Epoch mismatch: requested ${request.epochNumber}, local ${engine.meta.epochNumber}`,
     };
   }
@@ -161,7 +161,7 @@ export async function handleStreamRangeRequest(
   if (span < 1 || span > ANTI_ENTROPY_LIMITS.MAX_RANGE_REQUEST_SPAN) {
     return {
       ok: false,
-      code: "D137_RANGE_REQUEST_INVALID",
+      code: "SYNC_RANGE_REQUEST_INVALID",
       detail: `Invalid span: ${span}`,
     };
   }
@@ -203,21 +203,21 @@ export async function ingestStreamRangeResponse(
   if (!response.protocolVersion || !response.protocolVersion.startsWith(PROTOCOL_FAMILY_PREFIX)) {
     return {
       ok: false,
-      code: "D137_RANGE_RESPONSE_INVALID",
+      code: "SYNC_RANGE_RESPONSE_INVALID",
       detail: "Invalid protocol version in range response",
     };
   }
   if (response.collectionId !== engine.meta.collectionId) {
     return {
       ok: false,
-      code: "D137_COLLECTION_MISMATCH",
+      code: "SYNC_COLLECTION_MISMATCH",
       detail: `Collection mismatch: response ${response.collectionId}, engine ${engine.meta.collectionId}`,
     };
   }
   if (response.epochNumber !== engine.meta.epochNumber) {
     return {
       ok: false,
-      code: "D137_EPOCH_MISMATCH",
+      code: "SYNC_EPOCH_MISMATCH",
       detail: `Epoch mismatch: response ${response.epochNumber}, engine ${engine.meta.epochNumber}`,
     };
   }
@@ -225,7 +225,7 @@ export async function ingestStreamRangeResponse(
   if (response.toSeq < response.fromSeq) {
     return {
       ok: false,
-      code: "D137_RANGE_RESPONSE_INVALID",
+      code: "SYNC_RANGE_RESPONSE_INVALID",
       detail: `Invalid response range bounds: ${response.fromSeq}..${response.toSeq}`,
     };
   }
@@ -233,7 +233,7 @@ export async function ingestStreamRangeResponse(
   if (response.operations.length > ANTI_ENTROPY_LIMITS.MAX_RANGE_REQUEST_SPAN) {
     return {
       ok: false,
-      code: "D137_RANGE_RESPONSE_INVALID",
+      code: "SYNC_RANGE_RESPONSE_INVALID",
       detail: `Response operation count (${response.operations.length}) exceeds MAX_RANGE_REQUEST_SPAN`,
     };
   }
@@ -251,7 +251,7 @@ export async function ingestStreamRangeResponse(
   if (!binding) {
     return {
       ok: false,
-      code: "D137_RANGE_RESPONSE_INVALID",
+      code: "SYNC_RANGE_RESPONSE_INVALID",
       detail: `Unknown stream author ${streamAuthor} in epoch member bindings`,
     };
   }
@@ -283,7 +283,7 @@ export async function ingestStreamRangeResponse(
     ) {
       return {
         ok: false,
-        code: "D137_RANGE_RESPONSE_INVALID",
+        code: "SYNC_RANGE_RESPONSE_INVALID",
         detail: `Operation dot mismatch at index ${i}: expected seq ${expectedSeq}, got ${op.opDot.sequence}`,
       };
     }
@@ -292,7 +292,7 @@ export async function ingestStreamRangeResponse(
     if (computedPayloadDigest !== op.payloadDigest) {
       return {
         ok: false,
-        code: "D137_RANGE_RESPONSE_INVALID",
+        code: "SYNC_RANGE_RESPONSE_INVALID",
         detail: `Payload digest mismatch for op ${op.opDot.sequence}`,
       };
     }
@@ -307,7 +307,7 @@ export async function ingestStreamRangeResponse(
     if (!sigValid) {
       return {
         ok: false,
-        code: "D137_RANGE_RESPONSE_INVALID",
+        code: "SYNC_RANGE_RESPONSE_INVALID",
         detail: `Cryptographic signature verification failed for op ${op.opDot.sequence}`,
       };
     }

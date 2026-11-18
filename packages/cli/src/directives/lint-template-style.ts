@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli/directives/lint-template-style — AST-based `--template-style` linter (DM-8, D-179, T-38.7).
+ * @dotmix/cli/directives/lint-template-style — AST-based `--template-style` linter.
  * Zero regular expressions: inspects parsed AST node `form` and import-bound directive components via the canonical registry.
  */
 

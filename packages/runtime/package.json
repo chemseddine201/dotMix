@@ -1,12 +1,14 @@
 {
   "name": "@dotmix/runtime",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Zero-dependency reactive runtime for compiled dotMix components",
   "files": [
     "dist",
     "client.d.ts"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -58,7 +60,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@dotmix/diagnostics": "0.1.1"
+    "@dotmix/diagnostics": "0.2.0"
   },
   "license": "MIT"
 }

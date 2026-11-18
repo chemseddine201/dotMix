@@ -9,7 +9,7 @@ import { LWWRegister } from "../crdt/lww.js";
 import { getDefaultSyncEngine, SyncEngine } from "../engine/engine.js";
 import { IndexedDbDriver } from "../storage/indexeddb.js";
 import { OpfsDriver } from "../storage/opfs.js";
-import { createD137SignalAdapter } from "../adapter/signal-adapter.js";
+import { createReplicatedSignalAdapter } from "../adapter/signal-adapter.js";
 
 function resolveDriver(
   driverOpt: SyncDriver | "memory" | "indexeddb" | "opfs" | undefined,
@@ -33,12 +33,12 @@ export function syncSignal<T>(
   const engine = (options.syncEngine as SyncEngine) || getDefaultSyncEngine();
   const key = options.key;
 
-  let selectedEngine = options.engine;
+  let selectedEngine = options.engine === "d137" ? "replicated" : options.engine;
   if (!selectedEngine) {
-    selectedEngine = options.driver === "opfs" ? "legacy" : "d137";
+    selectedEngine = options.driver === "opfs" ? "legacy" : "replicated";
   }
-  if (selectedEngine === "d137") {
-    return engine.getOrCreateSignal(key, () => createD137SignalAdapter<T>(initialValue, options));
+  if (selectedEngine === "replicated") {
+    return engine.getOrCreateSignal(key, () => createReplicatedSignalAdapter<T>(initialValue, options));
   }
 
   return engine.getOrCreateSignal(key, () => {

@@ -1,8 +1,8 @@
 /**
- * @dotmix/sync — Clock-Safe Tab Lease Fencing (Gate 33 / D-137)
+ * @dotmix/sync — Clock-Safe Tab Lease Fencing
  */
 
-export const D137_V331_LIMITS = {
+export const SYNC_PROTOCOL_LIMITS = {
   TAB_LEASE_TAKEOVER_STALE_MS: 10000,
   HEARTBEAT_CADENCE_MS: 1000,
 } as const;
@@ -30,14 +30,14 @@ export function assertActiveLeaseFencing(
   if (meta.leaseHolderTabId !== callerTabId) {
     return {
       ok: false,
-      code: "D137_STALE_TAB_LEASE_FENCED",
+      code: "SYNC_STALE_TAB_LEASE_FENCED",
       detail: `Caller tab ${callerTabId} is not active lease holder (${meta.leaseHolderTabId})`,
     };
   }
   if (meta.leaseFencingTerm !== expectedFencingTerm) {
     return {
       ok: false,
-      code: "D137_STALE_TAB_LEASE_FENCED",
+      code: "SYNC_STALE_TAB_LEASE_FENCED",
       detail: `Caller fencing term ${expectedFencingTerm} is stale (active: ${meta.leaseFencingTerm})`,
     };
   }
@@ -78,7 +78,7 @@ export function acquireOrRenewTabLease(
     return { ok: true, fencingTerm: updated.leaseFencingTerm };
   }
 
-  if (observedContenderMonotonicStallMs >= D137_V331_LIMITS.TAB_LEASE_TAKEOVER_STALE_MS) {
+  if (observedContenderMonotonicStallMs >= SYNC_PROTOCOL_LIMITS.TAB_LEASE_TAKEOVER_STALE_MS) {
     const nextFencingTerm = currentLease.leaseFencingTerm + 1;
     const takeoverRecord: TabLeaseRecord = {
       collectionId: meta.collectionId,
@@ -97,7 +97,7 @@ export function acquireOrRenewTabLease(
   return {
     ok: false,
     fencingTerm: currentLease.leaseFencingTerm,
-    code: "D137_LEASE_BUSY",
+    code: "SYNC_LEASE_BUSY",
     detail: `Tab lease currently held by ${currentLease.leaseHolderTabId} and not yet stale`,
   };
 }

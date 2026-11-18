@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/dom/directives/contract-events — Attribute, class, style, spread,
- * and conditional/modifier event helper exports (F12, T-38.4).
+ * and conditional/modifier event helper exports.
  */
 
 export {

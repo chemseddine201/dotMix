@@ -163,7 +163,7 @@ export function useOutlet(): unknown {
 }
 
 // ============================================================================
-// Phase 20 Data Router Hooks (D-123)
+// Data Router Hooks
 // ============================================================================
 
 export function useLoaderData<T = unknown>(routeId?: string): T | undefined {

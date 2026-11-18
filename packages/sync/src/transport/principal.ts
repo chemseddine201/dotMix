@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Authenticated Transport Channel Principals (Gate 34 / T-34.5)
+ * @dotmix/sync — Authenticated Transport Channel Principals
  *
  * Provides typed, authenticated principals for each underlying transport medium:
  * - HTTP (authenticated server session)

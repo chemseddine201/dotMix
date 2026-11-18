@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/forms/form — Signal-backed reactive form controller implementation (D-124).
+ * @dotmix/runtime/forms/form — Signal-backed reactive form controller implementation.
  */
 
 import {

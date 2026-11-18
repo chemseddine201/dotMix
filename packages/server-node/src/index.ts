@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node — Node.js HTTP Streaming SSR Server Adapter (Gate 29 / T-29.4)
+ * @dotmix/server-node — Node.js HTTP Streaming SSR Server Adapter
  *
  * Provides:
  * - Streaming HTML response pipeline (`renderToStream` / async iterables / strings)

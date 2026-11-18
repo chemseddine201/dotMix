@@ -83,7 +83,7 @@ export default {
     await legacyCollection.close();
     if (!legacyWritten) return { pass: false, detail: 'The legacy engine did not persist its v1 snapshot' };
 
-    // 2. The D-137 engine (default) migrates on boot.
+    // 2. The engine (default) migrates on boot.
     const migratedCollection = openCollection(collectionKey);
     await migratedCollection.ready;
     const migratedIdentifiers = itemIdentifiers(migratedCollection);

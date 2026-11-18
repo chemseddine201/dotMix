@@ -1,5 +1,5 @@
 /**
- * Gate 19 (D-122): DOM Visual & Lifecycle Primitives Suite
+ *: DOM Visual & Lifecycle Primitives Suite
  *
  * Verifies:
  * 1. `Teleport` / `createPortal`: mounts children into target container (body/selector) with context inheritance,
@@ -26,7 +26,7 @@ import {
   Transition
 } from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 19: DOM Visual & Lifecycle Primitives (@dotmix/runtime/dom)", () => {
+describe(": DOM Visual & Lifecycle Primitives (@dotmix/runtime/dom)", () => {
   let win;
   let document;
 

@@ -358,7 +358,7 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
       } else {
         failSyntax(
           DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-          "Keyed '{#each}' block requires an item identifier and explicit '(key)' expression (D-110): '{#each items as item (item.id)}'.",
+          "Keyed '{#each}' block requires an item identifier and explicit '(key)' expression: '{#each items as item (item.id)}'.",
           ctx.lineMap,
           bindingSliceStart,
           headerCloseOffset + 1

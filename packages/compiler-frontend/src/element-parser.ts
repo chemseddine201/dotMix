@@ -186,8 +186,8 @@ export function parseElementOrComponent(ctx: ParserContext): TemplateNode {
 }
 
 /**
- * HAA-06 & D-105: Parses clean `<$tagName ...>...</$tagName>` and `<$tagName ... />`
- * (or `<${expr} ...>...</${expr}>`) dynamic elements with preserved attributes (TECH-06)
+ * &: Parses clean `<$tagName ...>...</$tagName>` and `<$tagName ... />`
+ * (or `<${expr} ...>...</${expr}>`) dynamic elements with preserved attributes
  * and closing tag token-sequence verification (R-SYN-02).
  */
 export function parseDollarDynamicElement(ctx: ParserContext): TemplateNode {
@@ -328,11 +328,11 @@ export function parseDynamicElement(ctx: ParserContext): TemplateNode {
   const start = ctx.pos; // at '<{~'
   ctx.pos += 3; // advance past '<{~'
 
-  // Parse the tag expression up to '}' (D-105, R-SYN-01)
+  // Parse the tag expression up to '}'
   const openExpr = parseEmbeddedExpression(ctx.source, ctx.pos, "}", ctx.lineMap);
   ctx.pos = openExpr.afterDelimiterOffset;
 
-  // TECH-06: Preserve all attributes on `<{~expr} ...>`
+  // TEC: Preserve all attributes on `<{~expr} ...>`
   const attributes = parseAttributes(ctx);
   ctx.skipWhitespace();
 

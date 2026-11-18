@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-137 BroadcastChannel Transport (Gate 34 / T-34.5 / T-34.6)
+ * @dotmix/sync — BroadcastChannel Transport
  *
  * Implements wire envelope exchange and multi-tab lease coordination over
  * the browser BroadcastChannel API with zero external dependencies.
@@ -33,7 +33,7 @@ export class BroadcastChannelSyncTransport implements SyncChannel {
 
   constructor(options: BroadcastTransportOptions) {
     this.coordinator = new MultiTabCoordinator(options);
-    const channelName = options.channelName ?? `mix_d137_broadcast_${options.collectionId}`;
+    const channelName = options.channelName ?? `dotmix_sync_broadcast_${options.collectionId}`;
 
     if (options.broadcastChannelFactory) {
       this.broadcastChannel = options.broadcastChannelFactory(channelName);
@@ -61,7 +61,7 @@ export class BroadcastChannelSyncTransport implements SyncChannel {
   }
 
   /**
-   * Sends a strictly validated D-137 WireEnvelope.
+   * Sends a strictly validated WireEnvelope.
    */
   public async sendEnvelope(envelope: WireEnvelope): Promise<void> {
     if (this.isClosed || !this.broadcastChannel) return;
@@ -107,7 +107,7 @@ export class BroadcastChannelSyncTransport implements SyncChannel {
   private handleIncomingRawMessage(rawMessage: unknown): void {
     if (!rawMessage || typeof rawMessage !== "object") return;
 
-    // Check if it is a D-137 WireEnvelope
+    // Check if it is a WireEnvelope
     const decodeResult = decodeWireEnvelope(rawMessage);
     if (decodeResult.ok) {
       const decodedEnvelope = decodeResult.value;

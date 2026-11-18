@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Optimistic Overlay Host & Microtask Batcher (Gate 34 / T-34.2)
+ * @dotmix/sync — Optimistic Overlay Host & Microtask Batcher
  *
  * Coordinates immediate synchronous visible state updates followed by asynchronous
  * signing, batching commits per microtask tick, and handling rollbacks on failure.

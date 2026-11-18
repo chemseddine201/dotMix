@@ -1,7 +1,7 @@
 /**
  * @dotmix/runtime/platform — Platform cancellation bridges (`toAbortSignal` and `fromAbortSignal`).
  *
- * Implements D-104 and MIX_SPEC_v3.2.2.md §3.
+ * Implements and MIX_SPEC_v3.2.2.md §3.
  */
 
 import { createCancellationSource } from "../core/index.js";

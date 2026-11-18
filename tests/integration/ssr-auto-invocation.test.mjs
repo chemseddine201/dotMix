@@ -1,5 +1,5 @@
 /**
- * Gate 23 Test Suite — Scope-Aware Signal Auto-Invocation in SSR (@dotmix/compiler-ssr — D-126)
+ * Test Suite — Scope-Aware Signal Auto-Invocation in SSR
  *
  * Verifies:
  * 1. Bare signal identifiers in interpolations ({count}) are auto-invoked to their current value
@@ -37,7 +37,7 @@ function parseExpr(code) {
   return parseExpressionSlice(code, 0, lineMap);
 }
 
-describe("Gate 23: Scope-Aware Signal Auto-Invocation in SSR (D-126)", () => {
+describe(": Scope-Aware Signal Auto-Invocation in SSR", () => {
   test("1. transformSsrExpression transforms bare signals and preserves explicit calls & member props", () => {
     const signals = new Set(["count", "isReady", "items", "user", "theme"]);
 

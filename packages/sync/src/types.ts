@@ -73,7 +73,7 @@ export interface SyncSignalOptions<T> {
   readonly driver?: (SyncDriver | "memory" | "indexeddb" | "opfs") | undefined;
   readonly conflictStrategy?: "lww" | ((local: T, remote: T) => T);
   readonly syncEngine?: unknown; // SyncEngine instance
-  readonly engine?: "d137" | "legacy";
+  readonly engine?: "replicated" | "d137" | "legacy";
 }
 
 export interface SyncSignal<T> {
@@ -96,7 +96,7 @@ export interface SyncCollectionOptions<T> {
   readonly driver?: (SyncDriver | "memory" | "indexeddb" | "opfs") | undefined;
   readonly syncEngine?: unknown; // SyncEngine instance
   readonly initialItems?: readonly T[];
-  readonly engine?: "d137" | "legacy";
+  readonly engine?: "replicated" | "d137" | "legacy";
 }
 
 export interface SyncCollection<T> {

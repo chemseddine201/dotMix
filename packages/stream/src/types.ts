@@ -1,5 +1,5 @@
 /**
- * @dotmix/stream — Types for Resilient Progressive Streaming & Partial Hydration (Gate 18 / D-121)
+ * @dotmix/stream — Types for Resilient Progressive Streaming & Partial Hydration
  */
 
 export interface IslandManifest {

@@ -88,7 +88,7 @@ mix dev [dir] --port 3000 --host 0.0.0.0 --open
 - **Instant HMR**: Granular DOM updates, transactional state retention, and scoped stylesheet replacement without full page reloads.
 - **Port Conflict Resolution**: Probes requested port; if already occupied, automatically auto-increments to the next available port and alerts the developer.
 - **LAN Network IP Detection**: Displays both `Local: http://localhost:3000/` and `Network: http://192.168.x.x:3000/` addresses on startup.
-- **Configuration file**: `mix create` writes `mix.config.ts`, and `mix dev` reports when it finds `mix.config.ts` or `dotmix.config.ts`. Version 0.1.0 does not read its settings yet; use CLI flags and `.env` files.
+- **Configuration file**: Automatically loads configuration from `mix.config.ts`, `mix.config.mjs`, or `mix.config.js` in the project root. CLI options take precedence over configuration file values.
 
 #### Options:
 - `[dir]`: Project root directory (default: current working directory).
@@ -120,10 +120,10 @@ mix build [src] [dist] --target client --clean --analyze
 - `-d, --target <client | ssr>`: Compilation target mode.
   - `client` (default): Client-side single-page application bundle.
   - `ssr`: Node.js server entry point emitting `@dotmix/server-node` streaming handler.
-  - For static HTML pages, build with `client` and add `--prerender` (below). `static` is accepted and builds the same output as `client`.
+  - Note: `--target static` was removed; use `client` together with `--prerender <routes>` for pre-rendered static HTML pages.
 - `--mode <mode>`: Environment mode name used for `.env.<mode>` loading and `import.meta.env` (default: `production`). `.env`, `.env.local`, `.env.<mode>`, and `.env.<mode>.local` are loaded from the project root (`process.env` wins); only `MIX_PUBLIC_*` keys are exposed and replaced before chunk hashing.
 - `--prerender <routes>`: Comma-separated list of static route paths (for example `--prerender /,/about`; no route parameters or `*`) to pre-render in headless Chrome via CDP after building. Saves `dist/index.html` for `/` and `dist/<path>/index.html` for nested paths with `data-mix-prerendered` on the mount element (which `mount()` clears before mounting the client DOM). The saved `<html>` and `<body>` keep the attributes of your `index.html`: classes or attributes the app adds to them at runtime (theme, cursor, animation state) are not saved, because they would apply before any script runs; `<head>` changes such as `useHead` titles are kept. Requires an installed Chromium browser (`MIX_BROWSER_PATH`); omitted by default so normal builds need no browser.
-- `--sourcemap`: Accepted, but version 0.1.0 does not emit source maps yet.
+- `--sourcemap`: Emits real source maps (`.js.map`) mapping bundle instructions back to original `.tix`, `.mix`, and `.ts` source files.
 - `--clean`: Wipes the destination `dist/` directory before compiling.
 - `--analyze`: Outputs visual chunk table with file sizes, gzip sizes, and asset relationships.
 - Emits `dist/mix-manifest.json` (target, entry module, and every hashed module and asset with its size) and `dist/bundle-report.json`.

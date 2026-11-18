@@ -1,8 +1,8 @@
 /**
- * @dotmix/sync — D-137 Collection Adapter (Gate 34 / T-34.1)
+ * @dotmix/sync — Collection Adapter
  *
- * Implements the SyncCollection<T> facade backed by the D-137 protocol engine,
- * optimistic overlay reconciliation, D-146 compensating rollback, and
+ * Implements the SyncCollection<T> facade backed by the protocol engine,
+ * optimistic overlay reconciliation compensating rollback, and
  * microtask transaction coalescing.
  * Zero external dependencies.
  */
@@ -16,13 +16,13 @@ import type {
 } from "../types.js";
 import { getDefaultSyncEngine, type SyncEngine as SyncEngineType } from "../engine/engine.js";
 import { generateKeyBetween } from "../crdt/fractional.js";
-import type { D137Engine } from "../protocol/engine.js";
+import type { ReplicationEngine } from "../protocol/engine.js";
 import type { CausalDot, ReplicableOperation } from "../protocol/types.js";
 import type { StoreBackend } from "../storage/memory-backend.js";
 import { ProductionV1MigrationRunner } from "../migration/runner.js";
 import type { MultiTabCoordinator } from "../transport/multi-tab.js";
 import type {
-  D137CollectionAdapter,
+  ReplicatedCollectionAdapter,
   MigrationRunner,
   OverlayHost,
   TransportHost,
@@ -43,8 +43,8 @@ import {
 
 let hasWarnedCompactDeprecation = false;
 
-export class D137CollectionAdapterImpl<T> implements D137CollectionAdapter<T> {
-  public engineInstance: D137Engine;
+export class ReplicatedCollectionAdapterImpl<T> implements ReplicatedCollectionAdapter<T> {
+  public engineInstance: ReplicationEngine;
   public readonly overlayHost: OverlayHost<T>;
   public readonly migrationRunner: MigrationRunner = new ProductionV1MigrationRunner();
   public readonly transportHost?: TransportHost | undefined;
@@ -135,7 +135,7 @@ export class D137CollectionAdapterImpl<T> implements D137CollectionAdapter<T> {
   private async bootStorageContext(): Promise<void> {
     const storageContext = await initializeAdapterStorage<T>(
       this.options,
-      (refreshedEngine: D137Engine) => {
+      (refreshedEngine: ReplicationEngine) => {
         this.engineInstance = refreshedEngine;
         this.committedItemsSignal.set(computeCommittedItems(this.engineInstance.entriesState, this.options.idField));
       },
@@ -196,7 +196,7 @@ export class D137CollectionAdapterImpl<T> implements D137CollectionAdapter<T> {
           try {
             await flushBatchWithBackpressure(
               this.engineInstance, this.storeBackend, this.activeSyncChannel, this.multiTabCoordinator, newlyCommittedOps,
-              () => { this.isBackpressure = true; this.statusSignal.set("error"); this.errorCodeSignal.set("D137_STORAGE_QUOTA_EXCEEDED"); }
+              () => { this.isBackpressure = true; this.statusSignal.set("error"); this.errorCodeSignal.set("SYNC_STORAGE_QUOTA_EXCEEDED"); }
             );
             // A successful durable flush ends the QuotaExceededError backpressure state.
             if (this.isBackpressure) { this.isBackpressure = false; this.statusSignal.set("synced"); this.errorCodeSignal.set(undefined); }
@@ -491,5 +491,5 @@ export class D137CollectionAdapterImpl<T> implements D137CollectionAdapter<T> {
   }
 }
 
-export const createD137CollectionAdapter = <T>(options: SyncCollectionOptions<T>): D137CollectionAdapter<T> =>
-  new D137CollectionAdapterImpl<T>(options);
+export const createReplicatedCollectionAdapter = <T>(options: SyncCollectionOptions<T>): ReplicatedCollectionAdapter<T> =>
+  new ReplicatedCollectionAdapterImpl<T>(options);

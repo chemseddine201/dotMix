@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import {
-  D137Engine,
+  ReplicationEngine,
   MemoryStoreBackend,
   PROTOCOL_VERSION,
   commitCheckpoint,
@@ -16,7 +16,7 @@ import {
 async function measureApplyLatency() {
   const collectionKey = 'measure_local_apply_latency';
   const foundingCertificate = createDefaultFoundingCertificate(collectionKey, 'local-measure-replica');
-  const engineInstance = new D137Engine(
+  const engineInstance = new ReplicationEngine(
     collectionKey,
     'local-measure-replica',
     1,
@@ -99,7 +99,7 @@ async function measureIngestThroughput() {
     coordinatorSignature: 'signature-measure-ingest'
   };
 
-  const producerEngine = new D137Engine(
+  const producerEngine = new ReplicationEngine(
     collectionKey,
     'producer-replica',
     1,
@@ -108,7 +108,7 @@ async function measureIngestThroughput() {
     producerKeyRecord.privateKeyHex
   );
 
-  const consumerEngine = new D137Engine(
+  const consumerEngine = new ReplicationEngine(
     collectionKey,
     'consumer-replica',
     1,
@@ -160,7 +160,7 @@ async function measureIngestThroughput() {
 function measureCheckpointTime() {
   const collectionKey = 'measure_checkpoint_entries';
   const foundingCertificate = createDefaultFoundingCertificate(collectionKey, 'checkpoint-replica');
-  const engineInstance = new D137Engine(
+  const engineInstance = new ReplicationEngine(
     collectionKey,
     'checkpoint-replica',
     1,
@@ -394,7 +394,7 @@ export async function runSyncMeasurements() {
     '# Mix Sync Performance Budgets & Measured Baselines',
     '',
     '**Authority:** Human Architecture Authority (HAA)  ',
-    '**Status:** Gate 35 Measured Evidence  ',
+    '**Status:** Measured Evidence  ',
     '**Protocol Core:** Mix CRDT Synchronization Engine  ',
     `**Timestamp:** ${new Date().toISOString()}  `,
     '',

@@ -129,10 +129,10 @@ export class TemplateParser implements ParserContext {
       }
 
       if (this.source.startsWith("<{", this.pos)) {
-        // Check for illegal whitespace inside `<{ ~` or missing `$` / `~` (D-105 / R-SYN-02)
+        // Check for illegal whitespace inside `<{ ~` or missing `$` / `~`
         failSyntax(
           DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
-          "Invalid dynamic element syntax: use '<$tagName>' (or '<{~expr}>') with no intervening whitespace (D-105).",
+          "Invalid dynamic element syntax: use '<$tagName>' (or '<{~expr}>') with no intervening whitespace.",
           this.lineMap,
           this.pos,
           Math.min(this.source.length, this.pos + 5)

@@ -1,8 +1,8 @@
 /**
- * D-137 Protocol Limits & Constants (F-07, F-12, D-137 §3.3.1)
+ * Protocol Limits & Constants
  */
 
-export const D137_V331_LIMITS = {
+export const SYNC_PROTOCOL_LIMITS = {
   MAX_OPERATION_PAYLOAD_BYTES: 65_536,
   MAX_ENTRY_TOTAL_BYTES: 65_536,
   MAX_INDEX_KEY_BYTES: 512,

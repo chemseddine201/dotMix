@@ -1,5 +1,5 @@
 /**
- * @dotmix/language-server/directives — Registry-driven completions and hover for all Gate 38 directives (G4, T-38.8).
+ * @dotmix/language-server/directives — Registry-driven completions and hover for all directives.
  * Zero hand-written directive lists: generated dynamically from DIRECTIVE_SPECS, ATTRIBUTE_DIRECTIVE_SPECS,
  * and CONTEXTUAL_BLOCK_KEYWORDS in @dotmix/compiler-semantic.
  */

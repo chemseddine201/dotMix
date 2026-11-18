@@ -1,5 +1,5 @@
 /**
- * @dotmix/compiler-css — Build-Time Stylesheet Preprocessor Stage (Gate 27 / T-27.3 / D-130)
+ * @dotmix/compiler-css — Build-Time Stylesheet Preprocessor Stage
  *
  * Compiles `.scss`, `.sass`, `.less`, and `.pcss` / `.postcss` stylesheets into standard,
  * flat CSS prior to `compileCss` scoping and security validation:
@@ -8,7 +8,7 @@
  * - Expands SCSS `@mixin` / `@include` and Less parametric mixins.
  * - Flattens nested rules and parent selector `&` concatenation (`&-primary`, `&:hover`, `&.active`).
  * - Fails with `MIX_ERR_PREPROCESSOR_MISSING` for formats it does not compile (Stylus).
- * - Preserves D-108 strictly for plain `.css` and post-preprocessed output.
+ * - Preserves strictly for plain `.css` and post-preprocessed output.
  */
 
 import * as path from "node:path";

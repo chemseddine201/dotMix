@@ -155,7 +155,7 @@ export class HttpClient {
     let isCancelled = false;
     let isTimeout = false;
 
-    // CancellationToken (D-104) bridge
+    // CancellationToken bridge
     let cancelCleanup: (() => void) | undefined;
     if (config.cancelToken) {
       if (config.cancelToken.isCancelled) {

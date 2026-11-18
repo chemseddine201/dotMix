@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-137 HTTP Sync Transport (Gate 34 / T-34.5)
+ * @dotmix/sync — HTTP Sync Transport
  *
  * Implements wire envelope batching, anti-entropy range pulls, and server
  * session authentication over HTTP with zero external dependencies.

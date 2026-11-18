@@ -1,6 +1,6 @@
 /**
  * @dotmix/sanitizer-dompurify/allowlists — Tag/attribute allowlists, forbidden tags/attrs,
- * CSS property safety patterns, and HTML entity decoding helpers (D-109 / HAA-03).
+ * CSS property safety patterns, and HTML entity decoding helpers.
  */
 
 import { isSafeUrl } from "@dotmix/runtime";

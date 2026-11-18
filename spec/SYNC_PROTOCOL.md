@@ -1,11 +1,9 @@
-<!-- Canonical since 2026-11-13 (HAA-16, Gate 32 accepted). Promoted from
-     research/d137-reference/spec/D-137-SPEC-v3.3.2.md with the Gate 32 clarification in I24.
-     Review: reports/GATE_32_REVIEW.md. Audit kit: reports/D137_V3_3_2_AUDIT_KIT/. -->
-# D-137 v3.3.2 Consolidated Canonical Protocol Specification
+<!-- Canonical protocol specification. Audit kit: reports/SYNC_V3_3_2_AUDIT_KIT/. -->
+# dotMix Replicated State Synchronization Protocol Specification
 
-**Standard Identifier:** D-137.v3.3.2  
+**Standard Identifier:** replicated.v3.3.2  
 **Authority:** Human Architecture Authority (HAA)  
-**Governing Ratified Decisions:** D-137, D-139 (Option A), D-140, D-141, D-142, D-143, D-144, D-150, D-157  
+**Governing Ratified Decisions:** Replicated State Protocol Architecture, D-139 (Option A), D-140, D-141, D-142, D-143, D-144, D-150, D-157  
 **Status:** CANONICAL REFERENCE SPECIFICATION (Consolidated from v3.3, v3.3.1, and v3.3.2 Amendments)  
 **Target Architecture:** dotMix / Tix Offline-First Replicated State Protocol
 
@@ -15,7 +13,7 @@
 
 1. **RFC 2119 Compliance:** Every requirement in this specification SHALL use RFC 2119 keywords (`MUST`, `MUST NOT`, `REQUIRED`, `SHALL`, `SHALL NOT`, `SHOULD`, `SHOULD NOT`, `RECOMMENDED`, `MAY`, `OPTIONAL`).
 2. **Consolidation Authority:** This document supersedes all prior drafts (v3.1, v3.2, v3.3, v3.3.1) and integrates all ratified amendments into one normative contract. No external amendment chains exist.
-3. **Core Philosophy:** Mix D-137 is a compiler-native, zero-runtime-dependency synchronization protocol delivering causal consistency, deterministic conflict-free replication (CRDT), and cryptographically verified state convergence across untrusted transports and distributed browser clients.
+3. **Core Philosophy:** dotMix Replicated State Synchronization is a compiler-native, zero-runtime-dependency synchronization protocol delivering causal consistency, deterministic conflict-free replication (CRDT), and cryptographically verified state convergence across untrusted transports and distributed browser clients.
 
 ---
 
@@ -39,7 +37,7 @@
 
 ### I5: Commit-Time Security Revalidation (F-05)
 - Operations are pre-verified asynchronously against current security state.
-- Inside the synchronous commit section, the engine MUST re-verify `securityStateVersion`. On version mismatch (e.g. key revocation or epoch transition during async verify), verification is re-evaluated. If invalid, the op is rejected with `D137_SECURITY_STATE_CHANGED`.
+- Inside the synchronous commit section, the engine MUST re-verify `securityStateVersion`. On version mismatch (e.g. key revocation or epoch transition during async verify), verification is re-evaluated. If invalid, the op is rejected with `SYNC_SECURITY_STATE_CHANGED`.
 
 ### I6: Cryptographic Authenticity & Member Attestation
 - Every operation, epoch certificate, and durable ACK MUST carry an Ed25519 (or ECDSA P-256) signature verified against author bindings in `meta.epochMemberBindings`.
@@ -47,14 +45,14 @@
 ### I7: Authenticated Anti-Entropy Range Pull (D-144)
 - Missing gaps or stalled causal dependencies exceeding `RANGE_PULL_TIMEOUT_MS` (2,000ms) trigger `StreamRangeRequest`.
 - Responses (`StreamRangeResponse`) are capped at 250 ops and rate-limited to 10 requests per 10-second window.
-- Ingestion verifies author signatures and rolling digest chain continuity op-by-op. Corrupted responses are rejected with `D137_RANGE_RESPONSE_INVALID`.
+- Ingestion verifies author signatures and rolling digest chain continuity op-by-op. Corrupted responses are rejected with `SYNC_RANGE_RESPONSE_INVALID`.
 
 ### I8: State Failure Stream Blocking & Eviction (S80)
 - A state failure on stream $s$ transitions the stream to `BLOCKING_UNRESOLVED_STREAM_POSITION`, evicting buffered successors as `EVICTED_STREAM_BLOCKED_SUCCESSOR`.
 
 ### I9: Rolling Digest Verification & Durable ACKs (S93)
 - Each operation updates a rolling SHA-256 digest: `H_n = sha256(H_{n-1} + ":" + payloadDigest)`.
-- Replicas exchange signed `DurableAckMessage` records. ACKs with rolling digest mismatches at or below local durable frontier are rejected with `D137_ACK_DIGEST_MISMATCH`.
+- Replicas exchange signed `DurableAckMessage` records. ACKs with rolling digest mismatches at or below local durable frontier are rejected with `SYNC_ACK_DIGEST_MISMATCH`.
 - Valid ACKs advance `meta.frontiers.stableFrontier` as the min acknowledged sequence across all writer replicas.
 
 ### I10: Certified Baseline Excision Floor (D-139 Option A)
@@ -68,7 +66,7 @@
 - `rebuildEntriesState(baselineSnapshot, journal) === incrementalApplication`. Rebuild applies ops via pure CRDT merge without direct overwrite.
 
 ### I13: Late-Op Pruned-Horizon Rejection (S81)
-- Ops arriving below `max(digestPrunedFrontier, localDurableFrontier)` with no digest record are rejected as `D137_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON`.
+- Ops arriving below `max(digestPrunedFrontier, localDurableFrontier)` with no digest record are rejected as `SYNC_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON`.
 
 ### I14: Single Excision Invariant & Evidence Bounds (F-20)
 - At most one state excision and rollback occurs per stream per epoch. Subsequent conflicts update evidence in `meta.activeEpochEquivocations` without re-excising.
@@ -78,11 +76,11 @@
 - Operation payloads are capped at 64 KiB. JSON must omit undefined properties and reject non-finite numbers.
 
 ### I16: Authenticated Lifecycle State Machine
-- Lifecycle transitions (`UNINITIALIZED` $\to$ `COORDINATOR_ACCEPTANCE_PENDING` $\to$ `ACTIVE`) must verify coordinator signatures before mutation. Non-active writes are rejected with `D137_LIFECYCLE_NOT_ACTIVE`. Staged states resume cleanly on boot.
+- Lifecycle transitions (`UNINITIALIZED` $\to$ `COORDINATOR_ACCEPTANCE_PENDING` $\to$ `ACTIVE`) must verify coordinator signatures before mutation. Non-active writes are rejected with `SYNC_LIFECYCLE_NOT_ACTIVE`. Staged states resume cleanly on boot.
 
 ### I17: Fail-Closed JOIN Identity (D-141)
 - JOIN adopts coordinator-assigned `replicaId`, verifies bound public key matches local key, and starts a fresh stream in the joined epoch at seq 1.
-- JOIN fails closed with `D137_JOIN_IDENTITY_INVALID` if joiner public key is unknown, if snapshot frontiers already contain entries for the target stream, or if omitted assignedReplicaId is ambiguous.
+- JOIN fails closed with `SYNC_JOIN_IDENTITY_INVALID` if joiner public key is unknown, if snapshot frontiers already contain entries for the target stream, or if omitted assignedReplicaId is ambiguous.
 - Pre-join local state is exported to the cluster exclusively through per-externalId replay planning.
 
 ### I18: Chunked Clear Operations
@@ -95,7 +93,7 @@
 - Multi-tab access enforces leadership leases. Stale writers losing lease fencing are rejected from commit.
 
 ### I21: Memory & Buffer Bounding
-- Inbound gap buffer and dependency buffer are capped at 1,000 ops and 16 MiB each. Excess ops are rejected with `D137_GAP_BUFFER_OVERFLOW` / `D137_DEPENDENCY_BUFFER_OVERFLOW`.
+- Inbound gap buffer and dependency buffer are capped at 1,000 ops and 16 MiB each. Excess ops are rejected with `SYNC_GAP_BUFFER_OVERFLOW` / `SYNC_DEPENDENCY_BUFFER_OVERFLOW`.
 
 ### I22: 13-Store IndexedDB Schema (D-143)
 - Durable storage is organized into exactly 13 object stores: `replica_meta`, `entries_state`, `mutation_journal`, `sync_outbox`, `inbound_gap_buffer`, `inbound_dependency_buffer`, `operation_digests`, `snapshots`, `quarantine_journal`, `replay_state`, `legacy_archive`, `tab_leases`, `cluster_acks`.
@@ -108,7 +106,7 @@
 - Ingesting an epoch-transition certificate clamps frontiers to the closing floor and discards operations above the floor.
 - Transition certificates are **non-cumulative** (Gate 32, G32-1): a certificate lists the closing floors of the epoch it closes only. Floors of earlier, already-closed epochs are final and are not repeated; floor monotonicity is checked only for streams the new certificate lists.
 - Local discarded intent is re-issued as fresh operations in the new epoch via a per-externalId replay plan.
-- Operations above the closing floor are rejected with `D137_EPOCH_CLOSED`. Revoked keys in `cert.revokedKeyIds` are adopted into `meta.revokedKeyIds`.
+- Operations above the closing floor are rejected with `SYNC_EPOCH_CLOSED`. Revoked keys in `cert.revokedKeyIds` are adopted into `meta.revokedKeyIds`.
 
 ---
 
@@ -132,8 +130,8 @@
 ### 3.3 Replay Attacks
 - **Threat:** An attacker re-broadcasts previously valid operations from past epochs or pruned streams.
 - **Mitigation:**
-  - *Epoch Gating:* Operations from closed epochs above certified closing floor are rejected with `D137_EPOCH_CLOSED`.
-  - *Pruned Horizon Rejection (S81):* Operations arriving below `max(digestPrunedFrontier, localDurableFrontier)` with no digest record are rejected as `D137_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON`.
+  - *Epoch Gating:* Operations from closed epochs above certified closing floor are rejected with `SYNC_EPOCH_CLOSED`.
+  - *Pruned Horizon Rejection (S81):* Operations arriving below `max(digestPrunedFrontier, localDurableFrontier)` with no digest record are rejected as `SYNC_LATE_OP_BELOW_PRUNED_DIGEST_HORIZON`.
 
 ### 3.4 Key Compromise & Revocation
 - **Threat:** A compromised member private key continues signing operations.
@@ -144,15 +142,15 @@
 ### 3.5 Protocol-Version Downgrade
 - **Threat:** A peer attempts to negotiate a legacy or insecure protocol version.
 - **Mitigation:**
-  - Every message carries `protocolVersion`. Ingestion strictly enforces prefix matching `D-137.v3.3` (or current version). Mismatched versions fail closed immediately.
+  - Every message carries `protocolVersion`. Ingestion strictly enforces matching `replicated.v3.3` (or current version). Mismatched versions fail closed immediately.
 
 ### 3.6 Buffer Exhaustion & Denial of Service
 - **Threat:** An attacker floods a replica with out-of-order operations or anti-entropy pull requests to exhaust memory.
 - **Mitigation:**
-  - Gap and dependency buffers enforce hard limits: $1,000$ ops and $16\text{ MiB}$ per collection. Excess ops are rejected (`D137_GAP_BUFFER_OVERFLOW`).
+  - Gap and dependency buffers enforce hard limits: $1,000$ ops and $16\text{ MiB}$ per collection. Excess ops are rejected (`SYNC_GAP_BUFFER_OVERFLOW`).
   - Anti-entropy requests are rate-limited to 10 per 10-second window per peer.
   - Storage soft limits engage `READ_ONLY_COMPACTION_BACKPRESSURE`.
-  - A durable write rejected by the host storage quota (`QuotaExceededError`) aborts the whole transaction and reports `D137_STORAGE_QUOTA_EXCEEDED` (HAA-20). The collection enters a storage-backpressure state, keeps every pending intent, and leaves it on the next successful durable write. This state is separate from compaction backpressure: it does not change the engine lifecycle state.
+  - A durable write rejected by the host storage quota (`QuotaExceededError`) aborts the whole transaction and reports `SYNC_STORAGE_QUOTA_EXCEEDED` (HAA-20). The collection enters a storage-backpressure state, keeps every pending intent, and leaves it on the next successful durable write. This state is separate from compaction backpressure: it does not change the engine lifecycle state.
 
 ---
 

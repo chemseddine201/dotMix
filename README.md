@@ -66,7 +66,7 @@ my-app/
 │   ├── routes.ts         # Declarative routes with pre-loader security guards
 │   └── main.mix          # Bootstrap and permission provider
 ├── index.html            # HTML shell with the #root mount point
-├── mix.config.ts         # Reserved for configuration (0.1.0 does not read it yet)
+├── mix.config.ts         # Project configuration (folders, base path, dev/build options)
 ├── package.json
 └── tsconfig.json
 ```
@@ -263,15 +263,3 @@ npm run test:e2e
 **dotMix** is released under the [MIT License](LICENSE). © 2026 [Chemseddine](https://github.com/chemseddine201) and dotMix contributors.
 An Arabic translation is provided for reference in [LICENSE.ar.md](LICENSE.ar.md); the English text is the legal version.
 
----
-
-## TODO
-
-Planned work, not part of 0.1.0:
-
-- [ ] Read `mix.config.ts` / `.mjs` / `.js`: source and output folders, base path, and dev, preview and build options, with command-line flags taking precedence.
-- [ ] `mix build --sourcemap` writes source maps that point to the original `.tix`, `.mix` and `.ts` lines; remove `--target static` (use `--prerender`).
-- [ ] Rename the sync engine's public names (`engine: "d137"`, the `D137_*` error codes, the `createD137…` functions and the storage names) to neutral names.
-- [ ] Remove internal planning references from source comments and error messages.
-- [ ] Show the name "dotMix" in CLI output (`mix --version` already reads the installed version).
-- [ ] Change the VS Code extension ID to `dotmix.vscode-mix`.

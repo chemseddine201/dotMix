@@ -14,7 +14,12 @@ import {
   listDynamicImportSpecifiers,
   listStaticImportSpecifiers,
   removeJavaScriptComments,
-  removeSideEffectImports
+  removeSideEffectImports,
+  computeRemoveSideEffectImportsEdits,
+  computeRemoveCommentsEdits,
+  shiftMapThroughEdits,
+  applyTextEdits,
+  type SourceMapV3
 } from "@dotmix/compiler-semantic";
 import { shortHash, STYLE_FILE_REGEX } from "./scanner.js";
 import type { BundleChunkInfo } from "./minifier.js";
@@ -32,6 +37,8 @@ export interface EmittedModules {
 export interface EmitModulesOptions {
   /** Compiled modules keyed by their path relative to src/, with a .js extension and "/" separators. */
   readonly modules: ReadonlyMap<string, string>;
+  readonly sourceMaps?: ReadonlyMap<string, SourceMapV3> | undefined;
+  readonly sourcemap?: boolean | undefined;
   readonly outputDirectory: string;
   readonly basePath: string;
   readonly removeComments: boolean;
@@ -88,7 +95,41 @@ export function emitProductionModules(options: EmitModulesOptions): EmittedModul
     const hashedPath = `${modulePath.slice(0, -".js".length)}-${shortHash(finalCode)}.js`;
     const absolutePath = path.join(assetsDirectory, ...hashedPath.split("/"));
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    fs.writeFileSync(absolutePath, finalCode, "utf-8");
+
+    let codeToWrite = finalCode;
+
+    if (options.sourcemap) {
+      const baseMap = options.sourceMaps?.get(modulePath);
+      if (baseMap) {
+        const styleEdits = computeRemoveSideEffectImportsEdits(compiledCode, isStylesheetSpecifier);
+        let map = shiftMapThroughEdits(baseMap, compiledCode, styleEdits);
+        let current = applyTextEdits(compiledCode, styleEdits);
+
+        if (options.removeComments) {
+          const commentEdits = computeRemoveCommentsEdits(current);
+          map = shiftMapThroughEdits(map, current, commentEdits);
+          current = applyTextEdits(current, commentEdits);
+        }
+
+        const mapFileName = `${path.basename(hashedPath)}.map`;
+        const mapAbsolutePath = `${absolutePath}.map`;
+
+        const serializedMap = JSON.stringify({
+          version: 3,
+          file: path.basename(hashedPath),
+          sources: map.sources,
+          ...(map.sourcesContent ? { sourcesContent: map.sourcesContent } : {}),
+          names: map.names ?? [],
+          mappings: map.mappings
+        });
+        fs.writeFileSync(mapAbsolutePath, serializedMap, "utf-8");
+        writtenFiles.push(mapAbsolutePath);
+
+        codeToWrite = `${finalCode}\n//# sourceMappingURL=${mapFileName}\n`;
+      }
+    }
+
+    fs.writeFileSync(absolutePath, codeToWrite, "utf-8");
     writtenFiles.push(absolutePath);
     hashedPaths.set(modulePath, hashedPath);
     emittedCode.set(modulePath, finalCode);
@@ -120,7 +161,8 @@ export function emitProductionModules(options: EmitModulesOptions): EmittedModul
       sizeBytes: Buffer.byteLength(finalCode, "utf-8"),
       gzipBytes: zlib.gzipSync(Buffer.from(finalCode, "utf-8")).byteLength,
       isEntry: modulePath === entryModulePath,
-      isDynamicEntry: dynamicTargets.has(modulePath)
+      isDynamicEntry: dynamicTargets.has(modulePath),
+      ...(options.sourcemap ? { map: `${ASSETS_DIRECTORY_NAME}/${hashedPaths.get(modulePath)!}.map` } : {})
     };
     if (chunk.isEntry) chunks.unshift(chunk);
     else chunks.push(chunk);

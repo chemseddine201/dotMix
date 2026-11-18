@@ -1,5 +1,5 @@
 /**
- * Gate 22 (D-125): CRDT Epoch Compaction, Tombstone GC & Network Transports Suite
+ *: CRDT Epoch Compaction, Tombstone GC & Network Transports Suite
  *
  * Verifies:
  * 1. `ReplicableArray.compact(watermark)`: purges deleted tombstones while preserving active items and fractional sequence
@@ -19,7 +19,7 @@ import {
   WebSocketSyncTransport
 } from "../../node_modules/@dotmix/sync/dist/index.js";
 
-describe("Gate 22: CRDT Epoch Compaction & Network Transports (@dotmix/sync)", () => {
+describe(": CRDT Epoch Compaction & Network Transports (@dotmix/sync)", () => {
   test("1. ReplicableArray compacts deleted tombstones while preserving active item sequence", () => {
     const array = new ReplicableArray();
 
@@ -86,7 +86,7 @@ describe("Gate 22: CRDT Epoch Compaction & Network Transports (@dotmix/sync)", (
         assert.strictEqual(compactionResult.purgedTombstones, 1, "Should purge t1 tombstone");
         assert.strictEqual(compactionResult.prunedLogEntries, 3, "Should prune all 3 committed log entries from storage driver");
       } else {
-        // D-149: on d137, compact() is a deprecated no-op returning 0 purged tombstones
+        //: on d137, compact() is a deprecated no-op returning 0 purged tombstones
         assert.strictEqual(compactionResult.purgedTombstones, 0, "compact() is no-op on d137");
       }
 

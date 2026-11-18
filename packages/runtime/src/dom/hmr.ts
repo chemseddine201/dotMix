@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/dom/hmr — HMR Stable Scope & Trampoline Dispatch Contract (D-111).
+ * @dotmix/runtime/dom/hmr — HMR Stable Scope & Trampoline Dispatch Contract.
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";
@@ -25,7 +25,7 @@ interface HmrComponentRecord {
 const hmrComponentRegistry = new Map<string, HmrComponentRecord>();
 
 /**
- * D-111: Creates a stable per-instance `scope` object and returns a `trampoline`
+ *: Creates a stable per-instance `scope` object and returns a `trampoline`
  * dispatcher so event handlers and methods can be hot-swapped in place without
  * rebinding lexical closures or unmounting DOM state.
  */

@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/core/resource — Generation-checked async resource primitive (D-104),
+ * @dotmix/runtime/core/resource — Generation-checked async resource primitive,
  * refs, and component props helpers.
  */
 
@@ -16,7 +16,7 @@ import { batch } from "./scheduler.js";
 import { signal } from "./primitives.js";
 
 /**
- * D-104 / R-CX-09: Generation-checked async resource primitive.
+ * R-CX-09: Generation-checked async resource primitive.
  * Automatically supersedes prior in-flight requests (`MIX_RT_SUPERSEDED`),
  * cancels on Owner disposal (`MIX_RT_DISPOSED`), and discards stale results.
  */
@@ -69,7 +69,7 @@ export function createResource<T>(
         generation: myGen
       });
 
-      // D-104 / R-CX-09: Only apply result if generation matches currentGen and token is not cancelled
+      // R-CX-09: Only apply result if generation matches currentGen and token is not cancelled
       if (
         myGen !== currentGen ||
         source.token.isCancelled ||

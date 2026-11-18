@@ -20,7 +20,7 @@ import { type ArrayEntry, ReplicableArray } from "../crdt/array.js";
 import { getDefaultSyncEngine, SyncEngine } from "../engine/engine.js";
 import { IndexedDbDriver } from "../storage/indexeddb.js";
 import { OpfsDriver } from "../storage/opfs.js";
-import { createD137CollectionAdapter } from "../adapter/collection-adapter.js";
+import { createReplicatedCollectionAdapter } from "../adapter/collection-adapter.js";
 
 function resolveDriver(
   driverOpt: SyncDriver | "memory" | "indexeddb" | "opfs" | undefined,
@@ -59,12 +59,12 @@ export function syncCollection<T>(
   const key = options.key ?? "default_collection";
   const engine = (options.syncEngine as SyncEngine) || getDefaultSyncEngine();
 
-  let selectedEngine = options.engine;
+  let selectedEngine = options.engine === "d137" ? "replicated" : options.engine;
   if (!selectedEngine) {
-    selectedEngine = options.driver === "opfs" ? "legacy" : "d137";
+    selectedEngine = options.driver === "opfs" ? "legacy" : "replicated";
   }
-  if (selectedEngine === "d137") {
-    return engine.getOrCreateCollection(key, () => createD137CollectionAdapter<T>(options));
+  if (selectedEngine === "replicated") {
+    return engine.getOrCreateCollection(key, () => createReplicatedCollectionAdapter<T>(options));
   }
 
   return engine.getOrCreateCollection(key, () => {

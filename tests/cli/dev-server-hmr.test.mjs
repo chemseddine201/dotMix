@@ -9,7 +9,7 @@ import { create } from "../../node_modules/@dotmix/cli/dist/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../..");
 
-describe("Gate 29 (T-29.1): mix dev Server, @dotmix/vite-plugin Pipeline, HMR & SPA Fallback", () => {
+describe(": mix dev Server, @dotmix/vite-plugin Pipeline, HMR & SPA Fallback", () => {
   it("1. Starts mix dev on scaffolded TS+SCSS and JS+Less projects, serves SPA routes, and resolves bare @dotmix/* imports without import maps", async () => {
     const cliMod = await import("../../node_modules/@dotmix/cli/dist/index.js");
     assert.strictEqual(

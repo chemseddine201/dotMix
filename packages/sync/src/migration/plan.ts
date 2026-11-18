@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Production v1 -> v2 Migration Plan Builder (Gate 34 / T-34.3)
+ * @dotmix/sync — Production v1 -> v2 Migration Plan Builder
  *
  * Extracts legacy snapshots and mutations into an immutable migration plan.
  * Zero external dependencies.

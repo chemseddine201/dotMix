@@ -1,10 +1,10 @@
 /**
  * @dotmix/compiler-semantic — Lexical scopes, ESTree symbol resolution, .tix virtual TypeScript projection,
- * SourceMapSpanTable (R-SP-01..05), and TypeScript 6.0.3 Compiler API verification adapter (D-106, R-TC-01..03).
+ * SourceMapSpanTable (R-SP-01..05), and TypeScript 6.0.3 Compiler API verification adapter.
  *
  * Architecture Invariant:
  * - Zero regular expressions for variable/scope analysis (AGENTS.md §6, Guardrail D)
- * - Zero dependency on @dotmix/runtime (HAA-04)
+ * - Zero dependency on @dotmix/runtime
  */
 
 export { isESTreeNode, LineMap } from "@dotmix/ast";
@@ -36,9 +36,22 @@ export {
 } from "./scope-analyzer.js";
 export {
   encodeVlq,
+  decodeVlq,
+  decodeMappings,
+  encodeMappings,
+  shiftMapThroughEdits,
+  applyTextEdits,
   generateSourceMap,
+  buildComponentSpanTable,
+  type TemplateExpressionSpan,
   mapProjectedSpanToSource
 } from "./sourcemap.js";
+export type { TextEdit, DecodedMapping } from "./build-transforms/source-map-chain.js";
+export {
+  computeImportMetaEnvEdits,
+  computeRemoveCommentsEdits,
+  computeRemoveSideEffectImportsEdits
+} from "./build-transforms/index.js";
 export {
   projectTypeScript,
   analyzeScriptForComponentExport,
@@ -56,7 +69,8 @@ export {
   rewriteModuleImportExtensions,
   rewriteJsModuleSpecifiers,
   extractAndTranspileScript,
-  transpileSourceModule
+  transpileSourceModule,
+  computeJsModuleSpecifierEdits
 } from "./transpiler.js";
 export { transformExpressionAstToJs } from "./expression-rewriter.js";
 export * from "./directives/index.js";

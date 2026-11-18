@@ -126,7 +126,7 @@ describe("@dotmix/helpers/http: HTTP client, interceptors, retry, dedupe, cache 
     }
   });
 
-  it("4. Cancellation via dotMix CancellationToken (D-104)", async () => {
+  it("4. Cancellation via dotMix CancellationToken", async () => {
     const server = httpNode.createServer((req, res) => {
       globalThis.setTimeout(() => {
         res.writeHead(200);

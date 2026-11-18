@@ -2,9 +2,9 @@
 
 ## 1. Executive Summary & Migration Scope
 
-With the adoption of the D-137 synchronization protocol, `@dotmix/sync` upgrades its underlying storage schema and replication primitives from v1 to v2:
+With the adoption of the replicated state synchronization protocol, `@dotmix/sync` upgrades its underlying storage schema and replication primitives from v1 to v2:
 - **v1 Schema:** Relied on `mix_sync_db` version 1 containing two loose object stores: `snapshots` (whole-array JSON blobs) and `mutation_log` (unauthenticated client-asserted mutations).
-- **v2 Schema:** One IndexedDB database per collection, named `mix_sync_d137:<collectionId>`, at version 2 with 13 specialized stores providing authenticated cryptographic signing, entry-level causal dots, field-level LWW registers, and transactional checkpointing.
+- **v2 Schema:** One IndexedDB database per collection, named `dotmix_sync:<collectionId>`, at version 2 with 13 specialized stores providing authenticated cryptographic signing, entry-level causal dots, field-level LWW registers, and transactional checkpointing.
 - The legacy database `mix_sync_db` stays at version 1. The migration reads it read-only (`readLegacyCollection`) and never creates or upgrades it.
 
 This guide outlines the architectural guarantees, multi-stage migration execution, rollback rehearsals, and finalization protocol for production systems.
@@ -15,8 +15,8 @@ This guide outlines the architectural guarantees, multi-stage migration executio
 
 The migration subsystem enforces four mandatory guarantees:
 
-1. **Non-Destructive Preservation:** The D-137 data lives in its own database, so the legacy stores (`snapshots` and `mutation_log` in `mix_sync_db`) are not changed by the migration. Only `finalizeMigration()` deletes legacy data.
-2. **Zero Data Loss for Offline Mutations:** Pending offline mutations in `mutation_log` that have not yet been synchronized are extracted, transformed into an ordered replay plan, and applied to D-137 registers with monotonic Lamport stamps.
+1. **Non-Destructive Preservation:** The replicated data lives in its own database, so the legacy stores (`snapshots` and `mutation_log` in `mix_sync_db`) are not changed by the migration. Only `finalizeMigration()` deletes legacy data.
+2. **Zero Data Loss for Offline Mutations:** Pending offline mutations in `mutation_log` that have not yet been synchronized are extracted, transformed into an ordered replay plan, and applied to replicated registers with monotonic Lamport stamps.
 3. **Idempotent Re-Execution:** If a browser closes, reloads, or crashes mid-migration, the migration runner resumes safely from the last recorded stage in `legacy_archive` without duplicate entry creation or corruption.
 4. **Rehearsal & Rollback Safety:** Applications can be switched back to `engine: "legacy"` at any point before calling `finalizeMigration()`.
 
@@ -24,7 +24,7 @@ The migration subsystem enforces four mandatory guarantees:
 
 ## 3. Migration Lifecycle & State Machine
 
-The migration stage is stored in the `legacy_archive` store of the D-137 database. The stage type has four values; `runV1Migration` writes `archive_written` and ends at `checkpoint_committed`, and only `finalizeMigration()` writes `finalized`:
+The migration stage is stored in the `legacy_archive` store of the replicated database. The stage type has four values; `runV1Migration` writes `archive_written` and ends at `checkpoint_committed`, and only `finalizeMigration()` writes `finalized`:
 
 ```text
 [v1 Database: snapshots & mutation_log]
@@ -35,7 +35,7 @@ The migration stage is stored in the `legacy_archive` store of the D-137 databas
                   |
                   v
        Stage 2: entries_migrated
-  (Active and deleted entries converted into D-137 causal incarnations)
+  (Active and deleted entries converted into causal incarnations)
                   |
                   v
     Stage 3: checkpoint_committed
@@ -74,9 +74,9 @@ Production operators and automated test suites verify rollback resilience prior 
 ```javascript
 import { syncCollection } from "@dotmix/sync";
 
-// Step 1: Open with modern D-137 engine (performs non-destructive migration)
+// Step 1: Open with modern replicated engine (performs non-destructive migration)
 const modernCollection = syncCollection("customer_orders", {
-  engine: "d137",
+  engine: "replicated",
   driver: "indexeddb"
 });
 await modernCollection.ready;
@@ -107,9 +107,9 @@ finalizeMigration(
 ): Promise<{ ok: boolean; code?: string; detail?: string }>
 ```
 
-- `store` defaults to the IndexedDB database `mix_sync_d137:<collectionId>`; `legacyFactory` defaults to `globalThis.indexedDB`.
+- `store` defaults to the IndexedDB database `dotmix_sync:<collectionId>`; `legacyFactory` defaults to `globalThis.indexedDB`.
 - Stage `finalized`: returns `{ ok: true }` and does nothing.
-- Any stage other than `checkpoint_committed`, or no store available: returns `{ ok: false, code: "D137_MIGRATION_FAILED" }`.
+- Any stage other than `checkpoint_committed`, or no store available: returns `{ ok: false, code: "SYNC_MIGRATION_FAILED" }`.
 - Otherwise it verifies the checkpoint with `recoverFromStoreOnBoot` (snapshot digest and founding certificate signature), deletes this collection's records from the legacy database, and sets the stage to `finalized`.
 - If verification fails, `recoverFromStoreOnBoot` throws `CORRUPT_LOCAL_STORE_RECOVERY_REQUIRED`; the promise rejects and the legacy data is not deleted.
 
@@ -126,6 +126,6 @@ if (!outcome.ok) {
 
 ## 6. Rollback Limits
 
-- The legacy database `mix_sync_db` (version 1) and the D-137 database `mix_sync_d137:<collectionId>` are separate. The migration does not modify the legacy database.
+- The legacy database `mix_sync_db` (version 1) and the replicated database `dotmix_sync:<collectionId>` are separate. The migration does not modify the legacy database.
 - Until `finalizeMigration()` runs for a collection, `engine: "legacy"` still reads that collection's old data.
 - `finalizeMigration()` deletes the collection's legacy records. After that, `engine: "legacy"` can no longer read the old data for that collection.

@@ -1,8 +1,8 @@
 /* global process */
 /**
- * Gate 37 deferral closed early (2026-11-13): `mix create --template sync-crdt` and `mix add sync`.
- * Both generate code on the public syncCollection API only (D-149), so they follow the default
- * engine (legacy now, D-137 after Gate 34 / T-34.8).
+ * deferral closed early (2026-11-13): `mix create --template sync-crdt` and `mix add sync`.
+ * Both generate code on the public syncCollection API only, so they follow the default
+ * engine.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";

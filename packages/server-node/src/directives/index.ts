@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node/directives — Barrel export for Gate 38 SSR directive helpers (T-38.6).
+ * @dotmix/server-node/directives — Barrel export for SSR directive helpers.
  */
 
 export * from "./request-context.js";

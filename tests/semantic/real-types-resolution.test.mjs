@@ -11,7 +11,7 @@ import * as formsExports from "@dotmix/runtime/forms";
 import * as routerExports from "@dotmix/router";
 import * as syncExports from "@dotmix/sync";
 
-describe("Gate 27 (T-27.4 / D-131): Real Package .d.ts & Relative Module Resolution in typecheckTix", () => {
+describe(": Real Package .d.ts & Relative Module Resolution in typecheckTix", () => {
   test("1. Resolves @dotmix/runtime, @dotmix/runtime/permissions, @dotmix/router, @dotmix/sync, relative .ts, and sibling .tix from disk with 0 diagnostics", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-real-types-"));
     try {

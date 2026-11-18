@@ -9,7 +9,7 @@ import {
   renderKeyedList
 } from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 9: Hardening, Performance Baseline, and Real Showcase Compilation & Execution", () => {
+describe(": Hardening, Performance Baseline, and Real Showcase Compilation & Execution", () => {
   let win;
   let document;
 
@@ -82,9 +82,9 @@ describe("Gate 9: Hardening, Performance Baseline, and Real Showcase Compilation
     assert.deepEqual(
       rotatedRows.map((r) => r.textContent),
       [
-        "0: Semantic & Tix (Gate 3)",
-        "1: Reactive Kernel (Gate 4)",
-        "2: Lexer & Parser (Gate 2)"
+        "0: Semantic & Tix",
+        "1: Reactive Kernel",
+        "2: Lexer & Parser"
       ]
     );
 

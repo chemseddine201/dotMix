@@ -1,5 +1,5 @@
 /**
- * D-137 Epoch Membership Certificate Verification Re-Exports & Monotonicity (G32-1)
+ * Epoch Membership Certificate Verification Re-Exports & Monotonicity (G32-1)
  */
 export * from "./lifecycle.js";
 
@@ -18,7 +18,7 @@ export function checkCertificateMonotonicity(
     if (newFloor < currentFloor) {
       return {
         ok: false,
-        code: "D137_EPOCH_TRANSITION_NOT_READY",
+        code: "SYNC_EPOCH_TRANSITION_NOT_READY",
         detail: `Baseline floor for stream ${streamKey} decreased from ${currentFloor} to ${newFloor}`,
       };
     }

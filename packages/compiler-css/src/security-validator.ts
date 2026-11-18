@@ -1,5 +1,5 @@
 /**
- * @dotmix/compiler-css/security-validator — Static CSS AST security validator (D-108, R-URL-01, R-CSS-05).
+ * @dotmix/compiler-css/security-validator — Static CSS AST security validator.
  */
 
 import type { CssPlainNode } from "css-tree";
@@ -39,7 +39,7 @@ export function validateCssCharsetHeader(cssSource: string, options?: CssCompile
   if (charsetMatch) {
     throw new MixDiagnosticError({
       code: DiagnosticCodes.MIX_ERR_CSS_FORBIDDEN_CHARSET,
-      message: "'@charset' is forbidden in component <style> blocks (D-108).",
+      message: "'@charset' is forbidden in component <style> blocks.",
       severity: "error",
       span: toMixSpan(
         {
@@ -60,7 +60,7 @@ export function validateAtruleSecurity(atName: string, node: CssPlainNode, optio
   if (atName === "import") {
     throw new MixDiagnosticError({
       code: DiagnosticCodes.MIX_ERR_CSS_FORBIDDEN_IMPORT,
-      message: "'@import' is forbidden in component <style> blocks (D-108).",
+      message: "'@import' is forbidden in component <style> blocks.",
       severity: "error",
       span: toMixSpan(node.loc, options)
     });
@@ -68,7 +68,7 @@ export function validateAtruleSecurity(atName: string, node: CssPlainNode, optio
   if (atName === "charset") {
     throw new MixDiagnosticError({
       code: DiagnosticCodes.MIX_ERR_CSS_FORBIDDEN_CHARSET,
-      message: "'@charset' is forbidden in component <style> blocks (D-108).",
+      message: "'@charset' is forbidden in component <style> blocks.",
       severity: "error",
       span: toMixSpan(node.loc, options)
     });

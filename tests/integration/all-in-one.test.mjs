@@ -215,22 +215,22 @@ describe("All-In-One Modular Architecture Suite", () => {
     const returnedParam = root.querySelector(".param-code");
     assert.ok(returnedParam.textContent.includes("lead-architect"));
 
-    // 7. Switch to /forms -> renders FormsPage with reactive validation engine (Gate 21 / D-124)
+    // 7. Switch to /forms -> renders FormsPage with reactive validation engine
     navLinks[6].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".forms-page"), "FormsPage rendered in outlet");
 
-    // 8. Switch to /sync -> renders SyncPage with CRDT offline store (Gate 16 & 22 / D-119 & D-125)
+    // 8. Switch to /sync -> renders SyncPage with CRDT offline store
     navLinks[7].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".sync-page"), "SyncPage rendered in outlet");
 
-    // 9. Switch to /permissions -> renders PermissionsPage with RBAC/ABAC engine (Gate 25 / D-128)
+    // 9. Switch to /permissions -> renders PermissionsPage with RBAC/ABAC engine
     navLinks[8].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".permissions-container"), "PermissionsPage rendered in outlet");
 
-    // 10. Switch to /helpers -> renders HelpersPage with @dotmix/helpers (Gate 29 / D-135)
+    // 10. Switch to /helpers -> renders HelpersPage with @dotmix/helpers
     navLinks[9].click();
     assert.strictEqual(mountCounter.textContent, "1");
     assert.ok(root.querySelector(".helpers-page"), "HelpersPage rendered in outlet");

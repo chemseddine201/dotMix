@@ -1,10 +1,10 @@
 /**
- * @dotmix/cli — Dev Server HMR Client (Gate 36 / T-36.4)
+ * @dotmix/cli — Dev Server HMR Client
  *
- * Implements H-8 & D-153:
+ * Implements &:
  * - EventSource SSE transport over /__mix_hmr
  * - Monotonic seq number tracking
- * - ServerId check on reconnect: triggers clean full reload if server was restarted (closes H-8 / E9)
+ * - ServerId check on reconnect: triggers clean full reload if server was restarted
  * - Heartbeat handling
  * - Client ack confirmation via POST /__mix_hmr/ack
  * - In-browser update and full-reload execution

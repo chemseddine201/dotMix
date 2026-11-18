@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/forms/validators — Built-in synchronous form field validators (D-124).
+ * @dotmix/runtime/forms/validators — Built-in synchronous form field validators.
  */
 
 import type { ValidatorFn } from "./types.js";

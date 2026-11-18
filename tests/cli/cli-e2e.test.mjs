@@ -1,6 +1,6 @@
 /* global process, setTimeout */
 /**
- * Gate 37 Acceptance Suite: CLI Full Developer Experience (E2E)
+ * Acceptance Suite: CLI Full Developer Experience (E2E)
  * Asserting C1 through C10 per agent/CLI_FULL_DEVELOPER_EXPERIENCE_TASK.md
  */
 
@@ -22,7 +22,7 @@ function runCli(args, options = {}) {
   });
 }
 
-describe("Gate 37: CLI Full Developer Experience Acceptance Suite (C1–C10)", () => {
+describe(": CLI Full Developer Experience Acceptance Suite (C1–C10)", () => {
   it("C1: mix preview starts HTTP server on dist/ with SPA fallback routing", () => {
     const res = runCli(["preview", "--help"]);
     assert.strictEqual(res.status, 0, "mix preview --help must succeed");

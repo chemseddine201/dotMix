@@ -356,7 +356,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
         case "IfBlock": {
           if (node.legacySyntax) {
             emitLegacyWarning(
-              "Legacy '{#if}...{/if}' control-flow syntax is deprecated. Use '{if ...}...{endif}' instead (D-133).",
+              "Legacy '{#if}...{/if}' control-flow syntax is deprecated. Use '{if ...}...{endif}' instead.",
               node.span
             );
           }
@@ -373,7 +373,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
         case "EachBlock": {
           if (node.legacySyntax) {
             emitLegacyWarning(
-              "Legacy '{#each}...{/each}' control-flow syntax is deprecated. Use '{each (item, idx) in list}...{endeach}' instead (D-133).",
+              "Legacy '{#each}...{/each}' control-flow syntax is deprecated. Use '{each (item, idx) in list}...{endeach}' instead.",
               node.span
             );
           }
@@ -398,7 +398,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
         case "AwaitBlock": {
           if (node.legacySyntax) {
             emitLegacyWarning(
-              "Legacy '{#await}...{/await}' control-flow syntax is deprecated. Use '{await ...}...{endawait}' instead (D-133).",
+              "Legacy '{#await}...{/await}' control-flow syntax is deprecated. Use '{await ...}...{endawait}' instead.",
               node.span
             );
           }

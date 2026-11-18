@@ -7,7 +7,7 @@ import { generate } from "../../node_modules/@dotmix/compiler-codegen/dist/index
 import { compileToSsr } from "../../node_modules/@dotmix/compiler-ssr/dist/index.js";
 import * as MixRuntime from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 29 (T-29.4): @dotmix/server-node Streaming SSR, Error-Recovery Boundaries & CSP Nonce Support", () => {
+describe(": @dotmix/server-node Streaming SSR, Error-Recovery Boundaries & CSP Nonce Support", () => {
   it("1. Streams SSR HTML over HTTP with per-request CSP nonce header, hydrates in happy-dom with 0 mismatches, and honors nonce in injectStylesheet", async () => {
     const serverNode = await import("../../node_modules/@dotmix/server-node/dist/index.js");
     assert.strictEqual(typeof serverNode.createSsrServer, "function");

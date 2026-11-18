@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Persists the replica's non-extractable signing key (D-147).
+ * @dotmix/sync — Persists the replica's non-extractable signing key.
  *
  * The CryptoKey object itself is stored (IndexedDB structured clone keeps it
  * non-extractable). No key bytes are ever written. Without this, a reloaded page

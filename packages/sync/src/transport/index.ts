@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Transports, Principals, & Multi-Tab Fencing (Gate 34)
+ * @dotmix/sync — Transports, Principals, & Multi-Tab Fencing
  */
 
 export * from "./envelope.js";

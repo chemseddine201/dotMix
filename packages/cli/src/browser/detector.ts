@@ -1,6 +1,6 @@
 /**
  * Zero-dependency browser executable discovery across standard OS locations.
- * Follows D-169: checks MIX_BROWSER_PATH, then platform defaults. Never downloads binaries.
+ * Follows: checks MIX_BROWSER_PATH, then platform defaults. Never downloads binaries.
  */
 
 import fs from "node:fs";

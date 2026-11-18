@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — Zero-Dependency Argument Parser via node:util.parseArgs (Gate 37 / D-159)
+ * @dotmix/cli — Zero-Dependency Argument Parser via node:util.parseArgs
  */
 
 import { parseArgs } from "node:util";
@@ -103,7 +103,8 @@ export function parseCliArguments(argv: string[]): ParsedCliArgs {
       prerender: { type: "string" }
     },
     strict: false,
-    allowPositionals: true
+    allowPositionals: true,
+    allowNegative: true
   });
 
   const command = positionals[0] || (values.help ? "help" : values.version ? "version" : "help");

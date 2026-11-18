@@ -45,11 +45,11 @@ function runCliAsync(args, env = {}, cwd = repoRoot) {
   });
 }
 
-describe("Gate 37 Task T-37.10: mix upgrade (D-168 / A3 Contract)", () => {
+describe(" Task: mix upgrade", () => {
   it("prints upgrade help message and exits 0", () => {
     const res = runCli(["upgrade", "--help"]);
     assert.equal(res.status, 0);
-    assert.match(res.stdout, /Mix Framework/);
+    assert.match(res.stdout, /dotMix/);
   });
 
   it("fails with exit code 1 when package.json does not exist in target dir", () => {

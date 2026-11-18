@@ -2,9 +2,20 @@
  * @dotmix/compiler-semantic/sourcemap — Base64 VLQ SourceMapV3 generation and projected span mapping (R-SP-01..05).
  */
 
+import * as ts from "typescript";
 import { deepFreeze, LineMap } from "@dotmix/ast";
 import type { SourceSpan } from "@dotmix/ast";
 import type { SpanEntry, SourceMapV3 } from "./types.js";
+
+export {
+  decodeVlq,
+  decodeMappings,
+  encodeMappings,
+  shiftMapThroughEdits,
+  applyTextEdits,
+  type TextEdit,
+  type DecodedMapping
+} from "./build-transforms/source-map-chain.js";
 
 const BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -20,6 +31,75 @@ export function encodeVlq(value: number): string {
     encoded += BASE64_CHARS[digit]!;
   } while (vlq > 0);
   return encoded;
+}
+
+export interface TemplateExpressionSpan {
+  readonly raw: string;
+  readonly startOffset: number;
+}
+
+export function buildComponentSpanTable(
+  originalSource: string,
+  generatedSource: string,
+  scriptContent: string | undefined,
+  scriptStartOffset: number | undefined,
+  templateExpressions?: readonly TemplateExpressionSpan[]
+): SpanEntry[] {
+  if (!originalSource) return [];
+
+  const spanTable: SpanEntry[] = [];
+  let searchPos = 0;
+
+  if (scriptContent && scriptStartOffset !== undefined) {
+    const scanner = ts.createScanner(ts.ScriptTarget.ES2023, false, ts.LanguageVariant.Standard, scriptContent);
+    let token = scanner.scan();
+    while (token !== ts.SyntaxKind.EndOfFileToken) {
+      if (token === ts.SyntaxKind.Identifier) {
+        const tokName = scanner.getTokenText();
+        const srcStart = scriptStartOffset + scanner.getTokenPos();
+        const genStart = generatedSource.indexOf(tokName, searchPos);
+        if (genStart !== -1) {
+          spanTable.push({
+            genStart,
+            genEnd: genStart + tokName.length,
+            srcStart,
+            srcEnd: srcStart + tokName.length,
+            kind: "origin"
+          });
+          searchPos = genStart + tokName.length;
+        }
+      }
+      token = scanner.scan();
+    }
+  }
+
+  if (templateExpressions) {
+    for (const expr of templateExpressions) {
+      const scanner = ts.createScanner(ts.ScriptTarget.ES2023, false, ts.LanguageVariant.Standard, expr.raw);
+      let token = scanner.scan();
+      while (token !== ts.SyntaxKind.EndOfFileToken) {
+        if (token === ts.SyntaxKind.Identifier) {
+          const tokName = scanner.getTokenText();
+          const srcStart = expr.startOffset + scanner.getTokenPos();
+          const genStart = generatedSource.indexOf(tokName, searchPos);
+          if (genStart !== -1) {
+            spanTable.push({
+              genStart,
+              genEnd: genStart + tokName.length,
+              srcStart,
+              srcEnd: srcStart + tokName.length,
+              kind: "origin"
+            });
+            searchPos = genStart + tokName.length;
+          }
+        }
+        token = scanner.scan();
+      }
+    }
+  }
+
+  spanTable.sort((a, b) => a.genStart - b.genStart);
+  return spanTable;
 }
 
 export function generateSourceMap(
@@ -69,10 +149,12 @@ export function generateSourceMap(
     prevSrcCol = srcColIdx;
   }
 
+  const emittedFile = filename.endsWith(".js") ? filename : `${filename}.js`;
   return deepFreeze({
     version: 3,
-    file: `${filename}.ts`,
+    file: emittedFile,
     sources: [filename],
+    ...(originalSource ? { sourcesContent: [originalSource] } : {}),
     names: [],
     mappings: lineSegments.map((segs) => segs.join(",")).join(";")
   });

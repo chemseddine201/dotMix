@@ -1,11 +1,13 @@
 {
   "name": "@dotmix/server-node",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Node.js HTTP streaming SSR adapter with error-recovery boundaries and CSP nonce support",
   "files": [
     "dist"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chemseddine201/dotMix.git",
@@ -22,8 +24,8 @@
     }
   },
   "dependencies": {
-    "@dotmix/runtime": "0.1.1",
-    "@dotmix/stream": "0.1.1"
+    "@dotmix/runtime": "0.2.0",
+    "@dotmix/stream": "0.2.0"
   },
   "license": "MIT"
 }

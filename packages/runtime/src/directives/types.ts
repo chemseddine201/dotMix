@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/directives/types — Canonical prop interfaces for every Gate 38 directive component (§0, §2).
+ * @dotmix/runtime/directives/types — Canonical prop interfaces for every directive component (§0, §2).
  */
 
 import type { Context as RuntimeContext } from "../core/index.js";

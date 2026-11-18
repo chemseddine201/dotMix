@@ -1,5 +1,5 @@
 /**
- * VS Code Extension Test Suite — editors/vscode-mix & Standalone LSP Daemon (D-118, D-127)
+ * VS Code Extension Test Suite — editors/vscode-mix & Standalone LSP Daemon
  *
  * Verifies:
  * 1. Extension manifest (package.json): languages, grammars, snippets, commands, configuration
@@ -35,7 +35,7 @@ describe("VS Code Extension: dotMix (Mix & Tix) Language Support", () => {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 
     assert.strictEqual(pkg.name, "vscode-mix");
-    assert.strictEqual(pkg.publisher, "mix-framework");
+    assert.strictEqual(pkg.publisher, "dotmix");
     assert.strictEqual(pkg.type, "module");
     assert.strictEqual(pkg.main, "./dist/extension.js");
     assert.ok(pkg.engines?.vscode);
@@ -85,7 +85,7 @@ describe("VS Code Extension: dotMix (Mix & Tix) Language Support", () => {
     for (const [name, grammar] of [["mix", mixGrammar], ["tix", tixGrammar]]) {
       assert.ok(grammar.repository, `${name} must have repository`);
 
-      // Required repository keys per Gate 15 specification
+      // Required repository keys specification
       assert.ok(grammar.repository["control-flow"], `${name} must contain control-flow repo`);
       assert.ok(grammar.repository["dynamic-element"], `${name} must contain dynamic-element repo`);
       assert.ok(grammar.repository["script-tag"], `${name} must contain script-tag repo`);

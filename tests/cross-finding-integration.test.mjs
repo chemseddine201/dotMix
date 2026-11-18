@@ -1,5 +1,5 @@
 /**
- * Phase 4 Permanent Cross-Finding Integration Test Suite (Section 10)
+ * Permanent Cross-Finding Integration Test Suite (Section 10)
  *
  * Verifies complex interactions between:
  * 1. Resilient owner disposal + sync subscription teardown under cleanup errors
@@ -20,7 +20,7 @@ import {
   MemoryDriver
 } from "../node_modules/@dotmix/sync/dist/index.js";
 
-describe("Phase 4: Cross-Finding Integration & System Resilience (Section 10)", () => {
+describe(": Cross-Finding Integration & System Resilience (Section 10)", () => {
   test("1. Component registers cleanups, one cleanup throws, owns sync subscription: disposal succeeds without corrupting queue", async () => {
     const driver = new MemoryDriver();
     const engine = new SyncEngine({ driver });

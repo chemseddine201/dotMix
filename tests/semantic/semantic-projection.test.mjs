@@ -9,7 +9,7 @@ import {
 } from "../../node_modules/@dotmix/compiler-semantic/dist/index.js";
 import { MixDiagnosticError, DiagnosticCodes } from "../../node_modules/@dotmix/diagnostics/dist/index.js";
 
-test("Gate 3: Semantic scope resolution, binding classification, and loop variable scoping", () => {
+test(": Semantic scope resolution, binding classification, and loop variable scoping", () => {
   const source = `<script lang="ts">
   import Header from "./Header.tix";
   const props = defineProps<{ title: string }>();
@@ -45,7 +45,7 @@ test("Gate 3: Semantic scope resolution, binding classification, and loop variab
   assert.strictEqual(desc.diagnostics.length, 0);
 });
 
-test("Gate 3: Unresolved identifier in template or component call throws MixDiagnosticError with exact SourceSpan", () => {
+test(": Unresolved identifier in template or component call throws MixDiagnosticError with exact SourceSpan", () => {
   const source = `<script>
   const known = signal(1);
 </script>
@@ -81,7 +81,7 @@ test("Gate 3: Unresolved identifier in template or component call throws MixDiag
   );
 });
 
-test("Gate 3 (R-SP-01..05): SourceMapSpanTable covers 100% of projected .tix.ts bytes without gaps or overlaps", () => {
+test(" (R-SP-01..05): SourceMapSpanTable covers 100% of projected .tix.ts bytes without gaps or overlaps", () => {
   const source = `<script lang="ts">
   const count = signal(0);
   const myInput = createRef<HTMLInputElement>(null);
@@ -126,7 +126,7 @@ test("Gate 3 (R-SP-01..05): SourceMapSpanTable covers 100% of projected .tix.ts 
   );
 });
 
-test("Gate 3 (D-106, R-TC-01..03, R-RS-01..03): TypeScript 6.0.3 Compiler API verifies .tix props (NoInfer excess props), refs, and import extensions", () => {
+test(": TypeScript 6.0.3 Compiler API verifies .tix props (NoInfer excess props), refs, and import extensions", () => {
   const buttonModuleDts = `
 export interface ButtonProps {
   label: string;

@@ -1,5 +1,5 @@
 /**
- * Gate 26: Project Scaffolding & Initialized Framework Architecture (D-129)
+ *: Project Scaffolding & Initialized Framework Architecture
  *
  * Verifies:
  * 1. CLI create() scaffolds TypeScript (.tix) + SCSS project with complete React-inspired hierarchy.
@@ -17,7 +17,7 @@ import { create } from "../../node_modules/@dotmix/cli/dist/index.js";
 import { parse } from "../../node_modules/@dotmix/compiler-frontend/dist/index.js";
 import { analyze, typecheckTix } from "../../node_modules/@dotmix/compiler-semantic/dist/index.js";
 
-describe("Gate 26: Project Scaffolding Architecture (D-129)", () => {
+describe(": Project Scaffolding Architecture", () => {
   test("1. Scaffolds TypeScript (.tix) + SCSS project with full React-inspired modular hierarchy", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-scaffold-ts-"));
     const appDir = path.join(tmpDir, "portal-app");
@@ -82,9 +82,10 @@ describe("Gate 26: Project Scaffolding Architecture (D-129)", () => {
       // 9. Unit tests
       assert.ok(fs.existsSync(path.join(appDir, "tests/unit/abilities.test.mjs")));
 
-      // Verify mix.config.ts contains scss preprocessor
+      // Verify mix.config.ts is a typed config
       const mixConfig = fs.readFileSync(path.join(appDir, "mix.config.ts"), "utf-8");
-      assert.ok(mixConfig.includes('"scss"'));
+      assert.ok(mixConfig.includes("satisfies MixConfig"));
+      assert.ok(mixConfig.includes('srcDir: "src"'));
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -114,7 +115,8 @@ describe("Gate 26: Project Scaffolding Architecture (D-129)", () => {
       assert.ok(fs.existsSync(path.join(appDir, "src/styles/tokens.less")));
 
       const mixConfig = fs.readFileSync(path.join(appDir, "mix.config.ts"), "utf-8");
-      assert.ok(mixConfig.includes('"less"'));
+      assert.ok(mixConfig.includes("satisfies MixConfig"));
+      assert.ok(mixConfig.includes('srcDir: "src"'));
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

@@ -1,5 +1,5 @@
 /**
- * Gate 16 (D-119): Local-First Offline-First Reactive CRDT State Sync Engine Suite
+ *: Local-First Offline-First Reactive CRDT State Sync Engine Suite
  *
  * Verifies:
  * 1. syncSignal: immediate 0ms optimistic UI updates, Lamport clocks, durability & rollback
@@ -22,9 +22,9 @@ import {
   MemoryDriver,
   generateKeyBetween
 } from "../../node_modules/@dotmix/sync/dist/index.js";
-import { D137ReferenceCoordinator } from "../../tools/d137-coordinator/coordinator.js";
+import { SyncReferenceCoordinator } from "../../tools/sync-coordinator/coordinator.js";
 
-describe("Gate 16: Local-First Offline Sync Engine (@dotmix/sync)", () => {
+describe(": Local-First Offline Sync Engine (@dotmix/sync)", () => {
   let win;
 
   beforeEach(() => {
@@ -223,7 +223,7 @@ describe("Gate 16: Local-First Offline Sync Engine (@dotmix/sync)", () => {
     );
   });
 
-  for (const candidateEngine of ["legacy", "d137"]) {
+  for (const candidateEngine of ["legacy", "replicated"]) {
     test(`6. Server rejection triggers automatic local transactional rollback (${candidateEngine})`, async () => {
       const driver = new MemoryDriver();
       const channel = new MockTransportChannel();
@@ -242,8 +242,8 @@ describe("Gate 16: Local-First Offline Sync Engine (@dotmix/sync)", () => {
       });
       await tasks.ready;
 
-      if (candidateEngine === "d137") {
-        const coordinatorInstance = new D137ReferenceCoordinator({ collectionId: `restricted-tasks-${candidateEngine}` });
+      if (candidateEngine === "replicated") {
+        const coordinatorInstance = new SyncReferenceCoordinator({ collectionId: `restricted-tasks-${candidateEngine}` });
         await coordinatorInstance.initialize();
         const memberBinding = tasks.engineInstance.meta.epochMemberBindings[tasks.engineInstance.meta.replicaId];
         await coordinatorInstance.registerClient(
@@ -260,7 +260,7 @@ describe("Gate 16: Local-First Offline Sync Engine (@dotmix/sync)", () => {
 
       // Setup simulated server rejecting mutations with "forbidden"
       serverChannel.onReceive((packet) => {
-        if (candidateEngine === "d137" && packet.envelope) {
+        if (candidateEngine === "replicated" && packet.envelope) {
           const operation = packet.envelope.payload;
           if (
             operation &&
@@ -313,8 +313,8 @@ describe("Gate 16: Local-First Offline Sync Engine (@dotmix/sync)", () => {
         assert.strictEqual(pendingMutations.length, 1, "Only valid task remains pending awaiting ACK");
         assert.strictEqual(pendingMutations[0]?.payload?.value?.title ?? pendingMutations[0]?.payload?.title, "Valid Task");
       } else {
-        // d137: D-146 compensating rollback preserves history in journal
-        assert.ok(tasks.engineInstance, "D137 engine instance exists");
+        // replicated: compensating rollback preserves history in journal
+        assert.ok(tasks.engineInstance, "Sync engine instance exists");
         assert.strictEqual(tasks.items().length, 1, "Only valid task is present in items");
         assert.strictEqual(tasks.pendingCount(), 0, "No pending overlay intents remain");
         // History is preserved: entry for t2 is marked deleted or compensated

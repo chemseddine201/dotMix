@@ -1,5 +1,5 @@
 /**
- * Gate 15 Test Suite — Language Server Protocol (@dotmix/language-server) & VS Code Extension (D-118)
+ * Test Suite — Language Server Protocol (@dotmix/language-server) & VS Code Extension
  *
  * Verifies:
  * 1. getDiagnostics() produces accurate 0-based LSP diagnostics for syntax and type errors
@@ -25,7 +25,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "../..");
 
-describe("Gate 15: Language Server Protocol & VS Code Extension (D-118)", () => {
+describe(": Language Server Protocol & VS Code Extension", () => {
   const service = new MixLanguageService();
 
   test("1. offsetToPosition and positionToOffset conversions", () => {

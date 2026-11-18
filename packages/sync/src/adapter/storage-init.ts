@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Storage Resolution & Engine Boot Initialization (Gate 34 / B1, B2, B4, B10, C1, C3, C4)
+ * @dotmix/sync — Storage Resolution & Engine Boot Initialization
  *
  * Implements store backend resolution, v1->v2 migration invocation,
  * boot recovery, unique replica ID allocation, ECDSA P-256 self-signed
@@ -8,7 +8,7 @@
  */
 
 import type { SyncChannel, SyncCollectionOptions, SyncStatus } from "../types.js";
-import { D137Engine } from "../protocol/engine.js";
+import { ReplicationEngine } from "../protocol/engine.js";
 import type { ReplicableOperation, TransportChannelPrincipal } from "../protocol/types.js";
 import { generateSigningKeyPair } from "../protocol/signing.js";
 import { type StoreBackend, MemoryStoreBackend } from "../storage/memory-backend.js";
@@ -55,7 +55,7 @@ export function resolveStoreBackend(driverOption: unknown, collectionIdentifier:
 
 export interface AdapterStorageContext {
   storeBackend: StoreBackend;
-  engineInstance: D137Engine;
+  engineInstance: ReplicationEngine;
   multiTabCoordinator?: MultiTabCoordinator | undefined;
   activeSyncChannel?: SyncChannel | undefined;
   initialErrorStatus?: SyncStatus | undefined;
@@ -66,14 +66,14 @@ export interface AdapterStorageContext {
 export function createInitialTemporaryEngine(
   collectionIdentifier: string,
   syncEngineOption?: unknown
-): D137Engine {
+): ReplicationEngine {
   const initialReplicaId =
     (syncEngineOption as { clientId?: string })?.clientId ?? "init-replica";
   const temporaryCert = createDefaultFoundingCertificate(
     collectionIdentifier,
     initialReplicaId
   );
-  return new D137Engine(
+  return new ReplicationEngine(
     collectionIdentifier,
     initialReplicaId,
     1,
@@ -84,19 +84,19 @@ export function createInitialTemporaryEngine(
 
 export async function initializeAdapterStorage<T>(
   options: SyncCollectionOptions<T>,
-  onStoreRefresh: (refreshedEngine: D137Engine) => void,
+  onStoreRefresh: (refreshedEngine: ReplicationEngine) => void,
   onRemoteMessageAccepted: () => Promise<void>,
   onTopologyError: (topologyErrorCode: string) => void
 ): Promise<AdapterStorageContext> {
   const collectionIdentifier = options.key ?? "default_collection";
 
-  // C4: OPFS persistence is legacy-engine only in release 1 (D-149)
+  // C4: OPFS persistence is legacy-engine only in release 1
   if (options.driver === "opfs") {
     return {
       storeBackend: new MemoryStoreBackend(),
       engineInstance: createInitialTemporaryEngine(collectionIdentifier, options.syncEngine),
       initialErrorStatus: "error",
-      initialErrorCode: "D137_OPFS_NOT_SUPPORTED",
+      initialErrorCode: "SYNC_OPFS_NOT_SUPPORTED",
     };
   }
 
@@ -105,10 +105,10 @@ export async function initializeAdapterStorage<T>(
     await store.open();
   }
 
-  // C3: Migration error handling (D-142)
+  // C3: Migration error handling
   try {
     const migrationRunner = new ProductionV1MigrationRunner();
-    // The legacy database is read-only input (HAA-19); only IndexedDB stores can have one.
+    // The legacy database is read-only input; only IndexedDB stores can have one.
     const legacyData =
       store instanceof IndexedDbStoreBackend ? await readLegacyCollection(collectionIdentifier) : undefined;
     if (await migrationRunner.isMigrationRequired(collectionIdentifier, store, legacyData !== undefined)) {
@@ -130,7 +130,7 @@ export async function initializeAdapterStorage<T>(
           storeBackend: store,
           engineInstance: createInitialTemporaryEngine(collectionIdentifier, options.syncEngine),
           initialErrorStatus: "error",
-          initialErrorCode: migrationOutcome.code ?? "D137_MIGRATION_FAILED",
+          initialErrorCode: migrationOutcome.code ?? "SYNC_MIGRATION_FAILED",
         };
       }
     }
@@ -139,12 +139,12 @@ export async function initializeAdapterStorage<T>(
       storeBackend: store,
       engineInstance: createInitialTemporaryEngine(collectionIdentifier, options.syncEngine),
       initialErrorStatus: "error",
-      initialErrorCode: "D137_MIGRATION_FAILED",
+      initialErrorCode: "SYNC_MIGRATION_FAILED",
     };
   }
 
   // B1: Recover from store on boot
-  let recoveredEngine: D137Engine | undefined;
+  let recoveredEngine: ReplicationEngine | undefined;
   try {
     const bootOutcome = await recoverFromStoreOnBoot(store, collectionIdentifier);
     if (bootOutcome.ok && bootOutcome.engine) {
@@ -160,7 +160,7 @@ export async function initializeAdapterStorage<T>(
     // Clean start on uninitialized store
   }
 
-  let activeEngine: D137Engine;
+  let activeEngine: ReplicationEngine;
 
   if (recoveredEngine) {
     activeEngine = recoveredEngine;
@@ -177,7 +177,7 @@ export async function initializeAdapterStorage<T>(
       uniqueReplicaId,
       keyPair
     );
-    activeEngine = new D137Engine(
+    activeEngine = new ReplicationEngine(
       collectionIdentifier,
       uniqueReplicaId,
       1,
@@ -281,7 +281,7 @@ export async function initializeAdapterStorage<T>(
 }
 
 export async function flushBatchOperations(
-  engineInstance: D137Engine,
+  engineInstance: ReplicationEngine,
   storeBackend: StoreBackend | undefined,
   activeSyncChannel: SyncChannel | undefined,
   multiTabCoordinator: MultiTabCoordinator | undefined,
@@ -320,7 +320,7 @@ export async function flushBatchOperations(
 }
 
 export async function flushBatchWithBackpressure(
-  engineInstance: D137Engine,
+  engineInstance: ReplicationEngine,
   storeBackend: StoreBackend | undefined,
   activeSyncChannel: SyncChannel | undefined,
   multiTabCoordinator: MultiTabCoordinator | undefined,

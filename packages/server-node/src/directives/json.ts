@@ -1,5 +1,5 @@
 /**
- * @dotmix/server-node/directives/json — Safe JSON escaping & script tag serialization for {json} / <Json> (F13, T-38.6).
+ * @dotmix/server-node/directives/json — Safe JSON escaping & script tag serialization for {json} / <Json>.
  */
 
 function escapeHtmlAttribute(attributeValue: string): string {

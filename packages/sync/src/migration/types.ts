@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Production v1 -> v2 Migration Typed Definitions (Gate 34 / T-34.3)
+ * @dotmix/sync — Production v1 -> v2 Migration Typed Definitions
  *
  * Defines contracts for legacy v1 snapshot extraction, pending mutation replay plans,
  * legacy archiving, and multi-stage idempotent migration state machines.

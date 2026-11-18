@@ -4,7 +4,7 @@ import { signal, computed } from "../../node_modules/@dotmix/runtime/dist/index.
 import { defineAbility } from "../../node_modules/@dotmix/runtime/dist/permissions/index.js";
 import { createMemoryRouter } from "../../node_modules/@dotmix/router/dist/index.js";
 
-describe("Gate 28 (T-28.2): Router Permission Enforcement on Initial Load, Ability Change & Popstate", () => {
+describe(": Router Permission Enforcement on Initial Load, Ability Change & Popstate", () => {
   test("1. Creating a router at /admin without permission redirects immediately and never calls the protected route loader", async () => {
     let adminLoaderCalled = false;
     const guestAbility = defineAbility((can) => {

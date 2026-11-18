@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — D-146 Compensating Mutation Helpers (Gate 34 / T-34.4)
+ * @dotmix/sync — Compensating Mutation Helpers
  *
  * Computes compensating operations upon coordinator rejection or client rollback.
  * Guarantees monotonic append-only CRDT history: prior register values are restored

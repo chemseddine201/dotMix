@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — CRDT State Join Semilattice, Register Resolution & Array Materialization (Gate 33 / D-137)
+ * @dotmix/sync — CRDT State Join Semilattice, Register Resolution & Array Materialization
  */
 
 import { sha256 } from "./sha256.js";
@@ -55,7 +55,7 @@ export function canonicalizeValue(targetValue: unknown): string {
   if (targetType === "boolean") return targetValue ? "true" : "false";
   if (targetType === "number") {
     if (!Number.isFinite(targetValue as number)) {
-      throw new Error("D137_NON_CANONICAL_VALUE: Non-finite number encountered");
+      throw new Error("SYNC_NON_CANONICAL_VALUE: Non-finite number encountered");
     }
     return JSON.stringify(targetValue);
   }
@@ -70,7 +70,7 @@ export function canonicalizeValue(targetValue: unknown): string {
       .sort();
     return "{" + sortedKeys.map((recordKey) => JSON.stringify(recordKey) + ":" + canonicalizeValue(objectRecord[recordKey])).join(",") + "}";
   }
-  throw new Error(`D137_NON_CANONICAL_VALUE: Unsupported value type: ${targetType}`);
+  throw new Error(`SYNC_NON_CANONICAL_VALUE: Unsupported value type: ${targetType}`);
 }
 
 export function compareCausalDots(a: CausalDot, b: CausalDot): number {
@@ -163,7 +163,7 @@ export function applyOperationToState(
       if (entriesState.has(incKey)) {
         return {
           ok: false,
-          code: "D137_STATE_TARGET_EQUIVOCATION",
+          code: "SYNC_STATE_TARGET_EQUIVOCATION",
           detail: `Insert dot ${incKey} already exists in entriesState`,
         };
       }

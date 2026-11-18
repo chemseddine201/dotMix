@@ -1,25 +1,31 @@
 /**
- * @dotmix/cli — `mix build` Command (Gate 37 / T-37.4 / D-162)
+ * @dotmix/cli — `mix build` Command
  */
 
 import path from "node:path";
 import type { ParsedCliArgs } from "../args.js";
+import { resolveCommandOptions } from "../config.js";
 import { build as runBuild } from "../build.js";
-import { parsePrerenderRoutes, prerenderRoutes } from "../prerender.js";
+import { prerenderRoutes } from "../prerender.js";
 import { colors } from "../terminal.js";
 
 export async function buildCommand(parsed: ParsedCliArgs): Promise<number> {
-  const inDir = parsed.positional[0] || "src";
-  const outDir = parsed.positional[1] || "dist";
-  const target = (parsed.values.target as "client" | "ssr" | "static") || "client";
-  const clean = Boolean(parsed.values.clean);
-  const sourcemap = Boolean(parsed.values.sourcemap);
-  const analyze = Boolean(parsed.values.analyze);
-  const mode = parsed.values.mode || "production";
-  const base = parsed.values.base;
-  const prerenderOption = parsed.values.prerender;
+  if (parsed.values.target === "static") {
+    console.error("--target static was removed; build with --target client and add --prerender <routes>.");
+    return 2;
+  }
 
-  const prerenderPaths = prerenderOption !== undefined ? parsePrerenderRoutes(prerenderOption) : [];
+  const options = await resolveCommandOptions(parsed, process.cwd());
+  const inDir = options.build.inDir;
+  const outDir = options.build.outDir;
+  const target = options.build.target;
+  const clean = options.build.clean;
+  const sourcemap = options.build.sourcemap;
+  const analyze = options.build.analyze;
+  const mode = options.build.mode;
+  const base = options.build.base;
+  const prerenderPaths = options.build.prerenderRoutes;
+
   if (prerenderPaths.length > 0 && target === "ssr") {
     throw new Error("--prerender cannot be combined with --target ssr.");
   }

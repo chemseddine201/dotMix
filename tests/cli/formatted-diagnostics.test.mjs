@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliBinPath = path.resolve(__dirname, "../../packages/cli/dist/bin.js");
 
-describe("Gate 29 (T-29.3): Formatted CLI Diagnostics (Code Frame, file:line:col, Error Code, Docs Link & No Raw Stack Trace)", () => {
+describe(": Formatted CLI Diagnostics (Code Frame, file:line:col, Error Code, Docs Link & No Raw Stack Trace)", () => {
   it("1. `mix check` and `mix build` on a broken component print code frame, file:line:col, error code, and docs link with zero raw stack trace", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mix-diag-format-"));
     const srcDir = path.join(tmpDir, "src");

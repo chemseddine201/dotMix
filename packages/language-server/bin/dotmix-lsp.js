@@ -69,7 +69,7 @@ export function createLspServer(input = process.stdin, output = process.stdout) 
           },
           serverInfo: {
             name: "dotmix-language-server",
-            version: "0.1.1",
+            version: "0.2.0",
           },
         });
         break;

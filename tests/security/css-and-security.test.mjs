@@ -20,7 +20,7 @@ import {
   setSafeStyleObject
 } from "../../node_modules/@dotmix/runtime/dist/index.js";
 
-describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
+describe(": Scoped CSS Compilation & Runtime Security Boundaries", () => {
   let document;
 
   beforeEach(() => {
@@ -29,7 +29,7 @@ describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
     setSanitizerProvider(null);
   });
 
-  describe("1. Scoped CSS Compiler (@dotmix/compiler-css — D-108, F-05)", () => {
+  describe("1. Scoped CSS Compiler", () => {
     it("computes deterministic scope hashes and appends [data-mix-<hash>] to selectors", () => {
       const hash1 = computeScopeHash("Button.mix", ".btn { color: red; }");
       const hash2 = computeScopeHash("Button.mix", ".btn { color: red; }");
@@ -92,7 +92,7 @@ describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
     });
   });
 
-  describe("2. Normative WHATWG srcset Parser & Validator (D-107)", () => {
+  describe("2. Normative WHATWG srcset Parser & Validator", () => {
     it("parses all mandatory spec/SECURITY.md §2.2 conformance test vectors", () => {
       // 1. Basic candidate with density
       const v1 = parseSrcsetCandidates("image-1x.jpg 1x, image-2x.jpg 2x");
@@ -173,7 +173,7 @@ describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
     });
   });
 
-  describe("4. Dynamic CSS Property & Escape Validation (D-108, R-CSS-01..05)", () => {
+  describe("4. Dynamic CSS Property & Escape Validation", () => {
     it("decodes CSS hex and character escapes before checking for delimiter or URL injection", () => {
       assert.equal(decodeCssEscapes("red\\3b color:blue"), "red;color:blue");
       assert.equal(decodeCssEscapes("10px\\7d body{display:none}"), "10px}body{display:none}");
@@ -214,7 +214,7 @@ describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
     });
   });
 
-  describe("5. Trusted HTML & SanitizerProvider Boundary (D-109 / HAA-03)", () => {
+  describe("5. Trusted HTML & SanitizerProvider Boundary", () => {
     it("enforces root SanitizerProvider, WeakSet verification, context checks, and forbids caller callbacks", () => {
       // Without SanitizerProvider configured, createTrustedHtml throws
       assert.throws(
@@ -231,7 +231,7 @@ describe("Gate 6: Scoped CSS Compilation & Runtime Security Boundaries", () => {
       });
       assert.ok(getSanitizerProvider() !== null);
 
-      // Prohibit caller-supplied sanitizer callback (HAA-03)
+      // Prohibit caller-supplied sanitizer callback
       assert.throws(
         () => createTrustedHtml("<b>Hi</b>", (() => "<b>Hi</b>")),
         (err) =>

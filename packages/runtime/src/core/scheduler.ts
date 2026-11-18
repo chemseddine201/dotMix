@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/core/scheduler — Push-Pull reactive scheduler, batching, and cycle detection (D-101, D-102).
+ * @dotmix/runtime/core/scheduler — Push-Pull reactive scheduler, batching, and cycle detection.
  */
 
 import {
@@ -81,7 +81,7 @@ export function setOwnerSuspended(owner: Owner | null, suspended: boolean): void
 
 /**
  * Push phase: marks dependents as `CHECK` or `DIRTY` while respecting `RUNNING` state
- * and independent `pendingRerun` (D-101, R-RX-04).
+ * and independent `pendingRerun`.
  */
 export function mark(
   node: ComputationNode,
@@ -95,7 +95,7 @@ export function mark(
       return;
     }
     if (node.state === ComputationState.RUNNING) {
-      // D-101 / R-RX-04: Never execute re-entrantly; record independent pendingRerun
+      // R-RX-04: Never execute re-entrantly; record independent pendingRerun
       node.pendingRerun = true;
       if (nextState > node.pendingState) {
         node.pendingState = nextState;
@@ -280,7 +280,7 @@ export function runEffect(effect: EffectNode, deferredErrors: unknown[]): void {
     endSourceTracking(effect, prevSources);
 
     if (thrownError !== null) {
-      // D-101: Reset state to CLEAN, run any newly registered cleanups, and preserve scheduler queue
+      //: Reset state to CLEAN, run any newly registered cleanups, and preserve scheduler queue
       if ((effect.ownerState as OwnerStateValue) !== OwnerState.DISPOSED) {
         effect.state = ComputationState.CLEAN;
       }
@@ -305,7 +305,7 @@ export function runEffect(effect: EffectNode, deferredErrors: unknown[]): void {
       (effect.state as ComputationStateValue) !== ComputationState.DISPOSED
     ) {
       if (effect.pendingRerun) {
-        // D-101 / R-RX-04: Transition to pendingState (CHECK or DIRTY) and re-enqueue for deferred rerun
+        // R-RX-04: Transition to pendingState (CHECK or DIRTY) and re-enqueue for deferred rerun
         effect.state =
           effect.pendingState >= ComputationState.CHECK
             ? effect.pendingState
@@ -357,7 +357,7 @@ export function flushSync(): void {
         coreState.touchedEffectsInFlush.add(effect);
         effect.runsInFlush++;
         if (effect.runsInFlush > coreState.maxEffectIterations) {
-          // D-101 / R-RX-06: Abort runaway loop, reset effect to CLEAN, and continue flushing remaining queue
+          // R-RX-06: Abort runaway loop, reset effect to CLEAN, and continue flushing remaining queue
           effect.state = ComputationState.CLEAN;
           effect.pendingRerun = false;
           effect.pendingState = ComputationState.CLEAN;

@@ -1,7 +1,7 @@
 /**
- * @dotmix/runtime/dom — Surgical DOM adapter, conditional rendering, dynamic elements (D-105),
- * LIS keyed list reconciliation with Atomic Duplicate-Update Rejection (D-110 / HAA-02 Option A),
- * HMR stable scope / trampoline dispatch (D-111), and DOM lifecycle primitives (D-122).
+ * @dotmix/runtime/dom — Surgical DOM adapter, conditional rendering, dynamic elements,
+ * LIS keyed list reconciliation with Atomic Duplicate-Update Rejection,
+ * HMR stable scope / trampoline dispatch, and DOM lifecycle primitives.
  */
 
 export * from "./hydration.js";

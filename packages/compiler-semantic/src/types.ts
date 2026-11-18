@@ -43,6 +43,7 @@ export interface SourceMapV3 {
   readonly version: 3;
   readonly file: string;
   readonly sources: readonly string[];
+  readonly sourcesContent?: readonly string[];
   readonly names: readonly string[];
   readonly mappings: string;
 }

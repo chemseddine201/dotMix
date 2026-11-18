@@ -120,7 +120,7 @@ export default function OverviewPage() {
         <KeepAlive activeKey={activeTab()} max={5}>
           {if activeTab() === "calculator"}
             <div class="tab-pane">
-              <p class="pane-desc">Push-Pull Diamond Reactivity (Gate 4) — recalculates sum with zero glitching.</p>
+              <p class="pane-desc">Push-Pull Diamond Reactivity — recalculates sum with zero glitching.</p>
               <p class="diamond-formula">
                 Count: <strong>{count()}</strong> | Left (×2): <strong>{left()}</strong> | Right (+10): <strong>{right()}</strong> ⇒ Sum: <strong>{sum()}</strong>
               </p>

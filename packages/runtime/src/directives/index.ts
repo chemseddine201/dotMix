@@ -1,6 +1,6 @@
 /**
  * @dotmix/runtime/directives — Component declarations, props types, auth contract,
- * and compile-time directive stubs for Gate 38 Dual-Mode Directives (T-38.5).
+ * and compile-time directive stubs for Dual-Mode Directives.
  */
 
 import { DiagnosticCodes, MixError } from "../errors.js";

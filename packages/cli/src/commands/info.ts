@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli — `mix info` Command (Gate 37 / T-37.9 / D-167)
+ * @dotmix/cli — `mix info` Command
  * System environment and toolchain diagnostic reporting.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Gate 13 Test Suite — Server-Side Rendering (@dotmix/compiler-ssr) & Surgical Hydration (hydrate() — D-116)
+ * Test Suite — Server-Side Rendering (@dotmix/compiler-ssr) & Surgical Hydration (hydrate() —)
  *
  * Verifies:
  * 1. Ahead-of-time SSR code generation (renderToString, renderToStream) with hydration markers
@@ -40,7 +40,7 @@ function evalSsr(code) {
   return exports;
 }
 
-describe("Gate 13: Ahead-of-Time SSR & Surgical Hydration (D-116)", () => {
+describe(": Ahead-of-Time SSR & Surgical Hydration", () => {
   test("1. compileToSsr generates renderToString and renderToStream with hydration markers", () => {
     const source = `
 <script>

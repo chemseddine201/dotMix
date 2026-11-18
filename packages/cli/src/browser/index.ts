@@ -1,5 +1,5 @@
 /**
- * @dotmix/cli browser testing module (D-169)
+ * @dotmix/cli browser testing module
  * Zero-dependency CDP browser detection and control.
  */
 

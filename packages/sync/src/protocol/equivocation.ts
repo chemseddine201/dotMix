@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Deterministic Equivocation Handling, Compaction Horizon & Frontier Reconciliation (Gate 33 / D-137)
+ * @dotmix/sync — Deterministic Equivocation Handling, Compaction Horizon & Frontier Reconciliation
  */
 
 import { toIncarnationId, toOriginStreamKey, applyOperationToState } from "./apply.js";
@@ -7,7 +7,7 @@ import { reconcileAllFrontiersPostExcision } from "./frontiers.js";
 import { getBaselineSnapshot } from "./snapshots.js";
 import { recordQuarantine } from "./quarantine.js";
 import {
-  D137_V331_LIMITS,
+  SYNC_PROTOCOL_LIMITS,
   type EntryStateRecord,
   type InboundDependencyBufferRecord,
   type InboundGapBufferRecord,
@@ -42,7 +42,7 @@ export function exciseEquivocatedStream(
   const ep = incomingOp.opDot.epochNumber;
   const repId = incomingOp.opDot.replicaId;
 
-  // D-139 Option A: Excision floor is strictly determined by the certified baseline
+  // Option A: Excision floor is strictly determined by the certified baseline
   const excisionFloorSeq = meta.epochCertificate.baselineStableFrontier[streamKey] ?? 0;
 
   // Check if equivocation attempts to rewrite already-compacted history
@@ -50,7 +50,7 @@ export function exciseEquivocatedStream(
     recordQuarantine(
       meta,
       quarantineJournal,
-      "D137_EQUIVOCATION_ON_COMPACTED_HISTORY",
+      "SYNC_EQUIVOCATION_ON_COMPACTED_HISTORY",
       `Equivocation attempted on irrevocably compacted sequence ${equivocatedSeq} <= floor ${excisionFloorSeq}`,
       incomingOp
     );
@@ -59,7 +59,7 @@ export function exciseEquivocatedStream(
       streamKey,
       certifiedBaselineSeq: excisionFloorSeq,
       firstEquivocatedSeq: equivocatedSeq,
-      reason: "D137_EQUIVOCATION_ON_COMPACTED_HISTORY",
+      reason: "SYNC_EQUIVOCATION_ON_COMPACTED_HISTORY",
       observedDigests: conflictingDigests,
     };
     // Excise any uncertified ops in mutationJournal and operationDigests
@@ -80,7 +80,7 @@ export function exciseEquivocatedStream(
     }
     return {
       ok: false,
-      code: "D137_EQUIVOCATION_ON_COMPACTED_HISTORY",
+      code: "SYNC_EQUIVOCATION_ON_COMPACTED_HISTORY",
       detail: `Stream ${streamKey} attempted equivocation on compacted history (seq ${equivocatedSeq} <= floor ${excisionFloorSeq})`,
     };
   }
@@ -89,7 +89,7 @@ export function exciseEquivocatedStream(
   const existingDigRec = operationDigests.get(opKey);
   const combinedDigests = [...new Set([...(existingDigRec?.observedDigests ?? []), ...conflictingDigests])]
     .sort()
-    .slice(0, D137_V331_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT);
+    .slice(0, SYNC_PROTOCOL_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT);
 
   operationDigests.set(opKey, {
     opKey,
@@ -102,22 +102,22 @@ export function exciseEquivocatedStream(
     observedDigests: combinedDigests,
   });
 
-  // T-31.11: At most one excision per stream per epoch. Later conflicts record evidence only.
+  //: At most one excision per stream per epoch. Later conflicts record evidence only.
   const prevEq = meta.activeEpochEquivocations[streamKey];
   const existingOp = mutationJournal.get(opKey)?.operation;
   const mergedOps = [existingOp, incomingOp, ...(prevEq?.conflictingOps ?? [])].filter((candidateOp): candidateOp is ReplicableOperation => Boolean(candidateOp));
 
-  if (prevEq && prevEq.reason === "D137_EQUIVOCATION_DETECTED" && equivocatedSeq >= prevEq.firstEquivocatedSeq) {
+  if (prevEq && prevEq.reason === "SYNC_EQUIVOCATION_DETECTED" && equivocatedSeq >= prevEq.firstEquivocatedSeq) {
     meta.activeEpochEquivocations[streamKey] = {
       ...prevEq,
       observedDigests: [...new Set([...prevEq.observedDigests, ...conflictingDigests])]
         .sort()
-        .slice(0, D137_V331_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT),
+        .slice(0, SYNC_PROTOCOL_LIMITS.MAX_OBSERVED_CONFLICT_DIGESTS_PER_DOT),
       conflictingOps: mergedOps,
     };
     return {
       ok: false,
-      code: "D137_EQUIVOCATION_DETECTED",
+      code: "SYNC_EQUIVOCATION_DETECTED",
       detail: `Stream ${streamKey} already excised in this epoch; recorded additional conflict evidence`,
     };
   }
@@ -127,13 +127,13 @@ export function exciseEquivocatedStream(
     streamKey,
     certifiedBaselineSeq: excisionFloorSeq,
     firstEquivocatedSeq: firstSeq,
-    reason: "D137_EQUIVOCATION_DETECTED",
+    reason: "SYNC_EQUIVOCATION_DETECTED",
     observedDigests: combinedDigests,
     conflictingOps: mergedOps,
   };
 
   // 3. Add to historical audit (bounded by MAX_EQUIVOCATION_AUDIT_RECORDS)
-  if (meta.historicalEquivocationAudit.length < D137_V331_LIMITS.MAX_EQUIVOCATION_AUDIT_RECORDS) {
+  if (meta.historicalEquivocationAudit.length < SYNC_PROTOCOL_LIMITS.MAX_EQUIVOCATION_AUDIT_RECORDS) {
     meta.historicalEquivocationAudit.push({
       epochNumber: ep,
       replicaId: repId,
@@ -151,7 +151,7 @@ export function exciseEquivocatedStream(
         recordQuarantine(
           meta,
           quarantineJournal,
-          "D137_EQUIVOCATION_DETECTED",
+          "SYNC_EQUIVOCATION_DETECTED",
           `Excised uncertified op ${jKey} from equivocated stream ${streamKey}`,
           jRec.operation
         );
@@ -219,7 +219,7 @@ export function exciseEquivocatedStream(
   const remainingSeqs = [...snapshotsV2.keys()].sort((a, b) => a - b);
   meta.activeSnapshotSeq = remainingSeqs.length > 0 ? remainingSeqs[remainingSeqs.length - 1]! : 0;
 
-  recordQuarantine(meta, quarantineJournal, "D137_EQUIVOCATION_DETECTED", detail, incomingOp);
+  recordQuarantine(meta, quarantineJournal, "SYNC_EQUIVOCATION_DETECTED", detail, incomingOp);
 
   // 7. Rebuild entriesState deterministically:
   // Restore baseline snapshot entries, then replay remaining valid mutationJournal!
@@ -236,7 +236,7 @@ export function rebuildEntriesState(
 ): void {
   entriesState.clear();
 
-  // D-139 Option A: Rebuild begins from the certified baseline snapshot
+  // Option A: Rebuild begins from the certified baseline snapshot
   const snap = getBaselineSnapshot(meta, snapshotsV2);
 
   if (snap) {
@@ -246,7 +246,7 @@ export function rebuildEntriesState(
     }
   }
 
-  // D-139 / D-140: Filter ops strictly above snapshot's included frontier with disposition APPLIED
+  //: Filter ops strictly above snapshot's included frontier with disposition APPLIED
   const snapFrontier = snap?.frontiers.snapshotIncludedFrontier ?? {};
   const replayOps: ReplicableOperation[] = [];
   for (const jRec of mutationJournal.values()) {

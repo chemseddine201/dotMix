@@ -1,13 +1,15 @@
 /**
- * @dotmix/cli — `mix check` Command (Gate 37 / D-165)
+ * @dotmix/cli — `mix check` Command
  */
 
 import type { ParsedCliArgs } from "../args.js";
+import { resolveCommandOptions } from "../config.js";
 import { check as runCheck } from "../check.js";
 import { colors } from "../terminal.js";
 
 export async function checkCommand(parsed: ParsedCliArgs): Promise<number> {
-  const target = parsed.positional[0];
+  const options = await resolveCommandOptions(parsed, process.cwd());
+  const target = options.check.target;
   const isJson = parsed.values.format === "json" || Boolean(parsed.values.json);
   const checkOpts: Record<string, unknown> = { debug: parsed.values.debug, silent: isJson };
   if (target) {

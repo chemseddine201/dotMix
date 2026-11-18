@@ -1,5 +1,5 @@
 /**
- * Phase 4 Permanent Regression Test Suite: CRDT Tombstone Resurrection Safety (D-136 / FINDING-CRDT-01)
+ * Permanent Regression Test Suite: CRDT Tombstone Resurrection Safety
  *
  * Verifies:
  * 1. Stale-client resurrection fencing prevents deleted items from reviving after compaction
@@ -14,7 +14,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { ReplicableArray } from "../node_modules/@dotmix/sync/dist/index.js";
 
-describe("Phase 4: CRDT Tombstone Resurrection Safety (D-136 / FINDING-CRDT-01)", () => {
+describe(": CRDT Tombstone Resurrection Safety", () => {
   test("1. Stale reconnecting peer cannot resurrect deleted item after compaction", () => {
     const replicaA = new ReplicableArray();
     const replicaB = new ReplicableArray();

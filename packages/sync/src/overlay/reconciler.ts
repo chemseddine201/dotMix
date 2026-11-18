@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Optimistic Overlay Reconciler (Gate 34 / T-34.2)
+ * @dotmix/sync — Optimistic Overlay Reconciler
  *
  * Implements deterministic reconciliation between authoritative committed items
  * and in-flight pending optimistic intents (insert, update, delete, move).

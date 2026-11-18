@@ -1,5 +1,5 @@
 /**
- * @dotmix/sync — Production v1 -> v2 Migration Engine & Idempotent Runner (Gate 34 / T-34.3)
+ * @dotmix/sync — Production v1 -> v2 Migration Engine & Idempotent Runner
  *
  * Implements non-destructive extraction from v1 snapshots and mutation_log,
  * zero-loss pending offline mutation replay plans, legacy archiving,
@@ -10,7 +10,7 @@
 import type { MigrationResult, MigrationRunner, MigrationStatus } from "../adapter/contract.js";
 import type { StoreBackend } from "../storage/memory-backend.js";
 import { runTx11LegacyMigration } from "../storage/idb-tx.js";
-import { D137Engine } from "../protocol/engine.js";
+import { ReplicationEngine } from "../protocol/engine.js";
 import { commitCheckpoint } from "../protocol/snapshots.js";
 import { toIncarnationId } from "../protocol/apply.js";
 import {
@@ -104,7 +104,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
       return {
         ok: false,
         status: "failed",
-        code: "D137_MIGRATION_NO_BACKEND",
+        code: "SYNC_MIGRATION_NO_BACKEND",
         detail: "StoreBackend instance required for production migration",
       };
     }
@@ -130,7 +130,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
       return {
         ok: false,
         status: "failed",
-        code: "D137_MIGRATION_ERROR",
+        code: "SYNC_MIGRATION_ERROR",
         detail:
           unhandledMigrationError instanceof Error
             ? unhandledMigrationError.message
@@ -171,7 +171,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
     const effectiveSnapshotPayload = options?.legacySnapshotPayload;
     const migrationPlan = this.buildPlan(collectionId, effectiveSnapshotPayload, options?.legacyMutationsPayload);
 
-    // A resumed run starts from an empty D-137 store: a partial run wrote its entries under
+    // A resumed run starts from an empty store: a partial run wrote its entries under
     // another signing identity, and keeping them would duplicate every item.
     const migratedStateStores = ["entries_state", "mutation_journal", "operation_digests", "sync_outbox", "snapshots"] as const;
     await backend.runTransaction([...migratedStateStores], "readwrite", async (transaction) => {
@@ -201,12 +201,12 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
         status: "pending",
         migratedCount: 0,
         pendingReplayedCount: 0,
-        code: "D137_MIGRATION_INTERRUPTED_STAGE_1",
+        code: "SYNC_MIGRATION_INTERRUPTED_STAGE_1",
         detail: "Migration safely paused at archive_written stage for recovery testing",
       };
     }
 
-    // 4. Initialize the D-137 engine under a verifiable signing identity
+    // 4. Initialize the engine under a verifiable signing identity
     const signingIdentity = options?.signingIdentity ?? (await createMigrationSigningIdentity(collectionId));
     const migrationReplicaIdentifier = signingIdentity.replicaIdentifier;
     const migrationCertificate = signingIdentity.certificate;
@@ -215,7 +215,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
       migrationCertificate.memberBindings[migrationReplicaIdentifier]?.authorKeyId ??
       `key:${migrationReplicaIdentifier}:v1`;
 
-    const targetEngine = new D137Engine(
+    const targetEngine = new ReplicationEngine(
       collectionId,
       migrationReplicaIdentifier,
       migrationEpochNumber,
@@ -229,7 +229,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
     let migratedTotalCount = 0;
     const combinedEntries = [...migrationPlan.activeEntries, ...migrationPlan.deletedEntries];
 
-    // 5. Migrate entries into D137Engine state
+    // 5. Migrate entries into ReplicationEngine state
     for (let entryIndex = 0; entryIndex < combinedEntries.length; entryIndex++) {
       const rawEntry = combinedEntries[entryIndex]!;
       const insertDot: CausalDot = {
@@ -354,7 +354,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
       }
     }
 
-    // 6. Replay pending offline mutations: never dropped, local-only (D-142 / I19)
+    // 6. Replay pending offline mutations: never dropped, local-only
     const replayedPendingCount = replayPendingMutations(
       targetEngine.entriesState,
       migrationPlan.pendingMutations,
@@ -401,7 +401,7 @@ export class ProductionV1MigrationRunner implements MigrationRunner {
         status: "pending",
         migratedCount: migratedTotalCount,
         pendingReplayedCount: replayedPendingCount,
-        code: "D137_MIGRATION_INTERRUPTED_STAGE_2",
+        code: "SYNC_MIGRATION_INTERRUPTED_STAGE_2",
         detail: "Migration paused at entries_migrated stage for recovery testing",
       };
     }

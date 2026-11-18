@@ -10,7 +10,7 @@ The architecture combines Conflict-free Replicated Data Types (CRDTs), asymmetri
 
 ## 2. Core Protocol Model
 
-Replication is governed by the D-137 protocol specification, which operates as a hybrid operation-based and state-based replication model:
+Replication is governed by the replicated state protocol specification, which operates as a hybrid operation-based and state-based replication model:
 
 ### 2.1 Causal Dots & Lamport Timestamps
 Every state mutation within the cluster is permanently identified by a **Causal Dot** (`CausalDot`):
@@ -41,7 +41,7 @@ Security state is integral to replication invariants rather than an external lay
 +--------------------------------------------------------------+
                                |
                                v
-            [Protocol Version Validation (D-137.v3.3.1)]
+            [Protocol Version Validation (replicated.v3.3.1)]
                                |
                                v
              [Epoch Membership & Role Attestation]
@@ -66,13 +66,13 @@ $$H_k = \text{SHA-256}(H_{k-1} \parallel \text{digest}_k)$$
 This guarantees stream continuity and prevents unauthorized op insertion, deletion, or truncation.
 
 ### 3.3 Equivocation Detection & Quarantine
-If an author emits two distinct operations with identical causal dots (`opDot`), the engine flags equivocation immediately (`D137_EQUIVOCATION_DETECTED`), halts ingestion from that stream, and sequesters the conflicting operations into `quarantine_journal` without corrupting active state.
+If an author emits two distinct operations with identical causal dots (`opDot`), the engine flags equivocation immediately (`SYNC_EQUIVOCATION_DETECTED`), halts ingestion from that stream, and sequesters the conflicting operations into `quarantine_journal` without corrupting active state.
 
 ---
 
 ## 4. Storage Architecture & Transactional Scopes
 
-Persistent storage uses one IndexedDB database per collection, `mix_sync_d137:<collectionId>`, at version 2 with exactly 13 specialized object stores (the legacy engine keeps its own `mix_sync_db` at version 1):
+Persistent storage uses one IndexedDB database per collection, `dotmix_sync:<collectionId>`, at version 2 with exactly 13 specialized object stores (the legacy engine keeps its own `mix_sync_db` at version 1):
 
 | Store Name | Function & Durability Scope |
 |---|---|
@@ -103,7 +103,7 @@ Snapshots record a canonical SHA-256 digest of normalized state. During cold boo
 To ensure safe concurrent access from multiple browser tabs:
 
 1. **Leader Election:** Tabs elect a single primary writer tab using `BroadcastChannel` with time-bounded heartbeat leases (default 5,000 ms).
-2. **Monotonic Fencing Terms:** Every lease renewal increments a monotonic fencing term. Any write operation attempted under a stale fencing term is rejected immediately (`D137_FENCE_FAILED`), eliminating split-brain races.
+2. **Monotonic Fencing Terms:** Every lease renewal increments a monotonic fencing term. Any write operation attempted under a stale fencing term is rejected immediately (`SYNC_FENCE_FAILED`), eliminating split-brain races.
 3. **Reactive Follower Refresh:** Follower tabs observe leader commits via broadcast notifications and refresh their in-memory state directly from IndexedDB.
 
 ---

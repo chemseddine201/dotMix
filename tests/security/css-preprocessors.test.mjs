@@ -1,5 +1,5 @@
 /**
- * Gate 27 (T-27.3 / D-130) — Build-Time CSS Preprocessor Stage Verification
+ * — Build-Time CSS Preprocessor Stage Verification
  *
  * Verifies:
  * 1. SCSS variables ($var), parent selector nesting (&-suffix, &:hover), @mixin/@include, and @import/@use partials compile to valid scoped CSS.
@@ -7,7 +7,7 @@
  * 3. Less variables (@var), parent selector nesting, @import partials, and mixins compile to valid scoped CSS.
  * 4. PostCSS (.pcss / .postcss) nesting and @import partials compile to valid scoped CSS.
  * 5. An unsupported format (Stylus) produces MIX_ERR_PREPROCESSOR_MISSING naming the supported formats.
- * 6. Plain .css and raw <style> blocks still reject @import with MIX_ERR_CSS_FORBIDDEN_IMPORT (D-108).
+ * 6. Plain .css and raw <style> blocks still reject @import with MIX_ERR_CSS_FORBIDDEN_IMPORT.
  * 7. Resolved partial paths are returned in dependencies list for build/watch tracking.
  */
 
@@ -30,7 +30,7 @@ function assertValidStandardCss(cssText) {
   assert.ok(!/@(mixin|include|use|import)\b/.test(cssText), `Expected no preprocessor at-rules in CSS:\n${cssText}`);
 }
 
-describe("Gate 27 (T-27.3 / D-130): Build-Time CSS Preprocessor Stage", () => {
+describe(": Build-Time CSS Preprocessor Stage", () => {
   test("1. SCSS variables, &-suffix nesting, @mixin/@include, and @import/@use partials produce valid scoped CSS", () => {
     assert.strictEqual(typeof compilerCss.preprocessCss, "function", "preprocessCss must be exported by @dotmix/compiler-css");
 
@@ -174,7 +174,7 @@ describe("Gate 27 (T-27.3 / D-130): Build-Time CSS Preprocessor Stage", () => {
     );
   });
 
-  test("5. Plain .css still strictly rejects @import with MIX_ERR_CSS_FORBIDDEN_IMPORT (D-108)", () => {
+  test("5. Plain .css still strictly rejects @import with MIX_ERR_CSS_FORBIDDEN_IMPORT", () => {
     assert.throws(
       () => {
         compilerCss.compileCss('@import "./tokens.css"; .box { color: red; }', {

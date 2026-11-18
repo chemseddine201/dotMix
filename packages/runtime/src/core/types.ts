@@ -131,7 +131,7 @@ export interface ComputedNode<T = unknown> extends SourceNode {
 export interface EffectNode extends Owner {
   readonly kind: "Effect";
   state: ComputationStateValue;
-  /** D-101: Tracked independently from `state` */
+  /**: Tracked independently from `state` */
   pendingRerun: boolean;
   pendingState: ComputationStateValue;
   queued: boolean;

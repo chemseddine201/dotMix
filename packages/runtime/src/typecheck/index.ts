@@ -1,5 +1,5 @@
 /**
- * @dotmix/runtime/typecheck — Type helper contracts for virtual .tix TypeScript projection (D-106, R-TC-01..03).
+ * @dotmix/runtime/typecheck — Type helper contracts for virtual .tix TypeScript projection.
  */
 
 export interface RefTarget<T> {

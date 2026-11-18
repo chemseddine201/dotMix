@@ -1,9 +1,9 @@
 /**
- * @dotmix/sync — D-137 Adapter Typed Contracts (Gate 34 / Phase 1)
+ * @dotmix/sync — Adapter Typed Contracts
  *
  * Defines the architectural boundaries between public reactive primitives
  * (syncCollection / syncSignal), optimistic overlay reconciliation,
- * v1 migration runners, multi-tab leasing, and the D-137 protocol engine.
+ * v1 migration runners, multi-tab leasing, and the protocol engine.
  * Zero external dependencies.
  */
 
@@ -19,12 +19,12 @@ import type {
   TabLeaseRecord,
   TransportChannelPrincipal,
 } from "../protocol/types.js";
-import type { D137Engine } from "../protocol/engine.js";
+import type { ReplicationEngine } from "../protocol/engine.js";
 
 /**
  * Engine selection switch for sync primitives.
  */
-export type SyncEngineSelection = "d137" | "legacy";
+export type SyncEngineSelection = "replicated" | "legacy";
 
 // ============================================================================
 // 1. OVERLAY CONTRACT (Optimistic UI Intent Application & Rollback)
@@ -149,19 +149,19 @@ export interface TransportHost {
 // 4. PUBLIC ADAPTER INTERFACES
 // ============================================================================
 
-export interface D137CollectionAdapter<T> extends SyncCollection<T> {
-  readonly engineInstance: D137Engine;
+export interface ReplicatedCollectionAdapter<T> extends SyncCollection<T> {
+  readonly engineInstance: ReplicationEngine;
   readonly overlayHost: OverlayHost<T>;
   readonly migrationRunner: MigrationRunner;
   readonly transportHost?: TransportHost | undefined;
   readonly options: SyncCollectionOptions<T>;
   conflictedIds(): string[];
-  /** The D137_* code behind an "error" status (for example D137_STORAGE_QUOTA_EXCEEDED). */
+  /** The SYNC_* code behind an "error" status (for example SYNC_STORAGE_QUOTA_EXCEEDED). */
   errorCode(): string | undefined;
 }
 
-export interface D137SignalAdapter<T> extends SyncSignal<T> {
-  readonly engineInstance: D137Engine;
+export interface ReplicatedSignalAdapter<T> extends SyncSignal<T> {
+  readonly engineInstance: ReplicationEngine;
   readonly storeKey: string;
   readonly options: SyncSignalOptions<T>;
   readonly transportHost?: TransportHost | undefined;
