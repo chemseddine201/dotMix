@@ -18,7 +18,7 @@ npm run build
 # Package and install
 cd editors/vscode-mix
 npm run package
-code --install-extension vscode-mix-0.1.0.vsix --force
+code --install-extension vscode-mix-0.2.0.vsix --force
 ```
 
 Then run **Developer: Reload Window**. TypeScript projects also need `src/env.d.ts` with `/// <reference types="@dotmix/runtime/client" />` (`mix create --ts` adds it).

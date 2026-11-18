@@ -119,7 +119,7 @@ cd editors/vscode-mix
 npm run package
 
 # التثبيت مع استبدال أي إصدار أقدم
-code --install-extension vscode-mix-0.1.0.vsix --force
+code --install-extension vscode-mix-0.2.0.vsix --force
 ```
 
 ثم نفّذ **Developer: Reload Window** (Ctrl+Shift+P، أو Cmd+Shift+P على macOS).

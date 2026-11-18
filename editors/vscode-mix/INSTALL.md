@@ -10,7 +10,7 @@ cd editors/vscode-mix
 npm run package
 
 # 3. Install it, replacing any older version
-code --install-extension vscode-mix-0.1.0.vsix --force
+code --install-extension vscode-mix-0.2.0.vsix --force
 ```
 
 Then run **Developer: Reload Window** in VS Code (Ctrl+Shift+P, or Cmd+Shift+P on macOS).
