@@ -18,14 +18,17 @@ import type {
   DynamicAttributeNode,
   BindBindingNode,
   ESTreeNode,
+  HydrateNode,
+  HydrateWhen,
 } from "@dotmix/ast";
 import type { ComponentDescriptor } from "@dotmix/compiler-semantic";
 import { extractAndTranspileScript, analyze, stripDirectiveImportsFromJs } from "@dotmix/compiler-semantic";
 import type { CssCompileResult } from "@dotmix/compiler-css";
 import type { SsrOptions, SsrCompilationResult } from "./types.js";
-import { escapeHtml, SSR_RUNTIME_PREAMBLE } from "./escape.js";
+import { buildSsrImplicitPrimitives, escapeHtml, SSR_RUNTIME_PREAMBLE } from "./escape.js";
 import { transformSsrExpression } from "./expression-rewriter.js";
-import { createSsrEmitContext, emitSsrComponentSectionsAndChildren, emitSsrDirectiveAttributes, emitSsrDirectiveNode, hasSsrDirectiveModifiers, renderUsedSsrHelpers, rewriteBareGettersForSsr, type SsrHelperId } from "./directives/index.js";
+import { createSsrEmitContext, emitSsrComponentSectionsAndChildren, emitSsrDirectiveAttributes, emitSsrDirectiveNode, renderUsedSsrHelpers, hasSsrDirectiveModifiers, rewriteBareGettersForSsr, type SsrHelperId } from "./directives/index.js";
+import { analyzeSsrHydrationMeta } from "./directives/island-ssr.js";
 
 export function compileToSsr(
   descriptor: ComponentDescriptor | ComponentNode,
@@ -71,6 +74,7 @@ export function compileToSsr(
   }
 
   let markerId = 0;
+  let activeHydrateOverride: { readonly when: HydrateWhen; readonly media: string | null } | null = null;
   const parts: string[] = [];
   const usedSsrHelpers = new Set<SsrHelperId>();
   const ssrCtx = createSsrEmitContext({ mode: options.mode ?? "development", includeMarkers, signalNames, nextMarkerId: () => markerId++, transformExpr, emitNode: (childNode, childShadowed) => generateNode(childNode, childShadowed), parts, usedHelpers: usedSsrHelpers });
@@ -180,10 +184,7 @@ export function compileToSsr(
       case "ComponentCall": {
         const call = node as ComponentCallNode;
         const id = markerId++;
-        if (includeMarkers) {
-          parts.push(`__html += "<!--mix:c:${id}-->";\n`);
-        }
-
+        const islandImportSpecifier = compDescriptor?.imports.get(call.name) ?? "";
         const propEntries: string[] = [];
         for (const attr of call.attributes) {
           if (attr.type === "StaticAttribute") {
@@ -222,19 +223,74 @@ export function compileToSsr(
         }
 
         const propsLiteral = `{ ...props${propEntries.length > 0 ? ", " + propEntries.join(", ") : ""} }`;
+        const overrideWhen = activeHydrateOverride?.when ?? null;
+        const overrideMedia = activeHydrateOverride?.media ?? null;
+        const mediaAttr = overrideMedia
+          ? ` data-media="${escapeHtml(overrideMedia).replace(/"/g, "&quot;")}"`
+          : "";
+        const effectiveTrigger = overrideWhen && overrideWhen !== "never" ? overrideWhen : "idle";
+        const forceIsland = overrideWhen !== null && overrideWhen !== "never";
+        const blockIsland = overrideWhen === "never";
 
         parts.push(`if (typeof ${call.name} === "function") {\n`);
         parts.push(`  const __compProps = ${propsLiteral};\n`);
-        parts.push(`  if (${call.name}.renderToString) {\n`);
-        parts.push(`    __html += ${call.name}.renderToString(__compProps);\n`);
+        parts.push(`  const __spec = ${JSON.stringify(islandImportSpecifier)};\n`);
+        parts.push(`  const __isExplicitNever = ${String(blockIsland)} || Boolean(__ctx.__suppressIslands);\n`);
+        parts.push(`  if (__isExplicitNever && __spec && Array.isArray(__ctx.__suppressedSpecifiers)) {\n`);
+        parts.push(`    __ctx.__suppressedSpecifiers.push([__ctx.__moduleKey ?? "", __spec]);\n`);
+        parts.push(`  }\n`);
+        parts.push(
+          `  const __autoIsland = ${forceIsland ? "true" : `Boolean(${call.name}.__mixHydrationMeta?.isInteractive)`};\n`
+        );
+        parts.push(`  const __emitIsland = !__isExplicitNever && !__ctx.__insideIsland && __spec.length > 0 && __autoIsland;\n`);
+        parts.push(`  if (__emitIsland) {\n`);
+        parts.push(`    const __serializableProps = {};\n`);
+        parts.push(`    for (const [__k, __v] of Object.entries(__compProps)) {\n`);
+        parts.push(`      if (__k !== "children" && __k !== "slots" && typeof __v !== "function") __serializableProps[__k] = __v;\n`);
+        parts.push(`    }\n`);
+        parts.push(`    const __ownerAttr = __ctx.__moduleKey ? __escapeAttr("data-island-owner", __ctx.__moduleKey) : "";\n`);
+        parts.push(
+          `    __html += '<mix-island data-island-id="isl_${id}" data-component=${JSON.stringify(call.name)} data-hydrate=${JSON.stringify(effectiveTrigger)}${mediaAttr}' + __ownerAttr + __escapeAttr("data-island-specifier", __spec) + __escapeAttr("data-props", JSON.stringify(__serializableProps)) + '>';\n`
+        );
+        parts.push(`    const __prevInsideIsland = __ctx.__insideIsland;\n`);
+        parts.push(`    __ctx.__insideIsland = true;\n`);
+        parts.push(`    try {\n`);
+        parts.push(`      if (${call.name}.renderToString) __html += ${call.name}.renderToString(__compProps, __ctx);\n`);
+        parts.push(`      else { const __compRes = ${call.name}(__compProps); if (typeof __compRes === "string") __html += __compRes; }\n`);
+        parts.push(`    } finally {\n`);
+        parts.push(`      __ctx.__insideIsland = __prevInsideIsland;\n`);
+        parts.push(`    }\n`);
+        parts.push(`    __html += "</mix-island>";\n`);
         parts.push(`  } else {\n`);
-        parts.push(`    const __compRes = ${call.name}(__compProps);\n`);
-        parts.push(`    if (typeof __compRes === "string") __html += __compRes;\n`);
+        if (includeMarkers) {
+          parts.push(`    __html += "<!--mix:c:${id}-->";\n`);
+        }
+        parts.push(`    if (${call.name}.renderToString) __html += ${call.name}.renderToString(__compProps, __ctx);\n`);
+        parts.push(`    else { const __compRes = ${call.name}(__compProps); if (typeof __compRes === "string") __html += __compRes; }\n`);
+        if (includeMarkers) {
+          parts.push(`    __html += "<!--/mix:c:${id}-->";\n`);
+        }
         parts.push(`  }\n`);
         parts.push(`}\n`);
-        if (includeMarkers) {
-          parts.push(`__html += "<!--/mix:c:${id}-->";\n`);
+        break;
+      }
+
+      case "Hydrate": {
+        const hyd = node as HydrateNode;
+        const prevOverride = activeHydrateOverride;
+        activeHydrateOverride = { when: hyd.when, media: hyd.media };
+        if (hyd.when === "never") {
+          parts.push(`{\n  const __prevSuppress = __ctx.__suppressIslands;\n  __ctx.__suppressIslands = true;\n  try {\n`);
+          for (const child of hyd.children) {
+            generateNode(child, shadowed);
+          }
+          parts.push(`  } finally {\n    __ctx.__suppressIslands = __prevSuppress;\n  }\n}\n`);
+        } else {
+          for (const child of hyd.children) {
+            generateNode(child, shadowed);
+          }
         }
+        activeHydrateOverride = prevOverride;
         break;
       }
 
@@ -384,20 +440,30 @@ export function compileToSsr(
   const hasLocalOnMountDeclaration =
     !hasImportedOnMount && compDescriptor ? compDescriptor.rootScope.bindings.has("onMount") : false;
 
+  const hydrationMeta = analyzeSsrHydrationMeta(rootNode, compDescriptor);
   const helperCode = renderUsedSsrHelpers(usedSsrHelpers);
   const ssrOnMountPreamble = !hasImportedOnMount && !hasLocalOnMountDeclaration ? "\nfunction onMount() {}\n" : "";
-  const ssrOnMountShadow = !hasLocalOnMountDeclaration ? "  const onMount = () => {};\n" : "";
+  const ssrImplicitPrimitives = buildSsrImplicitPrimitives(
+    compDescriptor?.imports,
+    compDescriptor?.rootScope.bindings
+  );
   const moduleCode = `
 ${scriptImports}
 
 ${SSR_RUNTIME_PREAMBLE}${ssrOnMountPreamble}${helperCode ? "\n\n" + helperCode : ""}
 
 export function renderToString(__props = {}, __ctx = {}) {
-  const defineProps = (defaults) => Object.assign({}, defaults, __props);
-${ssrOnMountShadow}${!hasPropsDeclaration ? "  const props = __props;\n" : ""}${scriptBody}
-  let __html = "";
+  const __prevModuleKey = __ctx.__moduleKey;
+  if (renderToString.__mixModuleKey) __ctx.__moduleKey = renderToString.__mixModuleKey;
+  try {
+    const defineProps = (defaults) => Object.assign({}, defaults, __props);
+${ssrImplicitPrimitives}${!hasPropsDeclaration ? "    const props = __props;\n" : ""}${scriptBody}
+    let __html = "";
 ${parts.join("")}
-  return __html;
+    return __html;
+  } finally {
+    __ctx.__moduleKey = __prevModuleKey;
+  }
 }
 
 export function renderToStream(__props = {}, onChunk, __ctx = {}) {
@@ -416,5 +482,6 @@ export const css = ${JSON.stringify(css)};
   return {
     code: moduleCode,
     css,
+    hydrationMeta,
   };
 }

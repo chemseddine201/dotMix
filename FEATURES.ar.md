@@ -23,6 +23,8 @@
 | **أنماط معزولة**                                       | `.scss` و `.sass` و `.less` و `.pcss` و `.css`                                        |
 | **تكامل الإشارات**                                   | `@dotmix/interop` (جسر إشارات TC39)                                                         |
 | **تصيير خادم تدفقي مع CSP nonces**                | `@dotmix/server-node`                                                                                |
+| **توليد المواقع الثابتة وSEO** | `mix build --static` (صفحات بـ 0 بايت JS، جزر تلقائية `idle`، توجيه `{hydrate}` / `<Hydrate>`، `useHead`، تعدد اللغات، `sitemap.xml`، بصمات CSP) |
+| **الصور المتجاوبة** | حزمة `@dotmix/image` الاختيارية (`<Picture>`، وضع العناصر النائبة، تحسين AVIF/WebP الاختياري عبر `sharp`) |
 
 ---
 

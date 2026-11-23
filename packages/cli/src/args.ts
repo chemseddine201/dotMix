@@ -42,6 +42,8 @@ export interface CliValues {
   templateStyle?: string | undefined;
   base?: string | undefined;
   prerender?: string | undefined;
+  static?: boolean | undefined;
+  prerenderBrowser?: boolean | undefined;
 }
 
 export interface ParsedCliArgs {
@@ -100,7 +102,9 @@ export function parseCliArguments(argv: string[]): ParsedCliArgs {
       mode: { type: "string" },
       "template-style": { type: "string" },
       base: { type: "string" },
-      prerender: { type: "string" }
+      prerender: { type: "string" },
+      static: { type: "boolean" },
+      "prerender-browser": { type: "boolean" }
     },
     strict: false,
     allowPositionals: true,
@@ -147,7 +151,9 @@ export function parseCliArguments(argv: string[]): ParsedCliArgs {
     mode: strOpt(values.mode),
     templateStyle: strOpt(values["template-style"]),
     base: strOpt(values.base),
-    prerender: strOpt(values.prerender)
+    prerender: strOpt(values.prerender),
+    static: boolOpt(values.static),
+    prerenderBrowser: boolOpt(values["prerender-browser"])
   };
 
   return {

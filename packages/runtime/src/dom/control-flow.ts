@@ -10,11 +10,13 @@ import {
   getCurrentOwner,
   onCleanup,
   untrack,
-  withComponentProps,
   getActiveComponentProps,
-  OwnerState,
-  type Owner
+  OwnerState
 } from "../core/index.js";
+import {
+  getHydrationContext,
+  runWithHydrationSubtree
+} from "./hydration.js";
 import {
   createElement,
   createComment,
@@ -22,17 +24,14 @@ import {
   removeNode,
   normalizeToNodeArray
 } from "./nodes.js";
-import {
-  registerHmrInstance,
-  unregisterHmrInstance,
-  generateInstanceKey,
-  getActiveInstanceKey,
-  setActiveInstanceKey,
-  type HmrInstanceRecord,
-  type HmrComponentFn
-} from "./hot/index.js";
 
-type HmrComponentMeta = { __mix_hmr_id?: string };
+export {
+  mountComponent,
+  hydrateRoot,
+  mount,
+  type MountedComponent,
+  type MountHandle
+} from "./mount.js";
 
 export function renderSlot(
   parent: Node,
@@ -175,13 +174,22 @@ export function createConditional(
   elseRender?: (() => Node | readonly Node[]) | null,
   anchor?: Node | null
 ): Comment {
-  const marker = document.createComment("mix:if");
-  parent.insertBefore(marker, anchor ?? null);
+  const initialWalker = getHydrationContext();
+  const openMarker = initialWalker ? initialWalker.claimComment("mix:if:") : null;
+  const closeMarker =
+    initialWalker && openMarker ? initialWalker.findClosingComment(openMarker, "mix:if:") : null;
+  const marker = closeMarker ?? document.createComment("mix:if");
+  if (!closeMarker) {
+    parent.insertBefore(marker, anchor ?? null);
+  } else if (parent.nodeType === 11 && initialWalker) {
+    initialWalker.recordScopeNode(marker);
+  }
 
   let activeBranchIdx = -2;
   let activeDispose: (() => void) | null = null;
   let activeNodes: Node[] = [];
   const parentOwner = getCurrentOwner();
+  let isFirstHydrateRun = Boolean(initialWalker && openMarker && closeMarker);
 
   const teardownActive = (): void => {
     if (activeDispose) {
@@ -218,30 +226,56 @@ export function createConditional(
       chosenIdx >= 0 ? branches[chosenIdx]!.render : elseRender ?? null;
 
     if (renderFn) {
+      const walkerForRun = isFirstHydrateRun ? initialWalker : null;
+      isFirstHydrateRun = false;
       untrack(() => {
         createRoot((dispose) => {
           activeDispose = dispose;
-          const nodes = normalizeToNodeArray(renderFn());
-          activeNodes = nodes;
-          const targetParent = marker.parentNode ?? parent;
-          for (const node of nodes) {
-            targetParent.insertBefore(node, marker);
+          if (walkerForRun && openMarker && closeMarker) {
+            const hydratedNodes = runWithHydrationSubtree(
+              walkerForRun,
+              openMarker,
+              closeMarker,
+              () => {
+                walkerForRun.pushScope();
+                const res = normalizeToNodeArray(renderFn());
+                const scoped = walkerForRun.popScope();
+                return res.length > 0 ? res : scoped;
+              },
+              () => {
+                const res = normalizeToNodeArray(renderFn());
+                const targetParent = closeMarker.parentNode ?? parent;
+                for (const node of res) {
+                  targetParent.insertBefore(node, closeMarker);
+                }
+                return res;
+              }
+            );
+            activeNodes = hydratedNodes;
+          } else {
+            const nodes = normalizeToNodeArray(renderFn());
+            activeNodes = nodes;
+            const targetParent = marker.parentNode ?? parent;
+            for (const node of nodes) {
+              targetParent.insertBefore(node, marker);
+            }
           }
         }, parentOwner);
       });
+    } else if (isFirstHydrateRun && initialWalker && openMarker && closeMarker) {
+      isFirstHydrateRun = false;
+      runWithHydrationSubtree(
+        initialWalker,
+        openMarker,
+        closeMarker,
+        () => [] as Node[],
+        () => [] as Node[]
+      );
     }
   });
 
   return marker;
 }
-
-export interface MountedComponent {
-  readonly nodes: readonly Node[];
-  readonly owner: Owner | null;
-  unmount(): void;
-}
-
-export type MountHandle = MountedComponent;
 
 /**
  * & TEC: Resolves dynamic tag expression ONCE per element instance,
@@ -290,111 +324,4 @@ export function createDynamicElement(
     setupFn(el);
   }
   return el;
-}
-
-export function mountComponent<P extends Record<string, unknown>>(
-  ComponentFn: (props: P) => Node | readonly Node[],
-  props: P,
-  parent?: Node | null,
-  anchor?: Node | null
-): MountedComponent {
-  const parentOwner = getCurrentOwner();
-  let disposeFn: () => void = () => {};
-  let compOwner: Owner | null = null;
-  let nodes: Node[] = [];
-
-  const hmrId = (ComponentFn as unknown as HmrComponentMeta).__mix_hmr_id;
-  let startMarker: Comment | null = null;
-  let endMarker: Comment | null = null;
-  let hmrRecord: HmrInstanceRecord | null = null;
-
-  if (hmrId && typeof document !== "undefined") {
-    const instanceKey = generateInstanceKey(hmrId, props);
-    startMarker = document.createComment(`mix:hmr-start:${instanceKey}`);
-    endMarker = document.createComment(`mix:hmr-end:${instanceKey}`);
-    if (parent) {
-      parent.insertBefore(startMarker, anchor ?? null);
-    }
-
-    const prevKey = getActiveInstanceKey();
-    setActiveInstanceKey(instanceKey);
-
-    try {
-      createRoot((dispose) => {
-        disposeFn = dispose;
-        compOwner = getCurrentOwner();
-        nodes = normalizeToNodeArray(
-          withComponentProps(props, () => ComponentFn(props))
-        );
-        if (parent) {
-          for (const node of nodes) {
-            parent.insertBefore(node, anchor ?? null);
-          }
-          parent.insertBefore(endMarker!, anchor ?? null);
-        }
-      }, parentOwner);
-    } finally {
-      setActiveInstanceKey(prevKey);
-    }
-
-    hmrRecord = registerHmrInstance(
-      hmrId,
-      ComponentFn as unknown as HmrComponentFn,
-      props,
-      startMarker,
-      endMarker,
-      compOwner,
-      disposeFn,
-      instanceKey,
-      nodes
-    );
-  } else {
-    createRoot((dispose) => {
-      disposeFn = dispose;
-      compOwner = getCurrentOwner();
-      nodes = normalizeToNodeArray(
-        withComponentProps(props, () => ComponentFn(props))
-      );
-      if (parent) {
-        for (const node of nodes) {
-          parent.insertBefore(node, anchor ?? null);
-        }
-      }
-    }, parentOwner);
-  }
-
-  const cleanup = (): void => {
-    if (hmrRecord) {
-      unregisterHmrInstance(hmrRecord);
-    }
-    disposeFn();
-    for (const node of nodes) {
-      removeNode(node);
-    }
-    if (startMarker) removeNode(startMarker);
-    if (endMarker) removeNode(endMarker);
-  };
-
-  if (parentOwner && compOwner) {
-    onCleanup(cleanup);
-  }
-
-  return {
-    nodes,
-    owner: compOwner,
-    unmount: cleanup
-  };
-}
-
-export function mount(
-  ComponentFn: (props: Record<string, unknown>) => Node | readonly Node[],
-  target: Element,
-  props: Record<string, unknown> = {}
-): MountedComponent {
-  // Prerendered shells are replaced wholesale rather than hydrated because SSR and router are client-only.
-  if (target.hasAttribute("data-mix-prerendered")) {
-    target.removeAttribute("data-mix-prerendered");
-    target.replaceChildren();
-  }
-  return mountComponent(ComponentFn, props, target, null);
 }

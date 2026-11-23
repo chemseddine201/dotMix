@@ -7,6 +7,7 @@ import type {
   HasSectionNode,
   HeadChildEntry,
   HeadGroupNode,
+  HydrateNode,
   IncludeFirstNode,
   IncludeNode,
   JsonNode,
@@ -239,6 +240,16 @@ export function emitLazy(
     ? emitFragRenderFn(ctx, node.fallback, loopGetters, inSvg, "lazyFallbackFrag")
     : "null";
   return [`${lazyHelper}(${parentVar}, ${JSON.stringify(node.trigger)}, ${indentLines(renderFn, 2).trimStart()}, ${fallbackArg});`];
+}
+
+export function emitHydrate(
+  ctx: CodegenContext,
+  node: HydrateNode,
+  parentVar: string,
+  loopGetters: ReadonlyMap<string, string>,
+  inSvg: boolean
+): string[] {
+  return ctx.emitTemplateNodes(node.children, parentVar, loopGetters, inSvg);
 }
 
 export function emitKeepAliveBlock(

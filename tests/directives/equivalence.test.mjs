@@ -40,7 +40,7 @@ const EXPECTED_BLOCK_OPENERS = [
   "auth", "guest", "can", "cannot", "canany", "dev", "production", "env",
   "context", "error", "errors", "valid", "csrf", "method", "section",
   "yield", "hassection", "sectionmissing", "push", "prepend", "stack",
-  "include", "includefirst", "once", "memo", "lazy", "keepalive",
+  "include", "includefirst", "once", "memo", "lazy", "hydrate", "keepalive",
   "session", "partial", "json", "dump", "verbatim"
 ];
 
@@ -50,7 +50,7 @@ const EXPECTED_BLOCK_CLOSERS = [
   "endcanany", "enddev", "endproduction", "endenv", "endcontext",
   "enderror", "enderrors", "endvalid", "endsection", "endyield",
   "endhassection", "endsectionmissing", "endpush", "endprepend",
-  "endincludefirst", "endonce", "endmemo", "endlazy", "endkeepalive",
+  "endincludefirst", "endonce", "endmemo", "endlazy", "endhydrate", "endkeepalive",
   "endsession", "endpartial", "endverbatim"
 ];
 
@@ -68,7 +68,7 @@ const EXPECTED_MAIN_COMPONENTS = [
   "Auth", "Guest", "Can", "Cannot", "CanAny", "Dev", "Production", "Env",
   "Context", "FieldError", "FormErrors", "FieldValid", "Csrf", "Method",
   "Section", "Yield", "HasSection", "SectionMissing", "Push", "Prepend",
-  "Stack", "Head", "Include", "IncludeFirst", "Once", "Memo", "Lazy",
+  "Stack", "Head", "Include", "IncludeFirst", "Once", "Memo", "Lazy", "Hydrate",
   "KeepAlive", "Session", "Partial", "Json", "Dump", "Verbatim"
 ];
 
@@ -202,6 +202,7 @@ test("registry props match specification and omit KeepAlive id prop", () => {
   ]);
   assert.deepEqual(propNames(getComponentDirectiveSpec("Memo")), ["on", "equals", "children"]);
   assert.deepEqual(propNames(getComponentDirectiveSpec("Lazy")), ["trigger", "fallback", "children"]);
+  assert.deepEqual(propNames(getComponentDirectiveSpec("Hydrate")), ["when", "media", "children"]);
 
   const keepAliveProps = propNames(getComponentDirectiveSpec("KeepAlive"));
   assert.deepEqual(keepAliveProps, ["activeKey", "max", "render", "children"]);
@@ -368,9 +369,9 @@ assertBlockEqualsComponent(
 );
 
 assertBlockEqualsComponent(
-  "render control once, memo, lazy, and keepalive without id",
-  `<script>const activeTab = "tab-1"; const stamp = 1;</script><div>{once}<p>Static</p>{endonce}{memo on [stamp]}<p>{stamp}</p>{endmemo}{lazy idle}<p>Deferred</p>{else}<p>Wait</p>{endlazy}{keepalive activeTab max 5 as key}<section>{key}</section>{endkeepalive}</div>`,
-  `<script>import { Once, Memo, Lazy, Else, KeepAlive } from "@dotmix/runtime/directives"; const activeTab = "tab-1"; const stamp = 1;</script><div><Once><p>Static</p></Once><Memo on={[stamp]}><p>{stamp}</p></Memo><Lazy trigger="idle"><p>Deferred</p><Else><p>Wait</p></Else></Lazy><KeepAlive activeKey={activeTab} max={5}>{(key) => <section>{key()}</section>}</KeepAlive></div>`
+  "render control once, memo, lazy, hydrate, and keepalive without id",
+  `<script>const activeTab = "tab-1"; const stamp = 1;</script><div>{once}<p>Static</p>{endonce}{memo on [stamp]}<p>{stamp}</p>{endmemo}{lazy idle}<p>Deferred</p>{else}<p>Wait</p>{endlazy}{hydrate visible}<p>Visible</p>{endhydrate}{hydrate media "(max-width: 768px)"}<p>Mobile</p>{endhydrate}{hydrate never}<p>StaticOnly</p>{endhydrate}{keepalive activeTab max 5 as key}<section>{key}</section>{endkeepalive}</div>`,
+  `<script>import { Once, Memo, Lazy, Else, Hydrate, KeepAlive } from "@dotmix/runtime/directives"; const activeTab = "tab-1"; const stamp = 1;</script><div><Once><p>Static</p></Once><Memo on={[stamp]}><p>{stamp}</p></Memo><Lazy trigger="idle"><p>Deferred</p><Else><p>Wait</p></Else></Lazy><Hydrate when="visible"><p>Visible</p></Hydrate><Hydrate when='media "(max-width: 768px)"'><p>Mobile</p></Hydrate><Hydrate when="never"><p>StaticOnly</p></Hydrate><KeepAlive activeKey={activeTab} max={5}>{(key) => <section>{key()}</section>}</KeepAlive></div>`
 );
 
 assertBlockEqualsComponent(

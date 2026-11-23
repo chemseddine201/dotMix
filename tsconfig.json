@@ -20,6 +20,7 @@
     { "path": "packages/sanitizer-dompurify" },
     { "path": "packages/server-node" },
     { "path": "packages/helpers" },
+    { "path": "packages/image" },
     { "path": "editors/vscode-mix" },
     { "path": "tools/sync-reference" },
     { "path": "tools/sync-coordinator" }

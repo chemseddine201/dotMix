@@ -172,6 +172,7 @@ export function projectDirectiveTemplateNode(
     case "FieldValid":
     case "Once":
     case "Memo":
+    case "Hydrate":
     case "Section":
     case "HasSection":
     case "SectionMissing":

@@ -2,7 +2,17 @@
  * @dotmix/router — Reactive Router & Data Router Hooks
  */
 
-import { createMemo, useContext } from "@dotmix/runtime";
+import {
+  createMemo,
+  useContext,
+  useHead,
+  type HeadInput,
+  type HeadHtmlAttrs,
+  type HeadMetaEntry,
+  type HeadLinkEntry,
+  type HeadJsonLdEntry,
+  type MaybeGetter
+} from "@dotmix/runtime";
 import type {
   Router,
   RouteLocation,
@@ -15,6 +25,14 @@ import type {
   NavigationState,
   SubmitOptions,
 } from "./types.js";
+import {
+  getDirectionForLocale,
+  formatLocalePath as computeLocalePath,
+  resolveLocaleFromPath,
+  type ExpandedRouteLocaleMeta,
+  type I18nConfig,
+  type LocaleInfo
+} from "./i18n.js";
 import { matchPath, resolvePath } from "./match.js";
 import {
   RouterContext,
@@ -202,24 +220,63 @@ export function useSubmit(): (target: unknown, options?: SubmitOptions) => Promi
   return (target, options) => router.submit(target, options);
 }
 
-export function useHead(meta: { title?: string | undefined; meta?: Array<Record<string, string>> | undefined }): void {
-  if (typeof document === "undefined") return;
-  if (meta.title !== undefined) {
-    document.title = meta.title;
-  }
-  if (meta.meta) {
-    for (const item of meta.meta) {
-      if (item.name) {
-        let el = document.querySelector(`meta[name="${item.name}"]`) as HTMLMetaElement | null;
-        if (!el) {
-          el = document.createElement("meta");
-          el.name = item.name;
-          document.head.appendChild(el);
-        }
-        if (item.content !== undefined) {
-          el.content = item.content;
-        }
-      }
+export {
+  useHead,
+  type HeadInput,
+  type HeadHtmlAttrs,
+  type HeadMetaEntry,
+  type HeadLinkEntry,
+  type HeadJsonLdEntry,
+  type MaybeGetter
+};
+
+export function useLocale(): () => LocaleInfo {
+  const router = useRouter();
+  const memo = createMemo((): LocaleInfo => {
+    const loc = router.currentRoute();
+    const cfg = router.i18n;
+    const metaLocale = loc.meta.__i18n as ExpandedRouteLocaleMeta | undefined;
+    if (cfg) {
+      const resolved = resolveLocaleFromPath(loc.pathname, cfg);
+      const locale = metaLocale?.locale ?? resolved.locale;
+      const basePath = metaLocale?.basePath ?? resolved.unprefixedPath;
+      return {
+        locale,
+        defaultLocale: cfg.defaultLocale,
+        locales: cfg.locales,
+        dir: getDirectionForLocale(locale, cfg),
+        isDefault: locale === cfg.defaultLocale,
+        switchLocalePath: (targetLocale: string) => computeLocalePath(basePath, targetLocale, cfg)
+      };
     }
+    const fallbackLocale = metaLocale?.locale ?? "en";
+    const defaultLocale = metaLocale?.defaultLocale ?? fallbackLocale;
+    const locales = metaLocale?.locales ?? [fallbackLocale];
+    return {
+      locale: fallbackLocale,
+      defaultLocale,
+      locales,
+      dir: metaLocale?.dir ?? getDirectionForLocale(fallbackLocale),
+      isDefault: fallbackLocale === defaultLocale,
+      switchLocalePath: (targetLocale: string) =>
+        computeLocalePath(metaLocale?.basePath ?? loc.pathname, targetLocale)
+    };
+  });
+  return () => memo();
+}
+
+export function localePath(path: string, locale?: string, config?: I18nConfig): string {
+  if (config) {
+    return computeLocalePath(path, locale, config);
   }
+  try {
+    const router = useRouter();
+    if (router.i18n) {
+      const activeLocale = locale ?? (router.currentRoute().meta.__i18n as ExpandedRouteLocaleMeta | undefined)?.locale ?? router.i18n.defaultLocale;
+      return computeLocalePath(path, activeLocale, router.i18n);
+    }
+  } catch {
+    // Called outside RouterProvider without explicit config; fall back to pure prefixing.
+  }
+  return computeLocalePath(path, locale);
 }

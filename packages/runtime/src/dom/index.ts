@@ -5,6 +5,9 @@
  */
 
 export * from "./hydration.js";
+export * from "./hydration-islands.js";
+export * from "./mount.js";
+export * from "./head-api.js";
 export * from "./nodes.js";
 export * from "./attributes.js";
 export * from "./styles.js";

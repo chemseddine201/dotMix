@@ -1,0 +1,59 @@
+import { useHead } from "@dotmix/runtime";
+import { useLocale } from "@dotmix/router";
+import SiteHeader from "../components/SiteHeader.tix";
+import SiteFooter from "../components/SiteFooter.tix";
+import ThemeToggle from "../components/ThemeToggle.tix";
+import { getCopy } from "../i18n/copy.js";
+
+export default function PricingPage() {
+  const localeInfo = useLocale();
+  const loc = localeInfo().locale;
+  const copy = getCopy(loc);
+
+  useHead({
+    title: copy.pricingTitle,
+    meta: [
+      { name: "description", content: copy.pricingDescription },
+      { property: "og:title", content: copy.pricingTitle },
+      { property: "og:description", content: copy.pricingDescription }
+    ],
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: copy.pricingTitle,
+      inLanguage: loc
+    }
+  });
+
+  return (
+    <div class="page-shell">
+      <SiteHeader>
+        <ThemeToggle
+          label={copy.themeToggleLabel}
+          darkLabel={copy.themeDark}
+          lightLabel={copy.themeLight}
+        />
+      </SiteHeader>
+      <main class="site-main">
+        <div class="site-container">
+          <section class="hero">
+            <h1>{copy.pricingHeading}</h1>
+            <p class="lead">{copy.pricingLead}</p>
+          </section>
+          <section class="cards-grid">
+            <article class="card">
+              <h2>MIT Core</h2>
+              <p>0 USD — @dotmix/runtime, @dotmix/router, @dotmix/cli</p>
+            </article>
+            <article class="card">
+              <h2>Edge Ready</h2>
+              <p>Cloudflare Pages, Static CDN, WinterCG Streams</p>
+            </article>
+          </section>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+

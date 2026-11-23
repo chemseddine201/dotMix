@@ -11,4 +11,8 @@ export interface SsrOptions {
 export interface SsrCompilationResult {
   code: string;
   css: string;
+  readonly hydrationMeta?: {
+    readonly isInteractive: boolean;
+    readonly islandSpecifiers: readonly string[];
+  } | undefined;
 }

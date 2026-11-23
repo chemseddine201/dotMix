@@ -128,11 +128,38 @@ export function createPreviewServer(options: PreviewOptions = {}): Promise<http.
       "Content-Type": contentType,
     };
 
+    // Apply Cloudflare-style dist/_headers rules when present
+    const headersFilePath = path.join(rootDir, "_headers");
+    if (fs.existsSync(headersFilePath)) {
+      const rawHeaders = fs.readFileSync(headersFilePath, "utf-8");
+      let currentBlockMatch = false;
+      for (const line of rawHeaders.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        if (!line.startsWith(" ") && !line.startsWith("\t")) {
+          const pattern = trimmed.endsWith("/*") ? trimmed.slice(0, -1) : trimmed;
+          currentBlockMatch = trimmed === "/*" || parsedPath.startsWith(pattern);
+        } else if (currentBlockMatch) {
+          const colonIdx = trimmed.indexOf(":");
+          if (colonIdx > 0) {
+            const hName = trimmed.slice(0, colonIdx).trim();
+            const hVal = trimmed.slice(colonIdx + 1).trim();
+            headers[hName] = hVal;
+          }
+        }
+      }
+    }
+
     // Cache control
-    if (targetFile.includes("assets") && !targetFile.endsWith("index.html")) {
-      headers["Cache-Control"] = "public, max-age=31536000, immutable";
-    } else {
-      headers["Cache-Control"] = "no-cache";
+    if (!headers["Cache-Control"]) {
+      const isHashedAsset =
+        (targetFile.includes("assets") || /vendor[\\/][a-f0-9]{8}[\\/]/.test(targetFile)) &&
+        !targetFile.endsWith("index.html");
+      if (isHashedAsset) {
+        headers["Cache-Control"] = "public, max-age=31536000, immutable";
+      } else {
+        headers["Cache-Control"] = "no-cache";
+      }
     }
 
     // Compression negotiation

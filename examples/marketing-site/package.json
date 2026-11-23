@@ -1,0 +1,13 @@
+{
+  "name": "dotmix-marketing-site-example",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "mix dev",
+    "build": "mix build src dist --static --clean",
+    "check": "mix check src",
+    "preview": "mix preview dist"
+  }
+}
+

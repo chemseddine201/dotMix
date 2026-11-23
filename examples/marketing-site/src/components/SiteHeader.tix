@@ -1,0 +1,31 @@
+import { Link, useLocale } from "@dotmix/router";
+import { getCopy } from "../i18n/copy.js";
+
+export default function SiteHeader(props: { children?: unknown }) {
+  const localeInfo = useLocale();
+  const loc = localeInfo().locale;
+  const copy = getCopy(loc);
+  const targetLang = loc === "fr" ? "ar" : "fr";
+  const prefix = loc === "fr" ? "/fr" : "";
+  const homeHref = loc === "fr" ? "/fr/" : "/";
+  const switchHref = localeInfo().switchLocalePath(targetLang);
+
+  return (
+    <header class="site-header">
+      <div class="site-container site-header-inner">
+        <Link to={homeHref} class="brand-link">{copy.brand}</Link>
+        <nav class="site-nav" aria-label={copy.navLabel}>
+          <Link to={homeHref} exact class="nav-link">{copy.navHome}</Link>
+          <Link to={`${prefix}/features`} class="nav-link">{copy.navFeatures}</Link>
+          <Link to={`${prefix}/pricing`} class="nav-link">{copy.navPricing}</Link>
+          <Link to={`${prefix}/about`} class="nav-link">{copy.navAbout}</Link>
+        </nav>
+        <div class="header-actions">
+          <a href={switchHref} class="lang-link" hreflang={targetLang}>{copy.switchLangLabel}</a>
+          <slot />
+        </div>
+      </div>
+    </header>
+  );
+}
+

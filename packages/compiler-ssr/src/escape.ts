@@ -58,3 +58,36 @@ function __escapeAttr(name, val) {
   }
   return ' ' + name + '="' + __escapeHtml(str) + '"';
 }`;
+
+export function buildSsrImplicitPrimitives(
+  imports: ReadonlyMap<string, string> | undefined,
+  bindings: ReadonlyMap<string, unknown> | undefined
+): string {
+  const hasBinding = (name: string): boolean =>
+    Boolean((imports && imports.has(name)) || (bindings && bindings.has(name)));
+  const lines: string[] = [];
+  if (!hasBinding("signal")) {
+    lines.push(
+      '    const signal = (init) => { let v = init; const g = () => v; g.set = (n) => { v = typeof n === "function" ? n(v) : n; }; g.update = (fn) => { v = fn(v); }; g.peek = () => v; return g; };'
+    );
+  }
+  if (!hasBinding("computed")) {
+    lines.push("    const computed = (fn) => () => fn();");
+  }
+  if (!hasBinding("createEffect")) {
+    lines.push("    const createEffect = () => {};");
+  }
+  if (!hasBinding("onCleanup")) {
+    lines.push("    const onCleanup = () => {};");
+  }
+  if (!hasBinding("onMount")) {
+    lines.push("    const onMount = () => {};");
+  }
+  if (!hasBinding("batch")) {
+    lines.push('    const batch = (fn) => (typeof fn === "function" ? fn() : undefined);');
+  }
+  if (!hasBinding("createRef")) {
+    lines.push("    const createRef = (v = null) => ({ current: v });");
+  }
+  return lines.length > 0 ? lines.join("\n") + "\n" : "";
+}

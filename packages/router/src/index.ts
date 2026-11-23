@@ -6,5 +6,6 @@ export * from "./types.js";
 export * from "./trie.js";
 export * from "./history.js";
 export * from "./match.js";
+export * from "./i18n.js";
 export * from "./router.js";
 export * from "./components.js";

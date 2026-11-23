@@ -184,7 +184,7 @@ export function analyzeScriptBlock(
   const functions: string[] = [];
   const imports = new Map<string, string>();
   const cssImports: string[] = [];
-  if (!ast.script) return { bindings, signals, computeds, props, refs, functions, imports, cssImports };
+  if (!ast.script) return { bindings, signals, computeds, props, refs, functions, imports, cssImports, hasReactiveState: false, hasOnMount: false };
 
   const scriptContent = ast.script.content;
   const baseOffset = ast.script.contentSpan.start.offset;
@@ -195,6 +195,30 @@ export function analyzeScriptBlock(
     true,
     ast.script.lang === "ts" ? ts.ScriptKind.TS : ts.ScriptKind.JS
   );
+
+  let hasReactiveState = false;
+  let hasOnMount = false;
+  const REACTIVE_CALL_NAMES = new Set([
+    "signal",
+    "createSignal",
+    "computed",
+    "createComputed",
+    "createEffect",
+    "effect",
+    "createResource",
+    "createStore",
+    "syncSignal",
+    "syncCollection"
+  ]);
+  const scanScriptNode = (tsNode: ts.Node): void => {
+    if (ts.isCallExpression(tsNode) && ts.isIdentifier(tsNode.expression)) {
+      const calleeName = tsNode.expression.text;
+      if (calleeName === "onMount") hasOnMount = true;
+      else if (REACTIVE_CALL_NAMES.has(calleeName)) hasReactiveState = true;
+    }
+    ts.forEachChild(tsNode, scanScriptNode);
+  };
+  scanScriptNode(sf);
 
   function spanForNode(node: ts.Node): SourceSpan {
     const startOff = baseOffset + node.getStart(sf);
@@ -289,7 +313,7 @@ export function analyzeScriptBlock(
     }
   }
 
-  return { bindings, signals, computeds, props, refs, functions, imports, cssImports };
+  return { bindings, signals, computeds, props, refs, functions, imports, cssImports, hasReactiveState, hasOnMount };
 }
 
 export function analyze(ast: ComponentNode, options?: AnalyzeOptions): ComponentDescriptor {
@@ -298,7 +322,7 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
   const diagnostics: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
 
-  const { bindings, signals, computeds, props, refs, functions, imports, cssImports } =
+  const { bindings, signals, computeds, props, refs, functions, imports, cssImports, hasReactiveState, hasOnMount } =
     analyzeScriptBlock(ast, lineMap, diagnostics);
 
   const rootScope: Scope = { parent: null, bindings };
@@ -436,6 +460,6 @@ export function analyze(ast: ComponentNode, options?: AnalyzeOptions): Component
   }
 
   return deepFreeze({
-    ast: loweredAst, filename, rootScope, signals, computeds, props, refs, functions, imports, cssImports, hasPlainCanComponent, diagnostics, warnings
+    ast: loweredAst, filename, rootScope, signals, computeds, props, refs, functions, imports, cssImports, hasPlainCanComponent, hasReactiveState, hasOnMount, diagnostics, warnings
   });
 }

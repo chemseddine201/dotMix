@@ -2,7 +2,7 @@
  * @dotmix/router — Router Provider & History-Bound Router Components
  */
 
-import { provideContext } from "@dotmix/runtime";
+import { provideContext, useHead, type HeadLinkEntry } from "@dotmix/runtime";
 import type {
   Router,
   BrowserRouterOptions,
@@ -16,6 +16,12 @@ import {
   createHashRouter,
   createMemoryRouter,
 } from "./router.js";
+import {
+  getDirectionForLocale,
+  formatLocalePath as computeLocalePath,
+  resolveLocaleFromPath,
+  type ExpandedRouteLocaleMeta
+} from "./i18n.js";
 import { Outlet } from "./outlet.js";
 
 export function isDomNode(val: unknown): val is Node {
@@ -77,6 +83,40 @@ export interface RouterProviderProps {
 export function RouterProvider(props: RouterProviderProps): unknown {
   provideContext(RouterContext, props.router);
   provideContext(RouteDepthContext, 0);
+
+  if (props.router.i18n) {
+    const i18nConfig = props.router.i18n;
+    const siteBase = props.router.siteUrl ? props.router.siteUrl.replace(/\/+$/, "") : "";
+    useHead(() => {
+      const loc = props.router.currentRoute();
+      const metaLocale = loc.meta.__i18n as ExpandedRouteLocaleMeta | undefined;
+      const resolved = resolveLocaleFromPath(loc.pathname, i18nConfig);
+      const activeLocale = metaLocale?.locale ?? resolved.locale;
+      const basePath = metaLocale?.basePath ?? resolved.unprefixedPath;
+      const dir = metaLocale?.dir ?? getDirectionForLocale(activeLocale, i18nConfig);
+      const allowedLocales = metaLocale?.locales ?? i18nConfig.locales;
+      const links: HeadLinkEntry[] = [];
+      if (siteBase) {
+        const canonicalPath = computeLocalePath(basePath, activeLocale, i18nConfig);
+        links.push({ rel: "canonical", href: `${siteBase}${canonicalPath}` });
+      }
+      for (const altLocale of allowedLocales) {
+        const altPath = computeLocalePath(basePath, altLocale, i18nConfig);
+        const hreflang = i18nConfig.hreflang?.[altLocale] ?? altLocale;
+        links.push({ rel: "alternate", hreflang, href: siteBase ? `${siteBase}${altPath}` : altPath });
+      }
+      const defaultPath = computeLocalePath(basePath, i18nConfig.defaultLocale, i18nConfig);
+      links.push({
+        rel: "alternate",
+        hreflang: "x-default",
+        href: siteBase ? `${siteBase}${defaultPath}` : defaultPath
+      });
+      return {
+        htmlAttrs: { lang: activeLocale, dir },
+        link: links
+      };
+    });
+  }
 
   if (props.children !== undefined) {
     if (typeof props.children === "function") {

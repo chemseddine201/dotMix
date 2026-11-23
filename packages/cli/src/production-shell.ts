@@ -4,6 +4,7 @@
  * import map, and copies the project's public/ directory, so dist/ can be deployed as a static site.
  */
 
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -68,12 +69,13 @@ export function writeProductionShell(options: ProductionShellOptions): Productio
     if (!packageDirectory) {
       throw new Error(`Cannot find package "${packageName}" from ${options.projectDirectory}. Install it before running mix build.`);
     }
-    const vendorDirectory = path.join(options.outputDirectory, VENDOR_DIRECTORY_NAME, ...packageName.split("/"));
+    const packageHash = computePackageModulesHash(packageDirectory);
+    const vendorDirectory = path.join(options.outputDirectory, VENDOR_DIRECTORY_NAME, packageHash, ...packageName.split("/"));
     const copiedFiles = copyPackageModules(packageDirectory, vendorDirectory);
     writtenFiles.push(...copiedFiles);
     pendingPackageNames.push(...collectRuntimePackageNames(copiedFiles));
     const manifest = JSON.parse(fs.readFileSync(path.join(packageDirectory, "package.json"), "utf-8")) as RuntimePackageManifest;
-    const vendorUrl = `${options.basePath}${VENDOR_DIRECTORY_NAME}/${packageName}/`;
+    const vendorUrl = `${options.basePath}${VENDOR_DIRECTORY_NAME}/${packageHash}/${packageName}/`;
     Object.assign(importMapEntries, createImportMapEntries(packageName, manifest, vendorUrl));
   }
 
@@ -144,10 +146,34 @@ function findPackageDirectory(packageName: string, startDirectory: string): stri
     if (fs.existsSync(path.join(candidateDirectory, "package.json"))) {
       return fs.realpathSync(candidateDirectory);
     }
+    const pkgShort = packageName.split("/")[1];
+    if (pkgShort) {
+      const workspaceCandidate = path.join(currentDirectory, "packages", pkgShort);
+      if (fs.existsSync(path.join(workspaceCandidate, "package.json"))) {
+        return fs.realpathSync(workspaceCandidate);
+      }
+    }
     const parentDirectory = path.dirname(currentDirectory);
     if (parentDirectory === currentDirectory) return null;
     currentDirectory = parentDirectory;
   }
+}
+
+function computePackageModulesHash(packageDirectory: string): string {
+  const distributionDirectory = path.join(packageDirectory, "dist");
+  if (!fs.existsSync(distributionDirectory)) {
+    throw new Error(`Package at ${packageDirectory} has no dist/ directory. Build it before running mix build.`);
+  }
+  const hasher = crypto.createHash("sha256");
+  const files = listFilesRecursively(distributionDirectory)
+    .filter((f) => f.endsWith(".js") || f.endsWith(".mjs"))
+    .sort();
+  for (const file of files) {
+    hasher.update(path.relative(distributionDirectory, file).split(path.sep).join("/"));
+    hasher.update("\0");
+    hasher.update(fs.readFileSync(file));
+  }
+  return hasher.digest("hex").slice(0, 8);
 }
 
 function copyPackageModules(packageDirectory: string, vendorDirectory: string): string[] {

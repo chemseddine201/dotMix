@@ -20,7 +20,7 @@ cd editors/vscode-mix
 npm run package
 
 # 3. Install it, replacing any older version
-code --install-extension vscode-mix-0.2.0.vsix --force
+code --install-extension vscode-mix-0.3.0.vsix --force
 ```
 
 Then run **Developer: Reload Window** (Ctrl+Shift+P, or Cmd+Shift+P on macOS). You can also install the file from the Extensions view: `...` menu → **Install from VSIX...**.

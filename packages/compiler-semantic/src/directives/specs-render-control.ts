@@ -49,6 +49,18 @@ export const RENDER_CONTROL_DIRECTIVE_SPECS: readonly DirectiveSpec[] = [
     summary: "Defers rendering until visible in viewport or browser idle (immediate on SSR)."
   }),
   defineDirectiveSpec({
+    id: "hydrate",
+    family: "render-control",
+    props: [
+      prop("when", '"load" | "idle" | "visible" | `media ${string}` | "media" | "never"', true, "trigger"),
+      prop("media", "string", false, "value"),
+      CHILDREN_REQ
+    ],
+    diagnostics: [DiagnosticCodes.MIX_ERR_PARSE_SYNTAX],
+    irKind: "Hydrate",
+    summary: "Controls island hydration strategy (load | idle | visible | media \"<query>\" | never)."
+  }),
+  defineDirectiveSpec({
     id: "keepalive",
     family: "render-control",
     props: [

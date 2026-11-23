@@ -1,0 +1,16 @@
+import { useLocale } from "@dotmix/router";
+import { getCopy } from "../i18n/copy.js";
+
+export default function SiteFooter() {
+  const localeInfo = useLocale();
+  const copy = getCopy(localeInfo().locale);
+
+  return (
+    <footer class="site-footer">
+      <div class="site-container">
+        <p>{copy.footerText}</p>
+      </div>
+    </footer>
+  );
+}
+

@@ -1,0 +1,43 @@
+import { createSignal } from "@dotmix/runtime";
+
+export interface ThemeToggleProps {
+  readonly label?: string;
+  readonly darkLabel?: string;
+  readonly lightLabel?: string;
+}
+
+export default function ThemeToggle(props: ThemeToggleProps) {
+  const initialDark =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "dark";
+  const isDark = createSignal(initialDark);
+
+  function toggleTheme() {
+    const next = !isDark();
+    isDark.set(next);
+    if (typeof document !== "undefined") {
+      if (next) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+      }
+      try {
+        localStorage.setItem("mix-theme", next ? "dark" : "light");
+      } catch {
+        // Ignore storage errors in private browsing
+      }
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      class="theme-toggle-btn"
+      aria-label={props.label ?? "Toggle theme"}
+      aria-pressed={isDark() ? "true" : "false"}
+      onClick={toggleTheme}
+    >
+      {isDark() ? (props.lightLabel ?? "Light") : (props.darkLabel ?? "Dark")}
+    </button>
+  );
+}

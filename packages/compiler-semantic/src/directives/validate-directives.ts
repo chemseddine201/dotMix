@@ -439,6 +439,9 @@ export function validateDirectiveTemplateNode(
       recurse(node.children, currentScope);
       recurse(node.fallback, currentScope);
       return true;
+    case "Hydrate":
+      recurse(node.children, currentScope);
+      return true;
     case "KeepAliveBlock":
       verifyExpressionIdentifiers(node.activeKey, currentScope, diagnostics, node.span);
       if (node.max) verifyExpressionIdentifiers(node.max, currentScope, diagnostics, node.span);

@@ -1,0 +1,72 @@
+import { useHead } from "@dotmix/runtime";
+import { Link, useLocale } from "@dotmix/router";
+import { Picture } from "@dotmix/image";
+import SiteHeader from "../components/SiteHeader.tix";
+import SiteFooter from "../components/SiteFooter.tix";
+import ThemeToggle from "../components/ThemeToggle.tix";
+import { getCopy } from "../i18n/copy.js";
+import "../styles/site.css";
+
+export default function HomePage() {
+  const localeInfo = useLocale();
+  const loc = localeInfo().locale;
+  const copy = getCopy(loc);
+  const featuresHref = loc === "fr" ? "/fr/features" : "/features";
+
+  useHead({
+    title: copy.homeTitle,
+    meta: [
+      { name: "description", content: copy.homeDescription },
+      { property: "og:title", content: copy.homeTitle },
+      { property: "og:description", content: copy.homeDescription },
+      { property: "og:type", content: "website" }
+    ],
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: copy.brand,
+      inLanguage: loc,
+      description: copy.homeDescription
+    }
+  });
+
+  return (
+    <div class="page-shell">
+      <SiteHeader>
+        <ThemeToggle
+          label={copy.themeToggleLabel}
+          darkLabel={copy.themeDark}
+          lightLabel={copy.themeLight}
+        />
+      </SiteHeader>
+      <main class="site-main">
+        <div class="site-container">
+          <section class="hero">
+            <h1>{copy.homeHeroTitle}</h1>
+            <p class="lead">{copy.homeHeroSubtitle}</p>
+            <div>
+              <Link to={featuresHref} class="cta-link">{copy.homeCta}</Link>
+            </div>
+            <Picture
+              src="/hero-marketing.jpg"
+              alt={copy.homeImageAlt}
+              width={1200}
+              height={630}
+              placeholder
+            />
+          </section>
+          <section class="cards-grid">
+            {each (card, idx) in copy.featuresCards}
+              <article class="card">
+                <h2>{card.title}</h2>
+                <p>{card.body}</p>
+              </article>
+            {endeach}
+          </section>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+

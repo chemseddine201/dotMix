@@ -1,0 +1,51 @@
+import { useHead } from "@dotmix/runtime";
+import { useLocale } from "@dotmix/router";
+import { Picture } from "@dotmix/image";
+import SiteHeader from "../components/SiteHeader.tix";
+import SiteFooter from "../components/SiteFooter.tix";
+import ThemeToggle from "../components/ThemeToggle.tix";
+import { getCopy } from "../i18n/copy.js";
+
+export default function AboutPage() {
+  const localeInfo = useLocale();
+  const loc = localeInfo().locale;
+  const copy = getCopy(loc);
+
+  useHead({
+    title: copy.aboutTitle,
+    meta: [
+      { name: "description", content: copy.aboutDescription },
+      { property: "og:title", content: copy.aboutTitle },
+      { property: "og:description", content: copy.aboutDescription }
+    ]
+  });
+
+  return (
+    <div class="page-shell">
+      <SiteHeader>
+        <ThemeToggle
+          label={copy.themeToggleLabel}
+          darkLabel={copy.themeDark}
+          lightLabel={copy.themeLight}
+        />
+      </SiteHeader>
+      <main class="site-main">
+        <div class="site-container">
+          <section class="hero">
+            <h1>{copy.aboutHeading}</h1>
+            <p class="lead">{copy.aboutLead}</p>
+            <Picture
+              src="/team-workspace.jpg"
+              alt={copy.aboutImageAlt}
+              width={1000}
+              height={560}
+              placeholder
+            />
+          </section>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+

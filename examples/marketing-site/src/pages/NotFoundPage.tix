@@ -1,0 +1,21 @@
+import { useHead } from "@dotmix/runtime";
+import { Link } from "@dotmix/router";
+import { getCopy } from "../i18n/copy.js";
+
+export default function NotFoundPage() {
+  const copy = getCopy("ar");
+  useHead({
+    title: copy.notFoundTitle,
+    meta: [{ name: "robots", content: "noindex" }]
+  });
+
+  return (
+    <main class="site-main">
+      <div class="site-container">
+        <h1>{copy.notFoundHeading}</h1>
+        <p><Link to="/" class="cta-link">{copy.navHome}</Link></p>
+      </div>
+    </main>
+  );
+}
+

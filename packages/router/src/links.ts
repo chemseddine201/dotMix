@@ -102,12 +102,58 @@ export interface LinkProps {
   [key: string]: unknown;
 }
 
-export function Link(props: LinkProps): HTMLAnchorElement {
+function escapeSsrHtmlAttr(val: string): string {
+  return val
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function isPathActive(
+  curPath: string,
+  targetPath: string,
+  exactOrEnd: boolean,
+  caseSensitive: boolean
+): boolean {
+  const cur = caseSensitive ? curPath : curPath.toLowerCase();
+  const tgt = caseSensitive ? targetPath : targetPath.toLowerCase();
+  if (exactOrEnd) return cur === tgt;
+  if (tgt === "/") return cur === "/";
+  return cur === tgt || cur.startsWith(tgt + "/");
+}
+
+function renderSsrAnchor(
+  href: string,
+  cls: string,
+  active: boolean,
+  rawChild: unknown
+): string {
+  const childHtml = rawChild === null || rawChild === undefined ? "" : String(rawChild);
+  const classAttr = cls ? ` class="${escapeSsrHtmlAttr(cls)}"` : "";
+  const ariaAttr = active ? ' aria-current="page"' : "";
+  return `<a href="${escapeSsrHtmlAttr(href)}"${classAttr}${ariaAttr}>${childHtml}</a>`;
+}
+
+export function Link(props: LinkProps): HTMLAnchorElement | string {
+  const readTarget = (): To => (props.to !== undefined ? props.to : props.href || "/");
   if (typeof document === "undefined") {
-    throw new Error("[@dotmix/router] Link requires a DOM environment");
+    const href = formatAndValidateTargetUrl(readTarget());
+    let active = false;
+    try {
+      const router = useRouter();
+      active = isPathActive(router.currentRoute().pathname, resolvePath(readTarget()).pathname, props.exact ?? false, true);
+    } catch {
+      // Allow <Link> SSR rendering even without an active RouterContext
+    }
+    const baseClass = props.className || props.class || "";
+    const activeClass = props.activeClass || "active";
+    const cls = active ? (baseClass ? `${baseClass} ${activeClass}` : activeClass) : baseClass;
+    const childVal =
+      typeof props.children === "function" ? (props.children as () => unknown)() : props.children;
+    return renderSsrAnchor(href, cls, active, childVal);
   }
 
-  const readTarget = (): To => (props.to !== undefined ? props.to : props.href || "/");
   const targetUrl = createTargetUrl(readTarget);
   const router = useRouter();
   const el = document.createElement("a");
@@ -166,9 +212,39 @@ export interface NavLinkProps {
   [key: string]: unknown;
 }
 
-export function NavLink(props: NavLinkProps): HTMLAnchorElement {
+export function NavLink(props: NavLinkProps): HTMLAnchorElement | string {
   if (typeof document === "undefined") {
-    throw new Error("[@dotmix/router] NavLink requires a DOM environment");
+    const href = formatAndValidateTargetUrl(props.to);
+    let active = false;
+    try {
+      const router = useRouter();
+      active = isPathActive(
+        router.currentRoute().pathname,
+        resolvePath(props.to).pathname,
+        props.end ?? false,
+        props.caseSensitive ?? false
+      );
+    } catch {
+      // Allow <NavLink> SSR rendering even without an active RouterContext
+    }
+    let cls = "";
+    if (typeof props.className === "function") {
+      cls = props.className({ isActive: active, isPending: false });
+    } else if (typeof props.className === "string" || typeof props.class === "string") {
+      const baseClass = props.className || props.class || "";
+      const activeClass = props.activeClassName || "active";
+      cls = active ? (baseClass ? `${baseClass} ${activeClass}` : activeClass) : baseClass;
+    } else if (active) {
+      cls = props.activeClassName || "active";
+    }
+    const childVal =
+      typeof props.children === "function"
+        ? (props.children as (arg: { isActive: boolean; isPending: boolean }) => unknown)({
+            isActive: active,
+            isPending: false
+          })
+        : props.children;
+    return renderSsrAnchor(href, cls, active, childVal);
   }
 
   const router = useRouter();

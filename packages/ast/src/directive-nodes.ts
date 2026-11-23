@@ -113,6 +113,8 @@ export interface IncludeFirstNode extends IncludeSharedBase { readonly type: "In
 export interface OnceNode extends FormBase { readonly type: "Once"; readonly children: readonly TemplateNode[]; }
 export interface MemoNode extends FormBase { readonly type: "Memo"; readonly deps: ESTreeNode; readonly rawDeps: string; readonly equals: ESTreeNode | null; readonly rawEquals: string | null; readonly children: readonly TemplateNode[]; }
 export interface LazyNode extends FormBase { readonly type: "Lazy"; readonly trigger: "visible" | "idle"; readonly triggerExpr: ESTreeNode | null; readonly rawTriggerExpr: string | null; readonly fallback: readonly TemplateNode[]; readonly children: readonly TemplateNode[]; }
+export type HydrateWhen = "load" | "idle" | "visible" | "media" | "never";
+export interface HydrateNode extends FormBase { readonly type: "Hydrate"; readonly when: HydrateWhen; readonly media: string | null; readonly children: readonly TemplateNode[]; }
 export interface KeepAliveBlockNode extends FormBase { readonly type: "KeepAliveBlock"; readonly activeKey: ESTreeNode; readonly rawActiveKey: string; readonly max: ESTreeNode | null; readonly rawMax: string | null; readonly asIdentifier: string | null; readonly children: readonly TemplateNode[]; }
 export interface SessionBlockNode extends BranchPairBase { readonly type: "SessionBlock"; readonly key: ESTreeNode; readonly rawKey: string; readonly asIdentifier: string | null; }
 export interface JsonNode extends FormBase { readonly type: "Json"; readonly id: ESTreeNode; readonly rawId: string; readonly data: ESTreeNode; readonly rawData: string; }
@@ -168,7 +170,7 @@ export type DirectiveTemplateNode =
   | CsrfNode | MethodNode | SectionNode | YieldNode
   | HasSectionNode | SectionMissingNode | StackPushNode | StackNode
   | HeadGroupNode | IncludeNode | IncludeFirstNode | OnceNode
-  | MemoNode | LazyNode | KeepAliveBlockNode | SessionBlockNode
+  | MemoNode | LazyNode | HydrateNode | KeepAliveBlockNode | SessionBlockNode
   | PartialNode | JsonNode | DumpNode | VerbatimNode
   | TemplateRenderFunctionNode;
 
@@ -258,6 +260,7 @@ export const DIRECTIVE_GRAMMAR = deepFreeze({
     dg("once", "once", "endonce", "Once"),
     dg("memo", "memo", "endmemo", "Memo"),
     dg("lazy", "lazy", "endlazy", "Lazy", { branchMarkers: ["else"], branchComponents: [br("Else", "lazy", "else")], supportsElse: true }),
+    dg("hydrate", "hydrate", "endhydrate", "Hydrate"),
     dg("keepalive", "keepalive", "endkeepalive", "KeepAlive"),
     dg("session", "session", "endsession", "Session", { branchMarkers: ["else"], branchComponents: [br("Else", "session", "else")], supportsElse: true }),
     dg("partial", "partial", "endpartial", "Partial"),
@@ -265,7 +268,7 @@ export const DIRECTIVE_GRAMMAR = deepFreeze({
     dg("dump", "dump", null, "Dump"),
     dg("verbatim", "verbatim", "endverbatim", "Verbatim", { rawTextMode: true })
   ] as readonly DirectiveGrammarEntry[],
-  contextualKeywords: ["as", "on", "in", "if", "unless", "from", "to", "step", "times", "role", "render", "with", "once", "by", "field", "max", "visible", "idle"] as readonly string[],
+  contextualKeywords: ["as", "on", "in", "if", "unless", "from", "to", "step", "times", "role", "render", "with", "once", "by", "field", "max", "visible", "idle", "load", "media", "never"] as readonly string[],
   attributeModifiers: {
     attr: ["if", "unless", "else", "match", "case-"] as readonly string[],
     event: ["if", "unless", "else"] as readonly string[],
@@ -342,10 +345,50 @@ export function walkDirectiveNode(
       visitAll(node.children);
       visitAll(node.fallback);
       break;
+    case "Hydrate":
+      visitAll(node.children);
+      break;
     case "TemplateRenderFunction":
       visitAll(node.body);
       break;
     default:
       break;
   }
+}
+
+function unwrapQuotes(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    if ((first === '"' || first === "'") && last === first) {
+      return trimmed.slice(1, -1).trim();
+    }
+  }
+  return trimmed;
+}
+
+export function parseHydrateWhenSpec(
+  rawInput: string,
+  explicitMedia?: string | null
+): { readonly when: HydrateWhen; readonly media: string | null } | null {
+  const trimmed = unwrapQuotes(rawInput);
+  if (trimmed === "load" || trimmed === "idle" || trimmed === "visible" || trimmed === "never") {
+    return { when: trimmed, media: null };
+  }
+  if (trimmed === "media") {
+    if (typeof explicitMedia === "string") {
+      const cleaned = unwrapQuotes(explicitMedia);
+      if (cleaned.length > 0) return { when: "media", media: cleaned };
+    }
+    return null;
+  }
+  if (trimmed.startsWith("media") && trimmed.length > 5) {
+    const ch = trimmed[5];
+    if (ch === " " || ch === "\t" || ch === "(") {
+      const rest = unwrapQuotes(trimmed.slice(5));
+      if (rest.length > 0) return { when: "media", media: rest };
+    }
+  }
+  return null;
 }

@@ -289,6 +289,14 @@ export interface LazyProps {
   children: Children;
 }
 
+export type HydrateWhen = "load" | "idle" | "visible" | "never" | `media ${string}` | "media";
+
+export interface HydrateProps {
+  when: HydrateWhen;
+  media?: string | undefined;
+  children: Children;
+}
+
 // F13: Server rendering
 export interface SessionProps<T = unknown> {
   key: string;

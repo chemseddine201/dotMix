@@ -29,6 +29,7 @@ import type {
   GuestProps,
   HasSectionProps,
   HeadProps,
+  HydrateProps,
   IfProps,
   IncludeFirstProps,
   IncludeProps,
@@ -281,6 +282,10 @@ export function Memo(_props: MemoProps): unknown {
 
 export function Lazy(_props: LazyProps): unknown {
   return notCompiled("Lazy");
+}
+
+export function Hydrate(_props: HydrateProps): unknown {
+  return notCompiled("Hydrate");
 }
 
 // F13: Server rendering

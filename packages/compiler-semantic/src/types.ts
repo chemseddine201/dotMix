@@ -69,6 +69,8 @@ export interface ComponentDescriptor {
   readonly imports: ReadonlyMap<string, string>;
   readonly cssImports?: readonly string[];
   readonly hasPlainCanComponent?: boolean;
+  readonly hasReactiveState?: boolean;
+  readonly hasOnMount?: boolean;
   readonly diagnostics: readonly Diagnostic[];
   readonly warnings?: readonly Diagnostic[];
 }

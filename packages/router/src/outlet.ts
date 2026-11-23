@@ -126,13 +126,39 @@ export interface OutletProps {
   fallback?: unknown;
 }
 
-export function Outlet(props: OutletProps = {}): Node {
+export function Outlet(props: OutletProps = {}): Node | string {
   const router = useRouter();
   const depth = useContext(RouteDepthContext);
   const matchesContext = useContext(RouteMatchesContext);
 
   if (typeof document === "undefined") {
-    throw new Error("[@dotmix/router] Outlet requires a DOM environment");
+    const matches = matchesContext ? matchesContext() : router.currentRoute().matched;
+    const matched = matches[depth];
+    const comp = matched
+      ? (matched.route?.element ??
+        matched.route?.Component ??
+        matched.route?.component ??
+        (matched as { component?: unknown }).component ??
+        (matched as { record?: { component?: unknown } }).record?.component)
+      : props.fallback;
+    if (!comp) return "";
+    provideContext(RouteDepthContext, depth + 1);
+    if (props.context !== undefined) {
+      provideContext(OutletContextData, props.context);
+    }
+    const routeProps = {
+      route: router.currentRoute(),
+      params: matched ? matched.params : {}
+    };
+    const ssrComp = comp as { renderToString?: (p: Record<string, unknown>) => string };
+    if (typeof ssrComp.renderToString === "function") {
+      return ssrComp.renderToString(routeProps);
+    }
+    if (typeof comp === "function") {
+      const out = (comp as (p: Record<string, unknown>) => unknown)(routeProps);
+      return typeof out === "string" ? out : "";
+    }
+    return typeof comp === "string" ? comp : "";
   }
 
   const fragment = document.createDocumentFragment();

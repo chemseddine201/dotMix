@@ -112,7 +112,7 @@
       "patterns": [
         {
           "name": "keyword.control.mix",
-          "match": "\\{(?:if|elseif|else|endif|each|endeach|await|then|catch|endawait|unless|endunless|isset|endisset|isempty|endisempty|switch|case|default|endswitch|empty|for|endfor|auth|endauth|guest|endguest|can|elsecan|endcan|cannot|endcannot|canany|endcanany|dev|enddev|production|endproduction|env|endenv|context|endcontext|error|enderror|errors|enderrors|valid|endvalid|csrf|method|section|endsection|yield|endyield|hassection|endhassection|sectionmissing|endsectionmissing|push|endpush|prepend|endprepend|stack|include|includefirst|endincludefirst|once|endonce|memo|endmemo|lazy|endlazy|keepalive|endkeepalive|session|endsession|partial|endpartial|json|dump|verbatim|endverbatim)(?=[\\s}])"
+          "match": "\\{(?:if|elseif|else|endif|each|endeach|await|then|catch|endawait|unless|endunless|isset|endisset|isempty|endisempty|switch|case|default|endswitch|empty|for|endfor|auth|endauth|guest|endguest|can|elsecan|endcan|cannot|endcannot|canany|endcanany|dev|enddev|production|endproduction|env|endenv|context|endcontext|error|enderror|errors|enderrors|valid|endvalid|csrf|method|section|endsection|yield|endyield|hassection|endhassection|sectionmissing|endsectionmissing|push|endpush|prepend|endprepend|stack|include|includefirst|endincludefirst|once|endonce|memo|endmemo|lazy|endlazy|hydrate|endhydrate|keepalive|endkeepalive|session|endsession|partial|endpartial|json|dump|verbatim|endverbatim)(?=[\\s}])"
         },
         {
           "name": "keyword.control.mix",
@@ -124,7 +124,7 @@
         },
         {
           "name": "keyword.operator.iteration.mix",
-          "match": "\\b(in|as|on|if|unless|from|to|step|times|role|render|with|once|by|field|max|visible|idle)\\b"
+          "match": "\\b(in|as|on|if|unless|from|to|step|times|role|render|with|once|by|field|max|visible|idle|load|media|never)\\b"
         }
       ]
     },
@@ -200,7 +200,7 @@
       "patterns": [
         {
           "name": "support.class.component.mix",
-          "match": "<\\/?(If|ElseIf|Else|Unless|IsSet|IsEmpty|Switch|Case|Default|Each|Empty|For|Await|Auth|AuthProvider|Guest|Can|ElseCan|Cannot|CanAny|Dev|Production|Env|Context|FieldError|FormErrors|FieldValid|Csrf|Method|Section|Yield|HasSection|SectionMissing|Push|Prepend|Stack|Head|Title|Meta|Link|Include|IncludeFirst|Once|Memo|Lazy|KeepAlive|Session|Partial|Json|Dump|Verbatim|RouterView|Outlet|Teleport|Transition)\\b"
+          "match": "<\\/?(If|ElseIf|Else|Unless|IsSet|IsEmpty|Switch|Case|Default|Each|Empty|For|Await|Auth|AuthProvider|Guest|Can|ElseCan|Cannot|CanAny|Dev|Production|Env|Context|FieldError|FormErrors|FieldValid|Csrf|Method|Section|Yield|HasSection|SectionMissing|Push|Prepend|Stack|Head|Title|Meta|Link|Include|IncludeFirst|Once|Memo|Lazy|Hydrate|KeepAlive|Session|Partial|Json|Dump|Verbatim|RouterView|Outlet|Teleport|Transition)\\b"
         }
       ]
     },

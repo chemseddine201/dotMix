@@ -33,6 +33,7 @@ It ships with a fine-grained reactive runtime, a permissions engine (RBAC/ABAC),
 | **Safe keyed lists** | Duplicate keys in a keyed list are rejected up front with a deterministic error, before any DOM change. |
 | **Multi-Preprocessor Scoped CSS** | Build-time compilation for `.scss`, `.sass`, `.less`, `.pcss`, and `.css` with strict AST-level scoping and security checks. |
 | **TypeScript checking** | `.tix` components are type-checked (props, generics, imports) with the TypeScript compiler against real `.d.ts` files. |
+| **Static Site Generation & SEO** | Browserless `mix build --static` with zero-JS static pages, automatic `idle` islands, dual-mode `{hydrate}` / `<Hydrate>`, `i18n` `hreflang`, universal `useHead`, `sitemap.xml`, and hash-based CSP (`_headers`). |
 
 See [FEATURES.md](FEATURES.md) for details.
 
@@ -40,16 +41,16 @@ See [FEATURES.md](FEATURES.md) for details.
 
 ## Quick Start
 
-> **Status: early release (0.1.x).** APIs may still change before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
+> **Status: release 0.3.0.** APIs may still evolve before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
 
 ### 1. Scaffold a New Project
 
 ```bash
 # TypeScript with SCSS
-npx -p @dotmix/cli mix create my-app --ts --scss
+npx -p @dotmix/cli@0.3.0 mix create my-app --ts --scss
 
 # Or plain JavaScript with CSS
-npx -p @dotmix/cli mix create my-app --js --css
+npx -p @dotmix/cli@0.3.0 mix create my-app --js --css
 ```
 
 ### 2. Project Directory Structure
@@ -119,7 +120,7 @@ cd editors/vscode-mix
 npm run package
 
 # Install it, replacing any older version
-code --install-extension vscode-mix-0.2.0.vsix --force
+code --install-extension vscode-mix-0.3.0.vsix --force
 ```
 
 Then run **Developer: Reload Window** (Ctrl+Shift+P, or Cmd+Shift+P on macOS).
@@ -220,6 +221,7 @@ export default function UserProfile(props: UserProps) {
 | [`@dotmix/ast`](packages/ast) | AST node types and source spans for the compiler | Dev toolchain |
 | [`@dotmix/interop`](packages/interop) | Use dotMix components and signals inside other frameworks | `@dotmix/runtime` only |
 | [`@dotmix/sanitizer-dompurify`](packages/sanitizer-dompurify) | Optional HTML sanitizer adapter built on DOMPurify | `@dotmix/runtime`; optional peer `dompurify` |
+| [`@dotmix/image`](packages/image) | Optional responsive `<Picture>` component, placeholder mode & AVIF/WebP optimizer | `@dotmix/runtime`; optional peer `sharp` |
 | [`vscode-mix`](editors/vscode-mix) | VS Code extension for `.mix` and `.tix` (not on the Marketplace yet; [install guide](#4-editor-support-vs-code)) | VS Code / IDE |
 
 ---

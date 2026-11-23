@@ -3,6 +3,7 @@
  */
 
 import type { CancellationToken } from "@dotmix/runtime";
+import type { I18nConfig } from "./i18n.js";
 
 export type NavigationGuardReturn = boolean | string | void | undefined;
 
@@ -142,6 +143,8 @@ export interface RouterOptions {
   basename?: string | undefined;
   beforeEach?: NavigationGuard | undefined;
   ability?: unknown | undefined;
+  i18n?: I18nConfig | undefined;
+  siteUrl?: string | undefined;
 }
 
 
@@ -192,6 +195,8 @@ export interface Router {
   submit(target: unknown, options?: SubmitOptions): Promise<unknown>;
   prefetchRoute(to: string): Promise<void>;
   readonly ability?: unknown;
+  readonly i18n?: I18nConfig | undefined;
+  readonly siteUrl?: string | undefined;
   setAbility(ability: unknown): void;
   destroy(): void;
 }

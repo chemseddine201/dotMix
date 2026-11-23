@@ -1,0 +1,59 @@
+import { useHead } from "@dotmix/runtime";
+import { useLocale } from "@dotmix/router";
+import { Picture } from "@dotmix/image";
+import SiteHeader from "../components/SiteHeader.tix";
+import SiteFooter from "../components/SiteFooter.tix";
+import { getCopy } from "../i18n/copy.js";
+
+export default function FeaturesPage() {
+  const localeInfo = useLocale();
+  const loc = localeInfo().locale;
+  const copy = getCopy(loc);
+
+  useHead({
+    title: copy.featuresTitle,
+    meta: [
+      { name: "description", content: copy.featuresDescription },
+      { property: "og:title", content: copy.featuresTitle },
+      { property: "og:description", content: copy.featuresDescription }
+    ],
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: copy.featuresTitle,
+      inLanguage: loc,
+      description: copy.featuresDescription
+    }
+  });
+
+  return (
+    <div class="page-shell">
+      <SiteHeader />
+      <main class="site-main">
+        <div class="site-container">
+          <section class="hero">
+            <h1>{copy.featuresHeading}</h1>
+            <p class="lead">{copy.featuresLead}</p>
+            <Picture
+              src="/architecture-diagram.jpg"
+              alt={copy.featuresImageAlt}
+              width={1200}
+              height={600}
+              placeholder
+            />
+          </section>
+          <section class="cards-grid">
+            {each (card, idx) in copy.featuresCards}
+              <article class="card">
+                <h2>{card.title}</h2>
+                <p>{card.body}</p>
+              </article>
+            {endeach}
+          </section>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+

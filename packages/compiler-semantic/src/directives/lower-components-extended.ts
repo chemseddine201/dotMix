@@ -6,6 +6,7 @@ import {
   createDirectiveNode,
   createDirectiveSubNode,
   deepFreeze,
+  parseHydrateWhenSpec,
   type ComponentCallNode,
   type ContextBlockNode,
   type CsrfNode,
@@ -16,6 +17,7 @@ import {
   type HasSectionNode,
   type HeadChildEntry,
   type HeadGroupNode,
+  type HydrateNode,
   type IncludeFirstNode,
   type IncludeNode,
   type JsonNode,
@@ -368,6 +370,19 @@ export function lowerExtendedDirectiveComponent(
         fallback: elseNodes ?? deepFreeze([]),
         span: node.span
       });
+    }
+
+    case "Hydrate": {
+      const whenExpr = extractAttrExpression(findAttr(node, "when"), node.span)?.expression;
+      const mediaExpr = extractAttrExpression(findAttr(node, "media"), node.span)?.expression;
+      const rawWhen = whenExpr?.type === "Literal" && typeof whenExpr.value === "string" ? whenExpr.value : "";
+      const rawMedia = mediaExpr?.type === "Literal" && typeof mediaExpr.value === "string" ? mediaExpr.value : null;
+      const parsed = rawWhen ? parseHydrateWhenSpec(rawWhen, rawMedia) : null;
+      if (!parsed) {
+        pushDirectiveError(diagnostics, DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, "'<Hydrate>' requires a valid 'when' prop: load | idle | visible | media \"<query>\" | never.", node.span);
+        return node;
+      }
+      return createDirectiveNode<HydrateNode>({ type: "Hydrate", form: "component", when: parsed.when, media: parsed.media, children: lowerList(node.children), span: node.span });
     }
 
     case "KeepAlive": {

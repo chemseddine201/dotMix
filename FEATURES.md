@@ -23,6 +23,8 @@
 | **Scoped styles** | `.scss`, `.sass`, `.less`, `.pcss` and `.css` |
 | **Signals interop** | `@dotmix/interop` (TC39 signals bridge) |
 | **Streaming SSR with CSP nonces** | `@dotmix/server-node` |
+| **Static Site Generation & SEO** | `mix build --static` (0-JS pages, automatic `idle` islands, `{hydrate}` / `<Hydrate>`, `useHead`, `i18n`, `sitemap.xml`, hash CSP) |
+| **Responsive images** | Optional `@dotmix/image` (`<Picture>`, placeholder mode, optional `sharp` AVIF/WebP) |
 
 ---
 

@@ -17,6 +17,7 @@ import {
   type Owner
 } from "../core/index.js";
 import { removeNode, normalizeToNodeArray } from "./nodes.js";
+import { getHydrationContext, runWithHydrationSubtree } from "./hydration.js";
 
 /**
  * Computes the Longest Increasing Subsequence of non-negative values in `seq`
@@ -299,8 +300,16 @@ export function createKeyedEach<T>(
   ) => Node | readonly Node[],
   anchor?: Node | null
 ): Comment {
-  const endAnchor = document.createComment("mix:each");
-  parent.insertBefore(endAnchor, anchor ?? null);
+  const initialWalker = getHydrationContext();
+  const openMarker = initialWalker ? initialWalker.claimComment("mix:each:") : null;
+  const closeMarker =
+    initialWalker && openMarker ? initialWalker.findClosingComment(openMarker, "mix:each:") : null;
+  const endAnchor = closeMarker ?? document.createComment("mix:each");
+  if (!closeMarker) {
+    parent.insertBefore(endAnchor, anchor ?? null);
+  } else if (parent.nodeType === 11 && initialWalker) {
+    initialWalker.recordScopeNode(endAnchor);
+  }
 
   const state: KeyedListState<T> = {
     endAnchor,
@@ -308,6 +317,7 @@ export function createKeyedEach<T>(
     order: []
   };
   const parentOwner = getCurrentOwner();
+  let isFirstHydrateRun = Boolean(initialWalker && openMarker && closeMarker);
 
   if (parentOwner) {
     onCleanup(() => {
@@ -327,6 +337,104 @@ export function createKeyedEach<T>(
   createEffect(() => {
     const items = itemsFn();
     const targetParent = endAnchor.parentNode ?? parent;
+
+    if (isFirstHydrateRun && initialWalker && openMarker && closeMarker) {
+      isFirstHydrateRun = false;
+      runWithHydrationSubtree(
+        initialWalker,
+        openMarker,
+        closeMarker,
+        () => {
+          const seenKeys = new Map<string | number | symbol, number>();
+          const hydratedOrder: KeyedRowEntry<T>[] = [];
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i]!;
+            const key = normalizeSameValueZeroKey(keyFn(item, i), i);
+            const firstSeenIdx = seenKeys.get(key);
+            if (firstSeenIdx !== undefined) {
+              throw new MixError(
+                DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
+                `Duplicate key "${String(key)}" detected at index ${i} (first seen at index ${firstSeenIdx}). Collection update atomically rejected.`
+              );
+            }
+            seenKeys.set(key, i);
+
+            const itemOpen = initialWalker.claimComment("mix:item:");
+            const itemClose = itemOpen ? initialWalker.findClosingComment(itemOpen, "mix:item:") : null;
+            let rowOwner!: Owner;
+            let rowDispose!: () => void;
+            const itemSig: Signal<T> = signal<T>(item);
+            const indexSig: Signal<number> = signal<number>(i);
+            let rowNodes: Node[] = [];
+
+            untrack(() => {
+              createRoot((dispose) => {
+                rowDispose = dispose;
+                rowOwner = getCurrentOwner()!;
+                rowNodes = runWithHydrationSubtree(
+                  initialWalker,
+                  itemOpen,
+                  itemClose,
+                  () => {
+                    initialWalker.pushScope();
+                    const res = normalizeToNodeArray(
+                      renderRowFn(
+                        () => itemSig(),
+                        () => indexSig()
+                      )
+                    );
+                    const scoped = initialWalker.popScope();
+                    return res.length > 0 ? res : scoped;
+                  },
+                  () => {
+                    const res = normalizeToNodeArray(
+                      renderRowFn(
+                        () => itemSig(),
+                        () => indexSig()
+                      )
+                    );
+                    if (itemClose && itemClose.parentNode) {
+                      for (const n of res) itemClose.parentNode.insertBefore(n, itemClose);
+                    }
+                    return res;
+                  }
+                );
+              }, parentOwner);
+            });
+
+            const entry: KeyedRowEntry<T> = {
+              key,
+              owner: rowOwner,
+              dispose: rowDispose,
+              itemSignal: itemSig,
+              indexSignal: indexSig,
+              nodes: rowNodes
+            };
+            state.entries.set(key, entry);
+            hydratedOrder.push(entry);
+          }
+          state.order = hydratedOrder;
+        },
+        () => {
+          reconcileKeyedListInternal(
+            targetParent,
+            state,
+            items,
+            keyFn,
+            (_item, indexSig, itemSig) =>
+              runWithOwner(getCurrentOwner(), () =>
+                renderRowFn(
+                  () => itemSig(),
+                  () => indexSig()
+                )
+              ),
+            parentOwner
+          );
+        }
+      );
+      return;
+    }
+
     reconcileKeyedListInternal(
       targetParent,
       state,

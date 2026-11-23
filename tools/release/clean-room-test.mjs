@@ -30,9 +30,10 @@ function recordStep(stepName, passed, detail = "") {
   return passed;
 }
 
-function runCommand(command, args, workingDirectory) {
+function runCommand(command, args, workingDirectory, extraEnv = {}) {
   const result = spawnSync(command, args, {
     cwd: workingDirectory,
+    env: { ...process.env, ...extraEnv },
     encoding: "utf-8",
     shell: isWindows,
     maxBuffer: 64 * 1024 * 1024
@@ -122,7 +123,12 @@ function packAllPackages(tarballDirectory) {
     }
   }
   const tarballs = fs.readdirSync(tarballDirectory).filter((fileName) => fileName.endsWith(".tgz"));
-  return recordStep("npm pack", tarballs.length > 0, `${tarballs.length} tarballs`);
+  const hasImageTarball = tarballs.some((fileName) => fileName.startsWith("dotmix-image-"));
+  return recordStep(
+    "npm pack",
+    tarballs.length === 19 && hasImageTarball,
+    `${tarballs.length} tarballs`
+  );
 }
 
 /**
@@ -253,6 +259,37 @@ async function runCleanRoom(temporaryRoot) {
 
   await verifyPreviewInChrome(projectDirectory, temporaryRoot);
   await verifyDevServer(projectDirectory);
+
+  // Configure site URL and verify browserless static site generation (`mix build --static`)
+  fs.writeFileSync(
+    path.join(projectDirectory, "mix.config.ts"),
+    [
+      'import type { MixConfig } from "@dotmix/cli";',
+      "export default {",
+      '  srcDir: "src",',
+      '  outDir: "dist",',
+      '  site: { url: "https://demo.dotmix.dev" },',
+      "  dev: { port: 3000 }",
+      "} satisfies MixConfig;"
+    ].join("\n"),
+    "utf-8"
+  );
+  const staticBuilt = runCommand(
+    npxCommand,
+    ["mix", "build", "src", "dist", "--static", "--clean"],
+    projectDirectory,
+    { MIX_BROWSER_PATH: "" }
+  );
+  const staticArtifactsOk =
+    staticBuilt.passed &&
+    ["index.html", "sitemap.xml", "robots.txt", "404.html"].every((file) =>
+      fs.existsSync(path.join(projectDirectory, "dist", file))
+    );
+  recordStep(
+    "mix build --static (browserless + SEO artifacts)",
+    staticArtifactsOk,
+    staticBuilt.passed ? "index.html, sitemap.xml, robots.txt, 404.html" : lastLines(staticBuilt.output)
+  );
 }
 
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dotmix-clean-room-"));

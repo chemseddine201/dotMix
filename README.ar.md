@@ -33,6 +33,7 @@
 | **قوائم بمفاتيح آمنة** | تُرفض المفاتيح المكررة في القوائم مسبقاً بخطأ محدد، قبل أي تعديل على DOM. |
 | **CSS معزول مع المعالجات المسبقة** | ترجمة وقت البناء لملفات `.scss` و`.sass` و`.less` و`.pcss` و`.css` مع عزل على مستوى شجرة AST وفحوص أمان. |
 | **فحص TypeScript** | تُفحص مكونات `.tix` (الخصائص، الأنواع العامة، الاستيرادات) بمترجم TypeScript مقابل ملفات `.d.ts` الحقيقية. |
+| **توليد المواقع الثابتة وSEO** | بناء ثابت بلا متصفح (`mix build --static`) بصفحات صفرية JavaScript، وجزر تفاعلية تلقائية (`idle`) أو صريحة `{hydrate}` / `<Hydrate>`، وتعدد اللغات `hreflang`، و`useHead` الشامل، و`sitemap.xml`، وسياسة CSP بالبصمات. |
 
 التفاصيل في [FEATURES.ar.md](FEATURES.ar.md).
 
@@ -40,16 +41,16 @@
 
 ## البدء السريع
 
-> **الحالة: إصدار مبكر (0.1.x).** قد تتغير الواجهات البرمجية قبل الإصدار 1.0. للعمل على الإطار نفسه، ابنِه واختبره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
+> **الحالة: الإصدار 0.3.0.** قد تتطور بعض الواجهات قبل 1.0. للعمل على الإطار نفسه، ابنِه واختبره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
 
 ### 1. إنشاء مشروع جديد
 
 ```bash
 # مشروع بـ TypeScript و SCSS
-npx -p @dotmix/cli mix create my-app --ts --scss
+npx -p @dotmix/cli@0.3.0 mix create my-app --ts --scss
 
 # أو JavaScript مع CSS عادي
-npx -p @dotmix/cli mix create my-app --js --css
+npx -p @dotmix/cli@0.3.0 mix create my-app --js --css
 ```
 
 ### 2. الهيكلية المعمارية للمشروع
@@ -119,7 +120,7 @@ cd editors/vscode-mix
 npm run package
 
 # التثبيت مع استبدال أي إصدار أقدم
-code --install-extension vscode-mix-0.2.0.vsix --force
+code --install-extension vscode-mix-0.3.0.vsix --force
 ```
 
 ثم نفّذ **Developer: Reload Window** (Ctrl+Shift+P، أو Cmd+Shift+P على macOS).
@@ -220,6 +221,7 @@ export default function UserProfile(props: UserProps) {
 | [`@dotmix/ast`](packages/ast) | أنواع عقد شجرة AST ومواضعها للمترجم | أدوات التطوير |
 | [`@dotmix/interop`](packages/interop) | استعمال مكونات dotMix وإشاراتها داخل أطر عمل أخرى | `@dotmix/runtime` فقط |
 | [`@dotmix/sanitizer-dompurify`](packages/sanitizer-dompurify) | محول اختياري لتنقية HTML مبني على DOMPurify | `@dotmix/runtime`؛ واعتمادية نظيرة اختيارية `dompurify` |
+| [`@dotmix/image`](packages/image) | مكون `<Picture>` الاختياري للصور المتجاوبة وأوضاع العناصر النائبة وتحسين AVIF/WebP | `@dotmix/runtime`؛ واعتمادية نظيرة اختيارية `sharp` |
 | [`vscode-mix`](editors/vscode-mix) | إضافة VS Code لملفات `.mix` و `.tix` (غير منشورة في المتجر بعد؛ [دليل التثبيت](#4-دعم-المحرر-vs-code)) | محررات وأدوات التطوير |
 
 ---

@@ -31,6 +31,7 @@ import {
   emitDump,
   emitHasOrMissingSection,
   emitHeadGroup,
+  emitHydrate,
   emitInclude,
   emitIncludeFirst,
   emitJson,
@@ -117,6 +118,8 @@ export function emitDirectiveTemplateNode(
       return emitMemo(ctx, node, parentVar, loopGetters, inSvg);
     case "Lazy":
       return emitLazy(ctx, node, parentVar, loopGetters, inSvg);
+    case "Hydrate":
+      return emitHydrate(ctx, node, parentVar, loopGetters, inSvg);
     case "KeepAliveBlock":
       return emitKeepAliveBlock(ctx, node, parentVar, loopGetters, inSvg);
     case "SessionBlock":

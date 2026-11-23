@@ -73,7 +73,11 @@ export function isDomNode(val: unknown): val is Node {
 export function insertNode(parent: Node, node: Node, anchor?: Node | null): void {
   const activeHydrationContext = getHydrationContext();
   if (activeHydrationContext) {
-    if (node.parentNode === parent || (parent.nodeType === 11 && node.parentNode !== null)) {
+    if (parent.nodeType === 11 && node.parentNode !== null) {
+      activeHydrationContext.recordScopeNode(node);
+      return;
+    }
+    if (node.parentNode === parent) {
       return;
     }
   }

@@ -5,10 +5,12 @@
 import {
   createDirectiveNode,
   deepFreeze,
+  parseHydrateWhenSpec,
   type ContextBlockNode,
   type DirectiveGrammarEntry,
   type DumpNode,
   type ESTreeNode,
+  type HydrateNode,
   type IncludeFirstNode,
   type IncludeNode,
   type JsonNode,
@@ -248,6 +250,30 @@ export function parseExtendedDirectiveBlock(
         rawTriggerExpr,
         children: deepFreeze(consequent),
         fallback: deepFreeze(alternate ?? []),
+        span: ctx.lineMap.span(startOffset, ctx.pos)
+      });
+    }
+
+    case "hydrate": {
+      const rawHeader = ctx.source.slice(afterKeywordOffset, headerClose).trim();
+      const spec = parseHydrateWhenSpec(rawHeader);
+      if (!spec) {
+        failSyntax(
+          DiagnosticCodes.MIX_ERR_PARSE_SYNTAX,
+          "'{hydrate}' requires one of: load, idle, visible, media \"<query>\", or never.",
+          ctx.lineMap,
+          startOffset,
+          headerClose + 1
+        );
+      }
+      ctx.pos = headerClose + 1;
+      const children = parseSingleBody(ctx, entry, startOffset);
+      return createDirectiveNode<HydrateNode>({
+        type: "Hydrate",
+        form: "block",
+        when: spec.when,
+        media: spec.media,
+        children: deepFreeze(children),
         span: ctx.lineMap.span(startOffset, ctx.pos)
       });
     }

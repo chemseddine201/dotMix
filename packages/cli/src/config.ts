@@ -8,13 +8,37 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { DiagnosticCodes, MixDiagnosticError } from "@dotmix/diagnostics";
 import { transpileSourceModule } from "@dotmix/compiler-semantic";
+import type { I18nConfig } from "@dotmix/router";
 import type { ParsedCliArgs } from "./args.js";
 import { parsePrerenderRoutes } from "./prerender.js";
+import {
+  validateCspConfig,
+  validateI18nConfig,
+  validateSeoConfig,
+  validateSiteConfig,
+  type CspConfig,
+  type SeoConfig,
+  type SiteConfig,
+  type StaticBuildConfig
+} from "./config-schema.js";
+
+export type {
+  CspConfig,
+  RobotsConfig,
+  SeoConfig,
+  SiteConfig,
+  SitemapConfig,
+  StaticBuildConfig
+} from "./config-schema.js";
 
 export interface MixConfig {
   srcDir?: string;
   outDir?: string;
   base?: string;
+  site?: SiteConfig;
+  i18n?: I18nConfig;
+  seo?: SeoConfig;
+  csp?: CspConfig;
   dev?: {
     port?: number;
     host?: string;
@@ -30,6 +54,7 @@ export interface MixConfig {
     clean?: boolean;
     sourcemap?: boolean;
     prerender?: readonly string[];
+    static?: boolean | StaticBuildConfig;
   };
 }
 
@@ -45,6 +70,8 @@ export interface ResolvedCommandOptions {
     readonly inDir: string;
     readonly outDir: string;
     readonly target: "client" | "ssr";
+    readonly isStatic: boolean;
+    readonly prerenderBrowser: boolean;
     readonly clean: boolean;
     readonly sourcemap: boolean;
     readonly analyze: boolean;
@@ -119,7 +146,7 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
   }
 
   const rootRecord = rawInput as Record<string, unknown>;
-  const allowedRootProperties = new Set(["srcDir", "outDir", "base", "dev", "preview", "build"]);
+  const allowedRootProperties = new Set(["srcDir", "outDir", "base", "site", "i18n", "seo", "csp", "dev", "preview", "build"]);
 
   for (const propertyKey of Object.keys(rootRecord)) {
     if (!allowedRootProperties.has(propertyKey)) {
@@ -135,6 +162,18 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
   }
   if (rootRecord.base !== undefined && typeof rootRecord.base !== "string") {
     throw createConfigDiagnostic(configPath, "base: expected a string");
+  }
+  if (rootRecord.site !== undefined) {
+    validateSiteConfig(rootRecord.site, configPath);
+  }
+  if (rootRecord.i18n !== undefined) {
+    validateI18nConfig(rootRecord.i18n, configPath);
+  }
+  if (rootRecord.seo !== undefined) {
+    validateSeoConfig(rootRecord.seo, configPath);
+  }
+  if (rootRecord.csp !== undefined) {
+    validateCspConfig(rootRecord.csp, configPath);
   }
 
   if (rootRecord.dev !== undefined) {
@@ -189,7 +228,7 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
       throw createConfigDiagnostic(configPath, "build: expected an object");
     }
     const buildRecord = rootRecord.build as Record<string, unknown>;
-    const allowedBuildProperties = new Set(["clean", "sourcemap", "prerender"]);
+    const allowedBuildProperties = new Set(["clean", "sourcemap", "prerender", "static"]);
     for (const buildKey of Object.keys(buildRecord)) {
       if (!allowedBuildProperties.has(buildKey)) {
         throw createConfigDiagnostic(configPath, `build.${buildKey}: unknown configuration property`);
@@ -293,6 +332,10 @@ export async function resolveCommandOptions(
   const resolvedPrerenderRoutes = parsed.values.prerender !== undefined
     ? parsePrerenderRoutes(parsed.values.prerender)
     : (config.build?.prerender ?? []);
+  const resolvedIsStatic = parsed.values.static !== undefined
+    ? parsed.values.static
+    : Boolean(config.build?.static);
+  const resolvedPrerenderBrowser = Boolean(parsed.values.prerenderBrowser);
 
   const resolvedDevRootDir = parsed.positional[0] || ".";
   const resolvedDevPort = parsed.values.port
@@ -319,6 +362,8 @@ export async function resolveCommandOptions(
       inDir: resolvedBuildInDir,
       outDir: resolvedBuildOutDir,
       target: resolvedTarget,
+      isStatic: resolvedIsStatic,
+      prerenderBrowser: resolvedPrerenderBrowser,
       clean: resolvedClean,
       sourcemap: resolvedSourcemap,
       analyze: Boolean(parsed.values.analyze),

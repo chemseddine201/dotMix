@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] — 2026-11-23
+
+All `@dotmix/*` packages move to 0.3.0 together.
+
+### Added
+- **Browserless Static Site Generation (`mix build --static`):** Renders static and localized routes directly in Node.js using `@dotmix/compiler-ssr` and `createMemoryRouter` with zero Chromium requirement (legacy CDP prerendering remains available via `--prerender` / `--prerender-browser`).
+- **Surgical Hydration, Automatic Islands & `{hydrate}`/`<Hydrate>` Directive:** `mount(..., { hydrate })` and `hydrateRoot()` adopt `data-mix-ssr` DOM nodes without clearing prerendered markup, isolate hydration mismatches to subtrees only (`MIX_SSR_HYDRATION_MISMATCH`), emit **0 bytes of JS** for static-only routes, automatically mark component calls with event handlers, reactive state, or `onMount` as islands (default strategy `idle`), and provide the Gate 38-style dual-mode directive `{hydrate <when>}…{endhydrate}` / `<Hydrate when="…">` (`load | idle | visible | media "<query>" | never`). Astro-style `client:*` attributes are removed with no alias.
+- **Content-Hashed Vendor Assets (`_headers`):** `mix build` writes vendored runtime packages under content-hashed `/vendor/<hash>/...` paths so immutable cache headers never serve stale runtime code across updates.
+- **Universal SEO Head (`useHead`):** Moved canonical `useHead` into `@dotmix/runtime` (re-exported by `@dotmix/router`) with full SSR/SSG and client DOM parity for `title`, `titleTemplate`, `htmlAttrs` (`lang`, `dir`), `bodyAttrs`, `meta` (`name`, `property`, `http-equiv`, `charset`), `link` (`canonical`, `alternate` `hreflang`, `preload`, `icon`, `fetchpriority`), and XSS-safe `jsonLd` serialization with deepest-wins deduplication and zero duplication after hydration.
+- **Locale Routing (`i18n`):** Added `i18n` configuration in `mix.config.ts`, `expandLocalizedRoutes()`, `useLocale()`, and `localePath()` in `@dotmix/router`, automatically setting `<html lang dir>` and reciprocal `hreflang` + `x-default` links.
+- **Static SEO Artifacts:** Added `site.url` and `seo` config emitting `dist/sitemap.xml` (Sitemap 0.9 + `xhtml:link` alternates), `dist/robots.txt`, and `dist/404.html`, with `noindex` route opt-out.
+- **Optional Image Package (`@dotmix/image`):** Added `<Picture>` component (intrinsic `width`/`height`, safe `srcset`, `fetchpriority`, zero-network `placeholder` mode) and optional `sharp`-backed AVIF/WebP build optimizer (`@dotmix/image/build`), keeping `@dotmix/runtime` and `@dotmix/cli` at zero external dependencies.
+- **Hash-Based Static CSP:** Build-time SHA-256 hash collection for inline scripts, `<script type="importmap">`, and inline styles (`dist/mix-csp.json`), plus Cloudflare Pages `dist/_headers` generation without `'unsafe-inline'`.
+
+### Changes from 0.2.0
+- `--target static` remains deprecated with exit code 2 as in 0.2.0; use `--static` (`mix build --static`) for browserless Node static site generation.
+- The Chromium CDP `--prerender` path is preserved (alongside explicit `--prerender-browser`) for client-only prerendering workflows.
+
+---
+
 ## [0.2.0] — 2026-11-18
 
 All `@dotmix/*` packages move to 0.2.0 together.

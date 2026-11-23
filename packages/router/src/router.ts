@@ -29,6 +29,7 @@ import type {
 import { createMemoryHistory, createBrowserHistory, createHashHistory } from "./history.js";
 import { parseLocation } from "./location.js";
 import { checkLocationPermissions, resolveRouteLazy } from "./guards.js";
+import { expandLocalizedRoutes } from "./i18n.js";
 
 export * from "./location.js";
 export * from "./guards.js";
@@ -39,7 +40,8 @@ export function createRouter(options: RouterOptions): Router {
     options.history ??
     (typeof window !== "undefined" ? createBrowserHistory() : createMemoryHistory(options.initialPath ?? "/"));
 
-  const routes = options.routes || [];
+  const rawRoutes = options.routes || [];
+  const routes = options.i18n ? expandLocalizedRoutes(rawRoutes, options.i18n) : rawRoutes;
   let isInternalNav = false;
   let currentAbility = options.ability;
   const abilitySignal = createSignal<unknown>(options.ability);
@@ -345,6 +347,8 @@ export function createRouter(options: RouterOptions): Router {
     get ability() {
       return currentAbility;
     },
+    i18n: options.i18n,
+    siteUrl: options.siteUrl,
     setAbility(ability: unknown): void {
       currentAbility = ability;
       abilitySignal.set(() => ability);
