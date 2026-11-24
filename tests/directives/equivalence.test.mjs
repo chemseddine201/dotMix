@@ -40,7 +40,7 @@ const EXPECTED_BLOCK_OPENERS = [
   "auth", "guest", "can", "cannot", "canany", "dev", "production", "env",
   "context", "error", "errors", "valid", "csrf", "method", "section",
   "yield", "hassection", "sectionmissing", "push", "prepend", "stack",
-  "include", "includefirst", "once", "memo", "lazy", "hydrate", "keepalive",
+  "include", "includefirst", "once", "memo", "lazy", "hydrate", "keepalive", "try",
   "session", "partial", "json", "dump", "verbatim"
 ];
 
@@ -50,7 +50,7 @@ const EXPECTED_BLOCK_CLOSERS = [
   "endcanany", "enddev", "endproduction", "endenv", "endcontext",
   "enderror", "enderrors", "endvalid", "endsection", "endyield",
   "endhassection", "endsectionmissing", "endpush", "endprepend",
-  "endincludefirst", "endonce", "endmemo", "endlazy", "endhydrate", "endkeepalive",
+  "endincludefirst", "endonce", "endmemo", "endlazy", "endhydrate", "endkeepalive", "endtry",
   "endsession", "endpartial", "endverbatim"
 ];
 
@@ -69,7 +69,7 @@ const EXPECTED_MAIN_COMPONENTS = [
   "Context", "FieldError", "FormErrors", "FieldValid", "Csrf", "Method",
   "Section", "Yield", "HasSection", "SectionMissing", "Push", "Prepend",
   "Stack", "Head", "Include", "IncludeFirst", "Once", "Memo", "Lazy", "Hydrate",
-  "KeepAlive", "Session", "Partial", "Json", "Dump", "Verbatim"
+  "KeepAlive", "ErrorBoundary", "Session", "Partial", "Json", "Dump", "Verbatim"
 ];
 
 const EXPECTED_BRANCH_COMPONENTS = [
@@ -114,12 +114,22 @@ function compilePairOutputs(sourceCode, compileOpts = {}) {
   return { descriptor, clientJs: clientOut.js, ssrCode: ssrOut.code };
 }
 
+function normalizeDevEachLoc(js) {
+  return js.replace(/, loc: \{[^}]*\}/g, "");
+}
+
 function assertBlockEqualsComponent(title, blockSource, componentSource, compileOpts = {}) {
   test(`equivalence: ${title}`, () => {
     const blockOut = compilePairOutputs(blockSource, compileOpts);
     const compOut = compilePairOutputs(componentSource, compileOpts);
-    assert.equal(compOut.clientJs, blockOut.clientJs, `Client JS mismatch for ${title}`);
+    assert.equal(normalizeDevEachLoc(compOut.clientJs), normalizeDevEachLoc(blockOut.clientJs), `Client JS mismatch for ${title}`);
     assert.equal(compOut.ssrCode, blockOut.ssrCode, `SSR code mismatch for ${title}`);
+    if (!compileOpts.mode) {
+      const prodBlock = compilePairOutputs(blockSource, { ...compileOpts, mode: "production" });
+      const prodComp = compilePairOutputs(componentSource, { ...compileOpts, mode: "production" });
+      assert.equal(prodComp.clientJs, prodBlock.clientJs, `Prod Client JS mismatch for ${title}`);
+      assert.ok(!prodComp.clientJs.includes("loc:"), `Prod Client JS must not contain dev loc for ${title}`);
+    }
     assert.ok(!compOut.clientJs.includes("@dotmix/runtime/directives"), `Directive import leaked in client JS for ${title}`);
     assert.ok(!compOut.ssrCode.includes("@dotmix/runtime/directives"), `Directive import leaked in SSR code for ${title}`);
   });
@@ -372,6 +382,12 @@ assertBlockEqualsComponent(
   "render control once, memo, lazy, hydrate, and keepalive without id",
   `<script>const activeTab = "tab-1"; const stamp = 1;</script><div>{once}<p>Static</p>{endonce}{memo on [stamp]}<p>{stamp}</p>{endmemo}{lazy idle}<p>Deferred</p>{else}<p>Wait</p>{endlazy}{hydrate visible}<p>Visible</p>{endhydrate}{hydrate media "(max-width: 768px)"}<p>Mobile</p>{endhydrate}{hydrate never}<p>StaticOnly</p>{endhydrate}{keepalive activeTab max 5 as key}<section>{key}</section>{endkeepalive}</div>`,
   `<script>import { Once, Memo, Lazy, Else, Hydrate, KeepAlive } from "@dotmix/runtime/directives"; const activeTab = "tab-1"; const stamp = 1;</script><div><Once><p>Static</p></Once><Memo on={[stamp]}><p>{stamp}</p></Memo><Lazy trigger="idle"><p>Deferred</p><Else><p>Wait</p></Else></Lazy><Hydrate when="visible"><p>Visible</p></Hydrate><Hydrate when='media "(max-width: 768px)"'><p>Mobile</p></Hydrate><Hydrate when="never"><p>StaticOnly</p></Hydrate><KeepAlive activeKey={activeTab} max={5}>{(key) => <section>{key()}</section>}</KeepAlive></div>`
+);
+
+assertBlockEqualsComponent(
+  "error boundary try/catch and ErrorBoundary component",
+  `<script>function Risky() { return null; }</script><div>{try}<Risky />{catch err, reset}<button onClick={reset}>{String(err)}</button>{endtry}</div>`,
+  `<script>import { ErrorBoundary } from "@dotmix/runtime/directives"; function Risky() { return null; }</script><div><ErrorBoundary fallback={(err, reset) => <button onClick={reset}>{String(err())}</button>}><Risky /></ErrorBoundary></div>`
 );
 
 assertBlockEqualsComponent(

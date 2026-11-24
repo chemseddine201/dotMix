@@ -3,7 +3,7 @@
  */
 
 import { MixError, DiagnosticCodes } from "../errors.js";
-import { createEffect, getCurrentOwner, onCleanup } from "../core/index.js";
+import { createEffect, findErrorHandler, getCurrentOwner, onCleanup, reportError } from "../core/index.js";
 import {
   setSafeSrcset,
   setSafeUrlAttribute,
@@ -233,11 +233,35 @@ export function addEventListener(
   eventName: string,
   handler: EventListener
 ): () => void {
-  el.addEventListener(eventName, handler);
-  const cleanup = (): void => {
-    el.removeEventListener(eventName, handler);
+  const owner = getCurrentOwner();
+  const wrapped: EventListener = function (this: unknown, ev: Event) {
+    try {
+      const res = (handler as (this: unknown, e: Event) => unknown).call(this, ev);
+      if (res && typeof (res as Promise<unknown>).catch === "function") {
+        (res as Promise<unknown>).catch((err: unknown) => {
+          const eh = findErrorHandler(owner);
+          if (eh) {
+            eh(err);
+            return;
+          }
+          reportError(err, { source: "event" }, owner);
+        });
+      }
+    } catch (err) {
+      const eh = findErrorHandler(owner);
+      if (eh) {
+        eh(err);
+        return;
+      }
+      reportError(err, { source: "event" }, owner);
+      throw err;
+    }
   };
-  if (getCurrentOwner()) {
+  el.addEventListener(eventName, wrapped);
+  const cleanup = (): void => {
+    el.removeEventListener(eventName, wrapped);
+  };
+  if (owner) {
     onCleanup(cleanup);
   }
   return cleanup;

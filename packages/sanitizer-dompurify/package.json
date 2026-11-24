@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/sanitizer-dompurify",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "HTML sanitizer adapter for dotMix built on DOMPurify",
   "files": [
     "dist"
@@ -23,7 +23,7 @@
     }
   },
   "dependencies": {
-    "@dotmix/runtime": "0.3.0"
+    "@dotmix/runtime": "0.4.0"
   },
   "peerDependencies": {
     "dompurify": "^3.2.4"

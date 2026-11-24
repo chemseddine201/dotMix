@@ -8,18 +8,25 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { URL } from "node:url";
 import { mix } from "@dotmix/vite-plugin";
-import { replaceImportMetaEnv, transpileSourceModule } from "@dotmix/compiler-semantic";
+import {
+  applyTextEdits,
+  computeImportMetaEnvEdits,
+  shiftMapThroughEdits,
+  transpileSourceModule,
+  type SourceMapV3
+} from "@dotmix/compiler-semantic";
 import { compileCss, preprocessCss } from "@dotmix/compiler-css";
 import { STYLE_FILE_REGEX } from "./scanner.js";
 import { createFileWatcher } from "./watcher.js";
 import { ModuleGraph } from "./module-graph.js";
 import {
-  HMR_CLIENT_SOURCE, rewriteModuleImportsForDev, resolveDevSourceFile,
+  HMR_CLIENT_SOURCE, rewriteModuleImportsForDev, rewriteModuleImportsForDevWithMap, resolveDevSourceFile,
   resolveMixModuleFile, resolveMixPackageRequest, getOrSynthesizeIndexHtml, createStyleInjectorJs
 } from "./specifier-rewriter.js";
 import { servePublicFile } from "./public-files.js";
 import { normalizeDriveLetter } from "./normalize-path.js";
 import { buildImportMetaEnvValues } from "./env-files.js";
+import { appendInlineDevSourceMap, handleDevErrorEndpoint } from "./dev-errors.js";
 
 export { HMR_CLIENT_SOURCE, rewriteModuleImportsForDev, resolveMixModuleFile, resolveMixPackageRequest };
 
@@ -30,6 +37,7 @@ export interface DevServerOptions {
   silent?: boolean;
   mode?: string;
   cors?: boolean;
+  editor?: string;
 }
 
 export interface HmrUpdatePayload {
@@ -68,14 +76,29 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
   const devMode = options.mode ?? "development";
   const plugin = mix({ hmr: true, mode: devMode });
   const envValues = buildImportMetaEnvValues(rootDir, devMode);
+  const sourceMapCache = new Map<string, SourceMapV3>();
+  const finalizeDevModule = (filePath: string, sourceText: string, rawCode: string, rawMap?: SourceMapV3): string => {
+    let code = rawCode;
+    let map = rawMap;
+    const envEdits = computeImportMetaEnvEdits(code, envValues);
+    if (envEdits.length > 0) {
+      if (map) map = shiftMapThroughEdits(map, code, envEdits);
+      code = applyTextEdits(code, envEdits);
+    }
+    const rewritten = rewriteModuleImportsForDevWithMap(code, map, filePath, rootDir, moduleGraph);
+    const normAbs = normalizeDriveLetter(path.resolve(filePath));
+    const relPath = path.relative(rootDir, normAbs).split(path.sep).join("/");
+    const withMap = appendInlineDevSourceMap(rewritten.code, rewritten.map, relPath, sourceText);
+    if (withMap.map) sourceMapCache.set(normAbs, withMap.map);
+    return withMap.code;
+  };
   const compileComponentModule = (filePath: string, sourceText: string): string => {
     const transformed = plugin.transform(sourceText, filePath);
-    const withEnv = replaceImportMetaEnv(transformed ? transformed.code : "", envValues);
-    return rewriteModuleImportsForDev(withEnv, filePath, rootDir, moduleGraph);
+    return finalizeDevModule(filePath, sourceText, transformed ? transformed.code : "", transformed?.map);
   };
   const compileScriptModule = (filePath: string, sourceText: string): string => {
-    const transpiled = transpileSourceModule(sourceText, filePath.endsWith(".ts"));
-    return rewriteModuleImportsForDev(replaceImportMetaEnv(transpiled, envValues), filePath, rootDir, moduleGraph);
+    const transpiled = transpileSourceModule(sourceText, filePath.endsWith(".ts"), { sourceMap: true, filename: filePath });
+    return finalizeDevModule(filePath, sourceText, transpiled.code, transpiled.map);
   };
   const moduleCache = new Map<string, string>();
   const moduleGraph = new ModuleGraph(rootDir);
@@ -108,19 +131,8 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
 
     if (decision.type === "full-reload") {
       const relWebPath = "/" + path.relative(rootDir, absPath).split(path.sep).join("/");
-      const payload: HmrUpdatePayload = {
-        type: "update",
-        file: relWebPath,
-        timestamp: Date.now(),
-        cssUpdated: false,
-        seq: serverSeq
-      };
-      const reloadPayload = {
-        type: "full-reload",
-        reason: decision.reason ?? "Module propagation requires full reload",
-        timestamp: Date.now(),
-        seq: serverSeq
-      };
+      const payload: HmrUpdatePayload = { type: "update", file: relWebPath, timestamp: Date.now(), cssUpdated: false, seq: serverSeq };
+      const reloadPayload = { type: "full-reload", reason: decision.reason ?? "Module propagation requires full reload", timestamp: Date.now(), seq: serverSeq };
       const serialized = `data: ${JSON.stringify(reloadPayload)}\n\n`;
       for (const client of sseClients) {
         try { client.write(serialized); } catch { sseClients.delete(client); }
@@ -261,6 +273,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
 
     const urlObj = new URL(req.url ?? "/", `http://${host}`);
     const pathname = decodeURIComponent(urlObj.pathname);
+    if (handleDevErrorEndpoint(req, res, urlObj, rootDir, sourceMapCache, options.editor)) return;
 
     // 1. SSE HMR stream
     if (pathname === "/__mix_hmr") {
@@ -457,37 +470,22 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
     notifyFileChange,
     waitForHmrUpdate(timeoutMs = 5000): Promise<HmrUpdatePayload> {
       return new Promise<HmrUpdatePayload>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          hmrWaiters.delete(onUpdate);
-          reject(new Error(`Timed out waiting for HMR update after ${timeoutMs}ms`));
-        }, timeoutMs);
-        function onUpdate(payload: HmrUpdatePayload): void {
-          clearTimeout(timer);
-          resolve(payload);
-        }
+        const timer = setTimeout(() => { hmrWaiters.delete(onUpdate); reject(new Error(`Timed out waiting for HMR update after ${timeoutMs}ms`)); }, timeoutMs);
+        const onUpdate = (payload: HmrUpdatePayload): void => { clearTimeout(timer); resolve(payload); };
         hmrWaiters.add(onUpdate);
       });
     },
     waitForClientAck(timeoutMs = 5000): Promise<{ seq: number; ok: boolean; durationMs: number }> {
       return new Promise<{ seq: number; ok: boolean; durationMs: number }>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          ackWaiters.delete(onAck);
-          reject(new Error(`Timed out waiting for client ACK after ${timeoutMs}ms`));
-        }, timeoutMs);
-        function onAck(ack: { seq: number; ok: boolean; durationMs: number }): void {
-          clearTimeout(timer);
-          ackWaiters.delete(onAck);
-          resolve(ack);
-        }
+        const timer = setTimeout(() => { ackWaiters.delete(onAck); reject(new Error(`Timed out waiting for client ACK after ${timeoutMs}ms`)); }, timeoutMs);
+        const onAck = (ack: { seq: number; ok: boolean; durationMs: number }): void => { clearTimeout(timer); ackWaiters.delete(onAck); resolve(ack); };
         ackWaiters.add(onAck);
       });
     },
     async close(): Promise<void> {
       clearInterval(heartbeatTimer);
       watcher.close();
-      for (const client of sseClients) {
-        try { client.end(); } catch { /* ignore */ }
-      }
+      for (const client of sseClients) { try { client.end(); } catch { /* ignore */ } }
       sseClients.clear();
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

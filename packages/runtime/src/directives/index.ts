@@ -67,6 +67,11 @@ export {
   type KeepAliveHandle
 } from "../dom/keep-alive.js";
 export {
+  ErrorBoundary,
+  createErrorBoundary,
+  type ErrorBoundaryProps
+} from "../dom/error-boundary.js";
+export {
   AuthProvider,
   createAuth,
   useAuth,

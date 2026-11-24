@@ -8,8 +8,9 @@ import {
   type EffectNode,
   type Owner
 } from "./types.js";
-import { coreState, runWithOwner, unlinkComputation } from "./state.js";
+import { coreState, findErrorHandler, runWithOwner, unlinkComputation } from "./state.js";
 import { createCancellationSource } from "./cancellation.js";
+import { reportError } from "./errors-reporter.js";
 
 export function createOwnerInstance(
   parent: Owner | null,
@@ -175,7 +176,18 @@ export function onMount(callback: () => void | (() => void)): void {
     if (owner.ownerState !== OwnerState.ACTIVE) {
       return;
     }
-    const cleanup = runWithOwner(owner, callback);
+    let cleanup: void | (() => void);
+    try {
+      cleanup = runWithOwner(owner, callback);
+    } catch (err) {
+      const handler = findErrorHandler(owner);
+      if (handler) {
+        handler(err);
+        return;
+      }
+      reportError(err, { source: "onMount" }, owner);
+      throw err;
+    }
     if (typeof cleanup === "function") {
       if (owner.ownerState === OwnerState.ACTIVE) {
         owner.cleanups.push(cleanup);

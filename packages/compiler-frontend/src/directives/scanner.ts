@@ -39,6 +39,7 @@ const ZERO_ARG_CAPABLE_IDS = new Set([
   "csrf",
   "once",
   "lazy",
+  "try",
   "verbatim"
 ]);
 

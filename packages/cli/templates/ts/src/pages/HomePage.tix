@@ -3,11 +3,21 @@ import Button from "../components/common/Button.tix";
 import { Can } from "@dotmix/runtime/permissions";
 
 export default function HomePage() {
+  const highlights: readonly { readonly title: string; readonly detail: string }[] = [
+    { title: "Direct DOM", detail: "Compiled updates touch only changed nodes." },
+    { title: "Zero VDOM", detail: "Push-pull signals with deterministic cleanup." }
+  ];
+
   return (
     <div class="home-page">
       <section class="hero-section">
         <h1>Compiler-Native Web Application</h1>
         <p>Built with fine-grained reactive signals, isomorphic permissions, and offline CRDT sync.</p>
+        <ul class="highlights-list">
+          {each (item, idx) in highlights}
+            <li><strong>{item.title}</strong> — {item.detail}</li>
+          {endeach}
+        </ul>
         <div class="hero-actions">
           <Button variant="primary">Get Started</Button>
           <Can I="manage" a="AdminPanel" fallback={<span class="badge-guest">Guest Mode</span>}>

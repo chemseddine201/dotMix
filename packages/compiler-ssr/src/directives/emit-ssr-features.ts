@@ -26,6 +26,7 @@ import type {
   StackNode,
   StackPushNode,
   TemplateNode,
+  TryBlockNode,
   VerbatimNode,
   YieldNode
 } from "@dotmix/ast";
@@ -284,4 +285,28 @@ export function emitSsrChildrenWrapper(
   shadowed: ReadonlySet<string>
 ): void {
   emitBranchList(ctx, node.children, shadowed);
+}
+
+export function emitSsrTryBlock(
+  ctx: SsrEmitContext,
+  node: TryBlockNode,
+  shadowed: ReadonlySet<string>
+): void {
+  const id = ctx.nextMarkerId();
+  if (ctx.includeMarkers) ctx.pushCode(`__html += "<!--mix:try:${id}-->";\n`);
+  ctx.pushCode(`{\n  const __trySavedHtml_${id} = __html;\n  try {\n`);
+  emitBranchList(ctx, node.children, shadowed);
+  ctx.pushCode(`  } catch (__tryErr_${id}) {\n    __html = __trySavedHtml_${id};\n`);
+  const fallbackShadowed = new Set(shadowed);
+  if (node.catchIdentifier) {
+    fallbackShadowed.add(node.catchIdentifier);
+    ctx.pushCode(`    const ${node.catchIdentifier} = __tryErr_${id};\n`);
+  }
+  if (node.resetIdentifier) {
+    fallbackShadowed.add(node.resetIdentifier);
+    ctx.pushCode(`    const ${node.resetIdentifier} = () => {};\n`);
+  }
+  emitBranchList(ctx, node.fallback, fallbackShadowed);
+  ctx.pushCode(`  }\n}\n`);
+  if (ctx.includeMarkers) ctx.pushCode(`__html += "<!--/mix:try:${id}-->";\n`);
 }

@@ -120,9 +120,6 @@ export function emitSsrEachExt(ctx: SsrEmitContext, node: EachExtNode, shadowed:
   const nextShadowed = new Set(shadowed);
   nextShadowed.add(node.itemIdentifier);
   if (node.indexIdentifier) nextShadowed.add(node.indexIdentifier);
-  const keyExpr = node.keyExpression
-    ? ctx.transformExpr(node.rawKeyExpression ?? "", node.keyExpression, nextShadowed)
-    : indexVar;
 
   ctx.pushCode(`{\n  const __list = ${itemsCode};\n`);
   if (node.empty.length > 0) {
@@ -132,8 +129,7 @@ export function emitSsrEachExt(ctx: SsrEmitContext, node: EachExtNode, shadowed:
   }
   ctx.pushCode(`  let ${indexVar} = 0;\n`);
   ctx.pushCode(`  for (const ${node.itemIdentifier} of __list) {\n`);
-  ctx.pushCode(`    const __key = (${keyExpr});\n`);
-  if (ctx.includeMarkers) ctx.pushCode(`    __html += "<!--mix:item:" + __key + "-->";\n`);
+  if (ctx.includeMarkers) ctx.pushCode(`    __html += "<!--mix:item:" + ${indexVar} + "-->";\n`);
   if (node.renderComponent) {
     const compExpr = ctx.transformExpr(node.rawRenderComponent ?? "", node.renderComponent, shadowed);
     const propKey = JSON.stringify(node.renderPropName ?? "item");
@@ -144,7 +140,7 @@ export function emitSsrEachExt(ctx: SsrEmitContext, node: EachExtNode, shadowed:
   } else {
     emitBranchList(ctx, node.children, nextShadowed);
   }
-  if (ctx.includeMarkers) ctx.pushCode(`    __html += "<!--/mix:item:" + __key + "-->";\n`);
+  if (ctx.includeMarkers) ctx.pushCode(`    __html += "<!--/mix:item:" + ${indexVar} + "-->";\n`);
   ctx.pushCode(`    ${indexVar}++;\n  }\n`);
   if (node.empty.length > 0) {
     ctx.pushCode(`  }\n`);

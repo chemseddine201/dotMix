@@ -47,6 +47,11 @@ export interface StaticBuildConfig {
   readonly islandMode?: "auto" | "explicit" | undefined;
 }
 
+export interface ErrorsConfig {
+  readonly fallback?: string | undefined;
+  readonly report?: string | undefined;
+}
+
 export function configError(configPath: string, messageText: string): MixDiagnosticError {
   return new MixDiagnosticError({
     code: DiagnosticCodes.MIX_ERR_CONFIG_INVALID,
@@ -166,5 +171,20 @@ export function validateCspConfig(raw: unknown, configPath: string): CspConfig {
     throw configError(configPath, "csp.target: expected 'cloudflare-pages' | 'manifest-only'");
   }
   return rec as unknown as CspConfig;
+}
+
+export function validateErrorsConfig(raw: unknown, configPath: string): ErrorsConfig {
+  const rec = assertObject(raw, configPath, "errors");
+  const allowed = new Set(["fallback", "report"]);
+  for (const k of Object.keys(rec)) {
+    if (!allowed.has(k)) throw configError(configPath, `errors.${k}: unknown configuration property`);
+  }
+  if (rec.fallback !== undefined && typeof rec.fallback !== "string") {
+    throw configError(configPath, "errors.fallback: expected a file path string");
+  }
+  if (rec.report !== undefined && typeof rec.report !== "string") {
+    throw configError(configPath, "errors.report: expected a file path string");
+  }
+  return rec as unknown as ErrorsConfig;
 }
 

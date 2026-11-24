@@ -135,17 +135,39 @@ dispatch()
     }
   })
   .catch((err: unknown) => {
+    const searchDir = parsed.positional[0] ? path.resolve(parsed.positional[0]) : process.cwd();
+    const compStack =
+      err && typeof err === "object" && "__mixComponentStack" in err && Array.isArray((err as { __mixComponentStack?: unknown }).__mixComponentStack)
+        ? ((err as { __mixComponentStack: string[] }).__mixComponentStack)
+        : undefined;
     if (err instanceof MixDiagnosticError || (err && typeof err === "object" && "diagnostic" in err)) {
       const diag = (err as { diagnostic: Diagnostic }).diagnostic;
-      const searchDir = parsed.positional[0] ? path.resolve(parsed.positional[0]) : process.cwd();
       const source = findSourceForDiagnostic(diag.span.file, searchDir);
-      console.error(formatCliDiagnostic(diag, source));
+      console.error(formatCliDiagnostic(diag, source, compStack));
       if (parsed.values.debug && err instanceof Error && err.stack) {
         console.error(err.stack);
       }
+    } else if (err && typeof err === "object" && "code" in err && "details" in err && typeof (err as { details?: { loc?: { file?: string; line?: number; column?: number } } }).details?.loc?.file === "string") {
+      const e = err as { code: string; message: string; details: { loc: { file: string; line?: number; column?: number } } };
+      const loc = e.details.loc;
+      const diag: Diagnostic = {
+        code: e.code,
+        severity: "error",
+        message: e.message,
+        span: {
+          file: loc.file,
+          start: { line: loc.line ?? 1, column: loc.column ?? 1, offset: 0 },
+          end: { line: loc.line ?? 1, column: (loc.column ?? 1) + 1, offset: 1 }
+        }
+      };
+      const source = findSourceForDiagnostic(loc.file, searchDir);
+      console.error(formatCliDiagnostic(diag, source, compStack));
     } else {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(colors.red(`[ERROR] ${msg}`));
+      if (compStack && compStack.length > 0) {
+        console.error(`  Component stack:\n${compStack.map((frame) => `    in ${frame}`).join("\n")}`);
+      }
       if (parsed.values.debug && err instanceof Error && err.stack) {
         console.error(err.stack);
       }

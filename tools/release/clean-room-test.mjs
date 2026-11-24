@@ -290,6 +290,23 @@ async function runCleanRoom(temporaryRoot) {
     staticArtifactsOk,
     staticBuilt.passed ? "index.html, sitemap.xml, robots.txt, 404.html" : lastLines(staticBuilt.output)
   );
+
+  const staticForbiddenNeedles = ["mix-error-overlay", "/__mix/", "sourceMappingURL=data:"];
+  const staticLeaks = [];
+  for (const distFile of listFilesRecursively(path.join(projectDirectory, "dist"))) {
+    if (!/\.(html|js|mjs|css|json|xml|txt)$/i.test(distFile)) continue;
+    const text = fs.readFileSync(distFile, "utf-8");
+    for (const needle of staticForbiddenNeedles) {
+      if (text.includes(needle)) {
+        staticLeaks.push(`${path.relative(projectDirectory, distFile)} contains "${needle}"`);
+      }
+    }
+  }
+  recordStep(
+    "dist/ free of overlay, /__mix/, and inline sourcemaps",
+    staticBuilt.passed && staticLeaks.length === 0,
+    staticLeaks.length > 0 ? staticLeaks.join("; ") : "0 leaks"
+  );
 }
 
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dotmix-clean-room-"));

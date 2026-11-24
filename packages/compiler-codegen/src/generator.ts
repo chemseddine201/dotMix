@@ -4,14 +4,11 @@
 
 import {
   extractAndTranspileScript,
-  generateSourceMap,
-  buildComponentSpanTable,
-  type TemplateExpressionSpan,
   stripDirectiveImportsFromJs,
   type ComponentDescriptor,
+  type ScriptLineMapping,
   type SourceMapV3
 } from "@dotmix/compiler-semantic";
-import type { TemplateNode } from "@dotmix/ast";
 import { compileCss, preprocessCss, computeScopeHash } from "@dotmix/compiler-css";
 import {
   AUTO_IMPORTABLE_RUNTIME_PRIMITIVES,
@@ -21,6 +18,7 @@ import {
   type CodegenResult
 } from "./types.js";
 import { CodegenContext } from "./context.js";
+import { buildComponentSourceMap } from "./source-map-builder.js";
 
 /**
  * True when `specifier` is one of the component's own stylesheets: a file in the component's folder
@@ -125,7 +123,9 @@ export function generate(
   // 2. Separate and transpile <script> imports and body statements
   let userImportsCode = "";
   let userBodyCode = "";
+  let userBodyMappings: readonly (readonly ScriptLineMapping[])[] | undefined;
   let userPostambleCode = "";
+  let userPostambleMappings: readonly (readonly ScriptLineMapping[])[] | undefined;
 
   if (descriptor.ast.script) {
     const isTs =
@@ -155,11 +155,14 @@ export function generate(
         .replaceAll("'@dotmix/runtime'", JSON.stringify(runtimeImportPath));
     }
     userBodyCode = separated.bodyCode;
+    userBodyMappings = separated.bodyMappings;
     if (descriptor.ast.script.postamble) {
-      userPostambleCode = extractAndTranspileScript(
+      const postSep = extractAndTranspileScript(
         descriptor.ast.script.postamble,
         isTs
-      ).bodyCode;
+      );
+      userPostambleCode = postSep.bodyCode;
+      userPostambleMappings = postSep.bodyMappings;
     }
   }
 
@@ -202,11 +205,16 @@ export function generate(
 
   // 4. Emit template DOM construction instructions
   const hmrFunctionSet = new Set(descriptor.functions);
+  const resolvedMode = options?.mode ?? "development";
+  const wantsSourceMap = options?.sourceMap !== false;
+  const originalSource = options?.source ?? "";
   const ctx = new CodegenContext(
     scopeAttribute,
     hmrEnabled,
     hmrFunctionSet,
-    options?.mode ?? "development"
+    resolvedMode,
+    filename,
+    wantsSourceMap && originalSource.length > 0
   );
   const rootFragVar = "__root";
   const templateLines = ctx.emitTemplateNodes(
@@ -228,6 +236,7 @@ export function generate(
       `__injectStylesheet(${JSON.stringify(scopeId)}, ${JSON.stringify(compiledCss)});`
     );
   }
+  const bodyOffsetInFn = userBodyCode.length > 0 ? functionBodyLines.join("\n").split("\n").length - (functionBodyLines.length === 0 ? 1 : 0) : -1;
   if (userBodyCode.length > 0) {
     functionBodyLines.push(userBodyCode);
   }
@@ -264,12 +273,20 @@ export function generate(
   moduleLines.push(
     "",
     `export function ${componentName}(__props = {}) {`,
-    `  return __withComponentProps(__props, () => {`,
+    `  return __withComponentProps(__props, () => {`
+  );
+  const fnBodyStartLine = moduleLines.join("\n").split("\n").length;
+  moduleLines.push(
     indentLines(functionBodyLines.join("\n"), 4),
     `  });`,
     `}`,
     `export default ${componentName};`
   );
+  if (resolvedMode === "development") {
+    moduleLines.push(
+      `${componentName}.__mix_dev = { name: ${JSON.stringify(componentName)}, file: ${JSON.stringify(ctx.formatDevFile())} };`
+    );
+  }
   if (hmrEnabled) {
     const normFile = filename.replace(/\\/g, "/");
     const modId = normFile.includes("/src/")
@@ -287,73 +304,38 @@ export function generate(
       `}`
     );
   }
+  let postambleStartLine = -1;
   if (userPostambleCode.length > 0) {
+    postambleStartLine = moduleLines.join("\n").split("\n").length;
     moduleLines.push(userPostambleCode);
   }
   moduleLines.push("");
 
   const jsCode = moduleLines.join("\n");
 
-  // 5. Generate SourceMapV3 if requested (default: true)
+  let finalJsCode = jsCode;
+  // 5. Generate exact script + template SourceMapV3 if requested (default: true)
   let map: SourceMapV3 | undefined;
-  if (options?.sourceMap !== false) {
-    const originalSource = options?.source ?? "";
-    const templateExpressions: TemplateExpressionSpan[] = [];
-
-    const collectExpressions = (nodes: readonly TemplateNode[]): void => {
-      for (const node of nodes) {
-        if (node.type === "Interpolation") {
-          const raw = node.rawExpression;
-          const nodeSlice = originalSource.slice(node.span.start.offset, node.span.end.offset);
-          const rawIndex = nodeSlice.indexOf(raw);
-          const startOffset = node.span.start.offset + (rawIndex !== -1 ? rawIndex : 0);
-          templateExpressions.push({ raw, startOffset });
-        } else if ("children" in node && Array.isArray((node as { children?: readonly TemplateNode[] }).children)) {
-          collectExpressions((node as { children: readonly TemplateNode[] }).children);
-        } else if (node.type === "IfBlock") {
-          collectExpressions(node.consequent);
-          if (node.alternate) {
-            collectExpressions(Array.isArray(node.alternate) ? node.alternate : [node.alternate]);
-          }
-        } else if (node.type === "EachBlock") {
-          collectExpressions(node.children);
-          if (node.empty) collectExpressions(node.empty);
-        }
-      }
-    };
-    collectExpressions(descriptor.ast.template);
-
-    let spanTable = buildComponentSpanTable(
-      originalSource,
-      jsCode,
-      descriptor.ast.script?.content,
-      descriptor.ast.script?.contentSpan.start.offset,
-      templateExpressions
-    );
-
-    if (spanTable.length === 0) {
-      spanTable = [
-        {
-          genStart: 0,
-          genEnd: jsCode.length,
-          srcStart: descriptor.ast.span.start.offset,
-          srcEnd: descriptor.ast.span.end.offset,
-          kind: "origin"
-        }
-      ];
-    }
-
-    map = generateSourceMap(
+  if (wantsSourceMap) {
+    const builtMap = buildComponentSourceMap({
       filename,
       originalSource,
       jsCode,
-      spanTable
-    );
+      script: descriptor.ast.script,
+      ...(userBodyMappings ? { bodyMappings: userBodyMappings } : {}),
+      bodyStartLine: bodyOffsetInFn >= 0 ? fnBodyStartLine + bodyOffsetInFn : -1,
+      bodyIndent: 4,
+      ...(userPostambleMappings ? { postambleMappings: userPostambleMappings } : {}),
+      postambleStartLine,
+      exprAnchors: ctx.exprAnchors
+    });
+    finalJsCode = builtMap.code;
+    map = builtMap.map;
   }
 
   return Object.freeze({
-    js: jsCode,
-    code: jsCode,
+    js: finalJsCode,
+    code: finalJsCode,
     ...(compiledCss !== undefined ? { css: compiledCss } : {}),
     ...(globalCss !== undefined ? { globalCss } : {}),
     ...(scopeId !== undefined ? { scopeId } : {}),

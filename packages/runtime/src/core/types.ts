@@ -66,6 +66,8 @@ export interface Owner {
   readonly token: CancellationToken;
   suspended?: boolean;
   errorHandler?: (err: unknown) => void;
+  componentName?: string;
+  componentFile?: string;
   dispose(): void;
 }
 

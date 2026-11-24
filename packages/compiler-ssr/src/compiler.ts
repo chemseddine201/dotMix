@@ -21,7 +21,7 @@ import type {
   HydrateNode,
   HydrateWhen,
 } from "@dotmix/ast";
-import type { ComponentDescriptor } from "@dotmix/compiler-semantic";
+import type { ComponentDescriptor, ScriptLineMapping, SourceMapV3 } from "@dotmix/compiler-semantic";
 import { extractAndTranspileScript, analyze, stripDirectiveImportsFromJs } from "@dotmix/compiler-semantic";
 import type { CssCompileResult } from "@dotmix/compiler-css";
 import type { SsrOptions, SsrCompilationResult } from "./types.js";
@@ -29,6 +29,7 @@ import { buildSsrImplicitPrimitives, escapeHtml, SSR_RUNTIME_PREAMBLE } from "./
 import { transformSsrExpression } from "./expression-rewriter.js";
 import { createSsrEmitContext, emitSsrComponentSectionsAndChildren, emitSsrDirectiveAttributes, emitSsrDirectiveNode, renderUsedSsrHelpers, hasSsrDirectiveModifiers, rewriteBareGettersForSsr, type SsrHelperId } from "./directives/index.js";
 import { analyzeSsrHydrationMeta } from "./directives/island-ssr.js";
+import { buildSsrSourceMap, SSR_MARK_END, SSR_MARK_MID, SSR_MARK_START, type SsrExprAnchor } from "./sourcemap-ssr.js";
 
 export function compileToSsr(
   descriptor: ComponentDescriptor | ComponentNode,
@@ -56,21 +57,26 @@ export function compileToSsr(
     for (const c of compDescriptor.computeds) signalNames.add(c);
   }
 
-  function transformExpr(
-    raw: string,
-    ast: ESTreeNode | undefined,
-    shadowed: ReadonlySet<string> = new Set()
-  ): string {
-    return rewriteBareGettersForSsr(raw, ast, signalNames, shadowed, transformSsrExpression);
+  const wantsSsrMap = options.sourceMap !== false && Boolean(options.source);
+  const ssrExprAnchors: SsrExprAnchor[] = [];
+  function transformExpr(raw: string, ast: ESTreeNode | undefined, shadowed: ReadonlySet<string> = new Set()): string {
+    const out = rewriteBareGettersForSsr(raw, ast, signalNames, shadowed, transformSsrExpression);
+    const srcOff = ast?.loc?.start.offset ?? ast?.start ?? -1;
+    if (!wantsSsrMap || srcOff < 0 || !out) return out;
+    const id = ssrExprAnchors.length;
+    ssrExprAnchors.push({ raw, emitted: out, srcOffset: srcOff });
+    return `${SSR_MARK_START}${id}${SSR_MARK_MID}${out}${SSR_MARK_END}`;
   }
 
   let scriptImports = "";
   let scriptBody = "";
+  let scriptBodyMappings: readonly (readonly ScriptLineMapping[])[] | undefined;
   if (rootNode.script) {
     const isTs = rootNode.script.lang === "ts";
     const transpiled = extractAndTranspileScript(rootNode.script.content, isTs);
     scriptImports = stripDirectiveImportsFromJs(transpiled.importsCode, !compDescriptor?.hasPlainCanComponent, isTs ? '"use strict";' : "");
     scriptBody = transpiled.bodyCode;
+    scriptBodyMappings = transpiled.bodyMappings;
   }
 
   let markerId = 0;
@@ -142,20 +148,18 @@ export function compileToSsr(
         nextShadowed.add(each.itemIdentifier);
         if (each.indexIdentifier) nextShadowed.add(each.indexIdentifier);
 
-        const keyExpr = transformExpr(each.rawKeyExpression, each.keyExpression, nextShadowed);
         parts.push(`{\n`);
         parts.push(`  const __list = (${collExpr}) || [];\n`);
         parts.push(`  let ${indexVar} = 0;\n`);
         parts.push(`  for (const ${each.itemIdentifier} of __list) {\n`);
-        parts.push(`    const __key = (${keyExpr});\n`);
         if (includeMarkers) {
-          parts.push(`    __html += "<!--mix:item:" + __key + "-->";\n`);
+          parts.push(`    __html += "<!--mix:item:" + ${indexVar} + "-->";\n`);
         }
         for (const child of each.children) {
           generateNode(child, nextShadowed);
         }
         if (includeMarkers) {
-          parts.push(`    __html += "<!--/mix:item:" + __key + "-->";\n`);
+          parts.push(`    __html += "<!--/mix:item:" + ${indexVar} + "-->";\n`);
         }
         parts.push(`    ${indexVar}++;\n`);
         parts.push(`  }\n`);
@@ -447,41 +451,15 @@ export function compileToSsr(
     compDescriptor?.imports,
     compDescriptor?.rootScope.bindings
   );
-  const moduleCode = `
-${scriptImports}
-
-${SSR_RUNTIME_PREAMBLE}${ssrOnMountPreamble}${helperCode ? "\n\n" + helperCode : ""}
-
-export function renderToString(__props = {}, __ctx = {}) {
-  const __prevModuleKey = __ctx.__moduleKey;
-  if (renderToString.__mixModuleKey) __ctx.__moduleKey = renderToString.__mixModuleKey;
-  try {
-    const defineProps = (defaults) => Object.assign({}, defaults, __props);
-${ssrImplicitPrimitives}${!hasPropsDeclaration ? "    const props = __props;\n" : ""}${scriptBody}
-    let __html = "";
-${parts.join("")}
-    return __html;
-  } finally {
-    __ctx.__moduleKey = __prevModuleKey;
+  const preBody = `\n${scriptImports}\n\n${SSR_RUNTIME_PREAMBLE}${ssrOnMountPreamble}${helperCode ? "\n\n" + helperCode : ""}\n\nexport function renderToString(__props = {}, __ctx = {}) {\n  const __prevModuleKey = __ctx.__moduleKey;\n  if (renderToString.__mixModuleKey) __ctx.__moduleKey = renderToString.__mixModuleKey;\n  const __compLabel = renderToString.__mixModuleKey || ${JSON.stringify(rootNode.span.file ?? "Component")};\n  if (Array.isArray(__ctx.__componentStack)) __ctx.__componentStack.push(__compLabel);\n  try {\n    const defineProps = (defaults) => Object.assign({}, defaults, __props);\n${ssrImplicitPrimitives}${!hasPropsDeclaration ? "    const props = __props;\n" : ""}`;
+  const bodyStartLine = preBody.split("\n").length - 1;
+  const markedCode = `${preBody}${scriptBody}\n    let __html = "";\n${parts.join("")}    return __html;\n  } catch (__ssrErr) {\n    if (__ssrErr && typeof __ssrErr === "object" && Array.isArray(__ctx.__componentStack) && !("__mixComponentStack" in __ssrErr)) {\n      try { __ssrErr.__mixComponentStack = [...__ctx.__componentStack]; } catch {}\n    }\n    throw __ssrErr;\n  } finally {\n    if (Array.isArray(__ctx.__componentStack)) __ctx.__componentStack.pop();\n    __ctx.__moduleKey = __prevModuleKey;\n  }\n}\n\nexport function renderToStream(__props = {}, onChunk, __ctx = {}) {\n  const html = renderToString(__props, __ctx);\n  if (typeof onChunk === "function") onChunk(html);\n  return (async function* () { yield html; })();\n}\n\nexport const css = ${JSON.stringify(css)};\n`;
+  let finalCode = markedCode;
+  let map: SourceMapV3 | undefined;
+  if (wantsSsrMap && options.source) {
+    const built = buildSsrSourceMap({ filename: options.filename ?? rootNode.span.file ?? "Component.tix", originalSource: options.source, markedCode, script: rootNode.script, ...(scriptBodyMappings ? { bodyMappings: scriptBodyMappings } : {}), bodyStartLine, exprAnchors: ssrExprAnchors });
+    finalCode = built.code;
+    map = built.map;
   }
-}
-
-export function renderToStream(__props = {}, onChunk, __ctx = {}) {
-  const html = renderToString(__props, __ctx);
-  if (typeof onChunk === "function") {
-    onChunk(html);
-  }
-  return (async function* () {
-    yield html;
-  })();
-}
-
-export const css = ${JSON.stringify(css)};
-`;
-
-  return {
-    code: moduleCode,
-    css,
-    hydrationMeta,
-  };
+  return { code: finalCode, css, ...(map ? { map } : {}), hydrationMeta };
 }

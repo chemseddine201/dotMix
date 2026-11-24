@@ -36,6 +36,7 @@ import {
 import { normalizeBasePath, writeProductionShell } from "./production-shell.js";
 import { emitProductionModules } from "./production-modules.js";
 import { buildImportMetaEnvValues } from "./env-files.js";
+import type { ErrorsConfig } from "./config-schema.js";
 
 export type {
   BundleChunkInfo,
@@ -61,6 +62,7 @@ export interface BuildOptions {
   analyze?: boolean | undefined;
   mode?: string | undefined;
   base?: string | undefined;
+  errors?: ErrorsConfig | undefined;
 }
 
 export interface BuildResult {
@@ -216,6 +218,32 @@ export function build(options: BuildOptions = {}): BuildResult {
       });
       compiledStylesheets.set(stylesheetKey, compiled.code);
       globalCssChunks.push(compiled.code);
+    }
+  }
+
+  if (options.errors && compiledModules.has("main.js")) {
+    const projectDir = path.dirname(inDir);
+    const toRelEntrySpec = (cfgPath: string): string | null => {
+      const absTarget = normalizeDriveLetter(path.resolve(projectDir, cfgPath));
+      if (!absTarget.startsWith(inDir)) return null;
+      const relKey = toModuleKey(absTarget, ".js");
+      return compiledModules.has(relKey) ? `./${relKey}` : null;
+    };
+    const fbSpec = options.errors.fallback ? toRelEntrySpec(options.errors.fallback) : null;
+    const repSpec = options.errors.report ? toRelEntrySpec(options.errors.report) : null;
+    if (fbSpec || repSpec) {
+      const preamble: string[] = [`import { setRootErrorConfig as __mixSetRootErr } from "@dotmix/runtime";`];
+      const cfgParts: string[] = [];
+      if (fbSpec) {
+        preamble.push(`import __mixErrFallback from ${JSON.stringify(fbSpec)};`);
+        cfgParts.push(`fallback: (error, reset) => (typeof __mixErrFallback === "function" ? __mixErrFallback({ error, reset }) : "")`);
+      }
+      if (repSpec) {
+        preamble.push(`import * as __mixErrReportMod from ${JSON.stringify(repSpec)};`);
+        cfgParts.push(`onError: typeof __mixErrReportMod.default === "function" ? __mixErrReportMod.default : __mixErrReportMod.reportError`);
+      }
+      preamble.push(`__mixSetRootErr({ ${cfgParts.join(", ")} });`);
+      compiledModules.set("main.js", `${preamble.join("\n")}\n${compiledModules.get("main.js")!}`);
     }
   }
 

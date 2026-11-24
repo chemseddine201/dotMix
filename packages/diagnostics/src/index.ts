@@ -22,6 +22,8 @@ export const DiagnosticCodes = {
   MIX_ERR_CSS_FORBIDDEN_IMPORT: "MIX_ERR_CSS_FORBIDDEN_IMPORT",
   MIX_ERR_CSS_FORBIDDEN_CHARSET: "MIX_ERR_CSS_FORBIDDEN_CHARSET",
   MIX_ERR_DUPLICATE_KEY: "MIX_ERR_DUPLICATE_KEY",
+  MIX_ERR_INVALID_KEY: "MIX_ERR_INVALID_KEY",
+  MIX_WARN_IMPLICIT_DUPLICATE_KEY: "MIX_WARN_IMPLICIT_DUPLICATE_KEY",
   MIX_ERR_UNRESOLVED_IDENTIFIER: "MIX_ERR_UNRESOLVED_IDENTIFIER",
   MIX_ERR_INVALID_PROP_TYPE: "MIX_ERR_INVALID_PROP_TYPE",
   MIX_INTERNAL_TYPECHECK: "MIX_INTERNAL_TYPECHECK",
@@ -193,8 +195,29 @@ export const DIRECTIVE_DIAGNOSTIC_METADATA: Readonly<Record<string, DiagnosticMe
   })
 });
 
+export const GENERAL_DIAGNOSTIC_METADATA: Readonly<Record<string, DiagnosticMetadata>> = Object.freeze({
+  [DiagnosticCodes.MIX_ERR_INVALID_KEY]: Object.freeze({
+    code: DiagnosticCodes.MIX_ERR_INVALID_KEY,
+    severity: "error",
+    message: "Explicit list key must be a string, finite number, or symbol.",
+    hint: "Return a unique primitive property from the key expression, e.g. {each (item, idx, item.id) in list}, or omit the key for implicit identity mode."
+  }),
+  [DiagnosticCodes.MIX_ERR_DUPLICATE_KEY]: Object.freeze({
+    code: DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
+    severity: "error",
+    message: "Duplicate key encountered during keyed list reconciliation.",
+    hint: "Ensure every item produces a unique key in the explicit key expression."
+  }),
+  [DiagnosticCodes.MIX_WARN_IMPLICIT_DUPLICATE_KEY]: Object.freeze({
+    code: DiagnosticCodes.MIX_WARN_IMPLICIT_DUPLICATE_KEY,
+    severity: "warning",
+    message: "Duplicate key detected in an un-keyed list; disambiguated by occurrence.",
+    hint: "Add an explicit unique key expression, e.g. {each (item, idx, item.id) in list}, for optimal reconciliation across reorders."
+  })
+});
+
 export function getDiagnosticMetadata(code: string): DiagnosticMetadata | undefined {
-  return DIRECTIVE_DIAGNOSTIC_METADATA[code];
+  return DIRECTIVE_DIAGNOSTIC_METADATA[code] ?? GENERAL_DIAGNOSTIC_METADATA[code];
 }
 
 export interface Diagnostic {
@@ -229,22 +252,36 @@ export class MixDiagnosticError extends MixError {
   }
 }
 
-export function formatDiagnosticCodeFrame(source: string, span: SourceSpan): string {
+export function formatDiagnosticCodeFrame(source: string, span: SourceSpan, contextLines: number = 3): string {
   const line = span.start.line;
   const col = span.start.column;
   const lines = source.split(/\r?\n/);
-  const lineText = lines[line - 1] ?? "";
+  const startLine = Math.max(1, line - contextLines);
+  const endLine = Math.min(lines.length, line + contextLines);
+  const gutterWidth = String(endLine).length;
   const width =
     span.end.line === span.start.line
       ? Math.max(1, span.end.column - span.start.column)
       : 1;
-  const lineNumStr = String(line);
-  const pad = " ".repeat(lineNumStr.length);
-  const caret = " ".repeat(Math.max(0, col - 1)) + "^".repeat(width);
-  return `  ${lineNumStr} | ${lineText}\n  ${pad} | ${caret}`;
+  const out: string[] = [];
+  for (let ln = startLine; ln <= endLine; ln++) {
+    const numStr = String(ln).padStart(gutterWidth, " ");
+    const marker = ln === line ? ">" : " ";
+    out.push(`${marker} ${numStr} | ${lines[ln - 1] ?? ""}`);
+    if (ln === line) {
+      const pad = " ".repeat(gutterWidth);
+      const caret = " ".repeat(Math.max(0, col - 1)) + "^".repeat(width);
+      out.push(`  ${pad} | ${caret}`);
+    }
+  }
+  return out.join("\n");
 }
 
-export function formatCliDiagnostic(diagnostic: Diagnostic, source?: string): string {
+export function formatCliDiagnostic(
+  diagnostic: Diagnostic,
+  source?: string,
+  componentStack?: readonly string[]
+): string {
   const prefix =
     diagnostic.severity === "error"
       ? "ERROR"
@@ -259,6 +296,10 @@ export function formatCliDiagnostic(diagnostic: Diagnostic, source?: string): st
 
   if (source && diagnostic.span.start.line >= 1) {
     parts.push(formatDiagnosticCodeFrame(source, diagnostic.span));
+  }
+
+  if (componentStack && componentStack.length > 0) {
+    parts.push(`  Component stack:\n${componentStack.map((frame) => `    in ${frame}`).join("\n")}`);
   }
 
   if (diagnostic.notes && diagnostic.notes.length > 0) {

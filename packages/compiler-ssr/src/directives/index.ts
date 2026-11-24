@@ -38,6 +38,7 @@ import {
   emitSsrSession,
   emitSsrStack,
   emitSsrStackPush,
+  emitSsrTryBlock,
   emitSsrVerbatim,
   emitSsrYield
 } from "./emit-ssr-features.js";
@@ -152,6 +153,9 @@ export function emitSsrDirectiveNode(
       return true;
     case "Verbatim":
       emitSsrVerbatim(ctx, node);
+      return true;
+    case "TryBlock":
+      emitSsrTryBlock(ctx, node, shadowed);
       return true;
     case "TemplateRenderFunction":
       emitSsrRenderFunctionFallback(ctx, node, shadowed);

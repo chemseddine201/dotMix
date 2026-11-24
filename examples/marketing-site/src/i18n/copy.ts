@@ -20,7 +20,7 @@ export interface SiteCopy {
   readonly featuresHeading: string;
   readonly featuresLead: string;
   readonly featuresImageAlt: string;
-  readonly featuresCards: readonly { readonly id: string; readonly title: string; readonly body: string }[];
+  readonly featuresCards: readonly { readonly title: string; readonly body: string }[];
   readonly pricingTitle: string;
   readonly pricingDescription: string;
   readonly pricingHeading: string;
@@ -58,9 +58,9 @@ const AR_COPY: SiteCopy = {
   featuresLead: "هذه الصفحة لا تحتوي على أي جزئيات تفاعلية، لذا يرسل البناء الثابت HTML وCSS فقط.",
   featuresImageAlt: "رسم توضيحي لمعمارية التوليد الثابت بدون متصفح",
   featuresCards: [
-    { id: "ssg", title: "توليد ثابت بلا متصفح", body: "بناء جميع المسارات في Node.js مباشرة دون الحاجة إلى Chromium في بيئة البناء." },
-    { id: "islands", title: "إرواء جراحي للجزئيات", body: "يتم تفعيل المكونات التفاعلية وحدها مع الحفاظ التام على عقد DOM المولّدة." },
-    { id: "seo", title: "تحسين شامل لمحركات البحث", body: "توليد تلقائي لـ hreflang وخريطة الموقع وبيانات JSON-LD الآمنة." }
+    { title: "توليد ثابت بلا متصفح", body: "بناء جميع المسارات في Node.js مباشرة دون الحاجة إلى Chromium في بيئة البناء." },
+    { title: "إرواء جراحي للجزئيات", body: "يتم تفعيل المكونات التفاعلية وحدها مع الحفاظ التام على عقد DOM المولّدة." },
+    { title: "تحسين شامل لمحركات البحث", body: "توليد تلقائي لـ hreflang وخريطة الموقع وبيانات JSON-LD الآمنة." }
   ],
   pricingTitle: "الأسعار — dotMix",
   pricingDescription: "خطط شفافة ومجانية مفتوحة المصدر للمطورين والشركات.",
@@ -99,9 +99,9 @@ const FR_COPY: SiteCopy = {
   featuresLead: "Cette page ne contient aucun îlot interactif : seul le HTML et le CSS sont envoyés au navigateur.",
   featuresImageAlt: "Schéma de l'architecture de génération statique sans navigateur",
   featuresCards: [
-    { id: "ssg", title: "Génération sans navigateur", body: "Compilation statique complète dans Node.js sans Chromium dans l'image de build." },
-    { id: "islands", title: "Îlots d'hydratation ciblée", body: "Seuls les composants interactifs chargent du JavaScript sans recréer le DOM." },
-    { id: "seo", title: "SEO et CSP intégrés", body: "Génération automatique des balises hreflang, sitemap.xml, JSON-LD et empreintes CSP." }
+    { title: "Génération sans navigateur", body: "Compilation statique complète dans Node.js sans Chromium dans l'image de build." },
+    { title: "Îlots d'hydratation ciblée", body: "Seuls les composants interactifs chargent du JavaScript sans recréer le DOM." },
+    { title: "SEO et CSP intégrés", body: "Génération automatique des balises hreflang, sitemap.xml, JSON-LD et empreintes CSP." }
   ],
   pricingTitle: "Tarifs — dotMix",
   pricingDescription: "Des offres simples et open source pour vos projets web statiques.",

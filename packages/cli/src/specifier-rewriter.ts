@@ -5,7 +5,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { rewriteJsModuleSpecifiers } from "@dotmix/compiler-semantic";
+import {
+  applyTextEdits,
+  computeJsModuleSpecifierEdits,
+  shiftMapThroughEdits,
+  type SourceMapV3
+} from "@dotmix/compiler-semantic";
 import { STYLE_FILE_REGEX } from "./scanner.js";
 import type { ModuleGraph } from "./module-graph.js";
 import { HMR_CLIENT_SCRIPT } from "./hmr-client/client.js";
@@ -139,13 +144,80 @@ export function rewriteModuleImportsForDev(
     return spec;
   };
 
-  const rewritten = rewriteJsModuleSpecifiers(code, rewriteSpec);
+  const edits = computeJsModuleSpecifierEdits(code, rewriteSpec);
+  const rewritten = applyTextEdits(code, edits);
 
   if (normFromFileAbs) {
     const relId = "/" + path.relative(normRootDir, normFromFileAbs).split(path.sep).join("/");
     return `${createHotMetaShim(relId)}${rewritten}`;
   }
   return rewritten;
+}
+
+/**
+ * Rewrites dev module imports and prepends the `import.meta.hot` shim while composing the SourceMapV3 (F1).
+ */
+export function rewriteModuleImportsForDevWithMap(
+  code: string,
+  map: SourceMapV3 | undefined,
+  fromFileAbs: string | null,
+  rootDir: string,
+  moduleGraph?: ModuleGraph
+): { readonly code: string; readonly map?: SourceMapV3 | undefined } {
+  const normRootDir = normalizeDriveLetter(path.resolve(rootDir));
+  const normFromFileAbs = fromFileAbs ? normalizeDriveLetter(path.resolve(fromFileAbs)) : null;
+
+  const rewriteSpec = (spec: string): string => {
+    if (spec.includes("?mix-css")) {
+      const [filePart, queryPart] = spec.split("?");
+      if (filePart && path.isAbsolute(filePart)) {
+        const normFilePart = normalizeDriveLetter(filePart);
+        const rel = path.relative(normRootDir, normFilePart).split(path.sep).join("/");
+        if (moduleGraph && normFromFileAbs) moduleGraph.addEdge(normFromFileAbs, normFilePart);
+        return `/${rel}?${queryPart ?? "mix-css=1"}`;
+      }
+      return spec;
+    }
+    if (spec.startsWith("@dotmix/")) {
+      const sub = spec.slice("@dotmix/".length);
+      return sub.endsWith(".js") ? `/@modules/@dotmix/${sub}` : `/@modules/@dotmix/${sub}/index.js`;
+    }
+    if ((spec.startsWith("./") || spec.startsWith("../")) && normFromFileAbs) {
+      const cleanSpec = spec.replace(/\.(tix|mix)\.js$/i, ".$1");
+      const candidateBase = normalizeDriveLetter(path.resolve(path.dirname(normFromFileAbs), cleanSpec));
+      if (STYLE_FILE_REGEX.test(cleanSpec)) {
+        const rel = path.relative(normRootDir, candidateBase).split(path.sep).join("/");
+        if (moduleGraph) moduleGraph.addEdge(normFromFileAbs, candidateBase);
+        return `/${rel}?import`;
+      }
+      const resolvedTarget = resolveDevSourceFile(candidateBase);
+      if (resolvedTarget && resolvedTarget.startsWith(normRootDir)) {
+        const rel = path.relative(normRootDir, resolvedTarget).split(path.sep).join("/");
+        if (moduleGraph) {
+          moduleGraph.addEdge(normFromFileAbs, resolvedTarget);
+          const node = moduleGraph.getNode(resolvedTarget);
+          if (node && node.version > 0) return `/${rel}?v=${node.version}`;
+        }
+        return `/${rel}`;
+      }
+    }
+    return spec;
+  };
+
+  let curCode = code;
+  let curMap = map;
+  const specEdits = computeJsModuleSpecifierEdits(curCode, rewriteSpec);
+  if (specEdits.length > 0) {
+    if (curMap) curMap = shiftMapThroughEdits(curMap, curCode, specEdits);
+    curCode = applyTextEdits(curCode, specEdits);
+  }
+  if (normFromFileAbs) {
+    const relId = "/" + path.relative(normRootDir, normFromFileAbs).split(path.sep).join("/");
+    const shim = createHotMetaShim(relId);
+    if (curMap) curMap = shiftMapThroughEdits(curMap, curCode, [{ start: 0, end: 0, text: shim }]);
+    curCode = `${shim}${curCode}`;
+  }
+  return { code: curCode, map: curMap };
 }
 
 /**

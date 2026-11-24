@@ -225,6 +225,7 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
   let indexIdentifier: string | null = null;
   let keyExpression: ESTreeNode;
   let rawKeyExpression = "";
+  let explicitKey = false;
 
   if (firstTopLevelInOrOfRel && !lastTopLevelAsRel) {
     const lhsEnd = headerStart + firstTopLevelInOrOfRel.start;
@@ -247,6 +248,7 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
     itemIdentifier = tupleMatch[1]!;
     indexIdentifier = tupleMatch[2] ?? null;
     const explicitTupleKey = tupleMatch[3]?.trim() ?? null;
+    explicitKey = explicitTupleKey !== null;
     const collectionStart = skipJsWhitespaceAndComments(
       ctx.source,
       headerStart + firstTopLevelInOrOfRel.end,
@@ -265,11 +267,15 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
     }
     collectionExpr = parseExpressionSlice(rawCollection, collectionStart, ctx.lineMap);
 
-    const itemOffsetInSource = headerStart + ctx.source.slice(headerStart, lhsEnd).indexOf(itemIdentifier);
+    const lhsSliceText = ctx.source.slice(headerStart, lhsEnd);
+    const itemOffsetInSource = headerStart + lhsSliceText.indexOf(itemIdentifier);
     rawKeyExpression = explicitTupleKey ?? itemIdentifier;
+    const keyOffset = explicitTupleKey
+      ? headerStart + Math.max(0, lhsSliceText.lastIndexOf(explicitTupleKey))
+      : itemOffsetInSource;
     keyExpression = parseExpressionSlice(
       rawKeyExpression,
-      explicitTupleKey ? lhsStart : itemOffsetInSource,
+      keyOffset,
       ctx.lineMap
     );
   } else {
@@ -299,11 +305,15 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
       itemIdentifier = asTupleMatch[1]!;
       indexIdentifier = asTupleMatch[2] ?? null;
       const explicitTupleKey = asTupleMatch[3]?.trim() ?? null;
+      explicitKey = explicitTupleKey !== null;
       const itemOffsetInSource = bindingSliceStart + bindingSlice.indexOf(itemIdentifier);
       rawKeyExpression = explicitTupleKey ?? itemIdentifier;
+      const keyOffset = explicitTupleKey
+        ? bindingSliceStart + Math.max(0, bindingSlice.lastIndexOf(explicitTupleKey))
+        : itemOffsetInSource;
       keyExpression = parseExpressionSlice(
         rawKeyExpression,
-        explicitTupleKey ? bindingSliceStart : itemOffsetInSource,
+        keyOffset,
         ctx.lineMap
       );
     } else {
@@ -313,6 +323,7 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
       if (bindingMatch) {
         itemIdentifier = bindingMatch[1]!;
         indexIdentifier = bindingMatch[2] ?? null;
+        explicitKey = true;
         const keyOpenParenOffset = bindingSliceStart + bindingMatch[0].length - 1;
         const keyParsed = parseEmbeddedExpression(
           ctx.source,
@@ -352,6 +363,7 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
         }
         itemIdentifier = simpleMatch[1]!;
         indexIdentifier = simpleMatch[2] ?? null;
+        explicitKey = false;
         const itemOffsetInSource = bindingSliceStart + bindingSlice.indexOf(itemIdentifier);
         rawKeyExpression = itemIdentifier;
         keyExpression = parseExpressionSlice(rawKeyExpression, itemOffsetInSource, ctx.lineMap);
@@ -377,7 +389,8 @@ export function parseEachBlock(ctx: ParserContext): EachBlockNode | EachExtNode 
     indexIdentifier,
     keyExpression,
     rawKeyExpression,
-    isLegacyHashEach
+    isLegacyHashEach,
+    explicitKey
   );
 }
 

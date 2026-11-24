@@ -182,6 +182,7 @@ function lowerEachComponent(
     ? normalizedKey.expression
     : deepFreeze({ type: "Identifier", name: itemIdentifier, start: node.span.start.offset, end: node.span.end.offset, range: [node.span.start.offset, node.span.end.offset] as const, loc: node.span });
   const rawKeyExpr = normalizedKey ? normalizedKey.raw : itemIdentifier;
+  const explicitKey = keyPropSlice !== null;
 
   if (!renderSlice && !skipSlice && !stopSlice && !hasEmptyChild && !fallbackProp) {
     return deepFreeze({
@@ -193,6 +194,7 @@ function lowerEachComponent(
       indexIdentifier,
       keyExpression: keyExpr,
       rawKeyExpression: rawKeyExpr,
+      explicitKey,
       children: normalizedChildren,
       span: node.span
     }) as EachBlockNode;
@@ -207,6 +209,7 @@ function lowerEachComponent(
     indexIdentifier,
     keyExpression: keyExpr,
     rawKeyExpression: rawKeyExpr,
+    explicitKey,
     controls: deepFreeze([]),
     skipExpression: skipSlice ? skipSlice.expression : null,
     rawSkipExpression: skipSlice ? normalizePredicateToCanonicalArrow(skipSlice.expression, skipSlice.raw) : null,

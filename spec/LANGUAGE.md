@@ -125,15 +125,29 @@ DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
 {endif}
 ```
 
-### 6.2 Keyed Collection Block (`{each (item, index) in items} ... {endeach}` — `D-110` & `D-112`)
+### 6.2 Keyed Collection Block (`{each (item, index) in items} ... {endeach}` — `D-110`, `D-112`, `D-188`)
 ```mix
 {each (item, index) in itemsExpr}
   <li>{index}: {item.label}</li>
 {endeach}
 ```
-- Also supports `{each item in itemsExpr} ... {endeach}` and `{each itemsExpr as (item, index)} ... {endeach}`.
-- Automatically resolves the item key via `(item?.id ?? item?.key ?? item)` (or accepts an explicit third tuple expression `{each (item, index, item.customKey) in itemsExpr}`) while enforcing `D-110` (`HAA-02`) atomic duplicate-key rejection at runtime.
+- Also supports `{each item in itemsExpr} ... {endeach}`, `{each itemsExpr as (item, index)} ... {endeach}`, and `<Each data={itemsExpr} key?={...}>`.
+- **Two-Mode Key Policy (`D-188`):**
+  - **Implicit mode** (no key written): resolves `item.id` if a valid primitive (`string | finite number | symbol`), else `item.key` if a valid primitive, else object/function reference identity, else primitive value (`-0` normalized to `0`). Implicit mode never throws on keys; duplicate implicit keys are disambiguated by occurrence with per-list interned synthetic keys (preserving DOM nodes across updates) and emit a single dev warning per list (`MIX_WARN_IMPLICIT_DUPLICATE_KEY`).
+  - **Explicit mode** (author wrote a key: `{each (item, i, keyExpr) in list}`, `{each list as (item, i, keyExpr)}`, `{#each list as item (keyExpr)}`, or `<Each key={...}>`): strict mode enforcing valid primitive keys (`string | finite number | symbol`, rejecting objects, `null`, `undefined`, `NaN`, `±Infinity`, booleans, bigints with `MIX_ERR_INVALID_KEY`) and atomic duplicate-key rejection (`MIX_ERR_DUPLICATE_KEY`, `D-110` / `HAA-02`). `.tix` typechecking (`mix check` / LSP) also checks explicit key expressions against `string | number | symbol` at compile time.
 - **Legacy Control-Flow Deprecation (`D-133`):** Legacy `{#if}` / `{#each}` / `{#await}` blocks remain parseable for backward compatibility and emit a `MIX_WARN_LEGACY_CONTROL_FLOW` warning in `mix check` and the Language Server.
+
+### 6.3 Error Boundary Block (`{try} ... {catch err, reset} ... {endtry}` — `D-189`)
+```mix
+{try}
+  <RiskyWidget />
+{catch err, reset}
+  <p>Failed: {String(err)}</p>
+  <button onClick={reset}>Retry</button>
+{endtry}
+```
+- Dual-mode equivalent: `<ErrorBoundary fallback={(err, reset) => ...}>...</ErrorBoundary>`.
+- Catches synchronous render errors, reactive effect errors, and event handler errors inside its subtree, renders the fallback, and restores the primary subtree when `reset()` is invoked. During SSR (`renderToString`), a thrown error rolls back partial subtree output and renders the fallback HTML.
 
 ---
 

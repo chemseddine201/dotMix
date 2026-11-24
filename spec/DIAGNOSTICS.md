@@ -56,7 +56,9 @@ export interface SpanEntry {
 | `MIX_ERR_UNCLOSED_TAG` | Error | Mismatched or unclosed HTML, component, or `<{~expr}>` tag | `D-105`, `R-SYN-02` |
 | `MIX_ERR_CSS_FORBIDDEN_IMPORT` | Error | `@import` rule detected in component `<style>` | `D-108` |
 | `MIX_ERR_CSS_FORBIDDEN_CHARSET` | Error | `@charset` rule detected in component `<style>` | `D-108` |
-| `MIX_ERR_DUPLICATE_KEY` | Error | Duplicate key encountered during keyed reconciliation | `D-110` / `HAA-02` |
+| `MIX_ERR_DUPLICATE_KEY` | Error | Duplicate explicit key encountered during keyed reconciliation | `D-110` / `HAA-02`, `D-188` |
+| `MIX_ERR_INVALID_KEY` | Error | Explicit `{each}` / `<Each>` key is not a `string`, finite `number`, or `symbol` (runtime & `.tix` compile-time) | `D-188` |
+| `MIX_WARN_IMPLICIT_DUPLICATE_KEY` | Warning | Duplicate implicit key disambiguated by occurrence in development mode (emitted once per list) | `D-188` |
 | `MIX_ERR_UNRESOLVED_IDENTIFIER`| Error | Variable or function reference cannot be resolved in scope | Core Semantics |
 | `MIX_ERR_INVALID_PROP_TYPE` | Error | `.tix` prop, ref, or import extension violates typecheck contract | `D-106`, `R-TC-01..03` |
 | `MIX_INTERNAL_TYPECHECK` | Error | Internal `.tix` projection diagnostic fell in synthetic wrapper | `D-106`, `R-SP-04` |

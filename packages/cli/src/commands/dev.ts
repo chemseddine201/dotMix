@@ -44,7 +44,8 @@ export async function devCommand(parsed: ParsedCliArgs): Promise<number> {
     host,
     cors: options.dev.cors,
     silent: true,
-    mode: options.dev.mode
+    mode: options.dev.mode,
+    ...(options.dev.editor ? { editor: options.dev.editor } : {})
   });
 
   if (!silent) {

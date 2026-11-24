@@ -33,6 +33,7 @@ import {
   type StackNode,
   type StackPushNode,
   type TemplateNode,
+  type TryBlockNode,
   type VerbatimNode,
   type YieldNode
 } from "@dotmix/ast";
@@ -383,6 +384,20 @@ export function lowerExtendedDirectiveComponent(
         return node;
       }
       return createDirectiveNode<HydrateNode>({ type: "Hydrate", form: "component", when: parsed.when, media: parsed.media, children: lowerList(node.children), span: node.span });
+    }
+
+    case "ErrorBoundary": {
+      const fb = extractPropAsTemplateNodes(findAttr(node, "fallback"));
+      if (!fb) {
+        pushDirectiveError(diagnostics, DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, "'<ErrorBoundary>' requires a 'fallback' prop.", node.span);
+        return node;
+      }
+      const catchIdentifier = fb.params[0] ?? null;
+      const resetIdentifier = fb.params[1] ?? null;
+      return createDirectiveNode<TryBlockNode>({
+        type: "TryBlock", form: "component", children: lowerList(node.children),
+        catchIdentifier, resetIdentifier, fallback: rewriteEachIndexInTemplateTree(lowerList(fb.nodes), catchIdentifier), span: node.span
+      });
     }
 
     case "KeepAlive": {

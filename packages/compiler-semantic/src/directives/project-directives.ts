@@ -110,8 +110,8 @@ export function projectDirectiveTemplateNode(
       callbacks.appendInternal(" of (");
       callbacks.appendVerbatim(node.rawCollection, startOf(node.collection));
       callbacks.appendInternal(`)) {\n      void ${node.itemIdentifier};\n`);
-      if (node.rawKeyExpression) {
-        callbacks.appendInternal("      void (");
+      if (node.rawKeyExpression && node.explicitKey) {
+        callbacks.appendInternal("      VerifyKey(");
         callbacks.appendVerbatim(node.rawKeyExpression, startOf(node.keyExpression));
         callbacks.appendInternal(");\n");
       }
@@ -213,6 +213,19 @@ export function projectDirectiveTemplateNode(
       callbacks.emitTemplateChecks(node.children, inSvg);
       callbacks.emitTemplateChecks(node.fallback, inSvg);
       return true;
+    case "TryBlock": {
+      callbacks.emitTemplateChecks(node.children, inSvg);
+      callbacks.appendInternal("  {\n");
+      if (node.catchIdentifier) {
+        callbacks.appendInternal(`    const ${node.catchIdentifier}: unknown = undefined;\n    void ${node.catchIdentifier};\n`);
+      }
+      if (node.resetIdentifier) {
+        callbacks.appendInternal(`    const ${node.resetIdentifier}: () => void = () => {};\n    void ${node.resetIdentifier};\n`);
+      }
+      callbacks.emitTemplateChecks(node.fallback, inSvg);
+      callbacks.appendInternal("  }\n");
+      return true;
+    }
     default:
       return false;
   }

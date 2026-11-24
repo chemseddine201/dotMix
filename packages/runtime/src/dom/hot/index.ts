@@ -12,6 +12,7 @@
 import {
   createRoot,
   getCurrentOwner,
+  reportError,
   withComponentProps,
   type Owner
 } from "../../core/index.js";
@@ -339,37 +340,19 @@ export function hmrSwapComponent(
 }
 
 function showErrorOverlay(err: unknown): void {
-  if (typeof document === "undefined") return;
+  reportError(err, { source: "render" });
+  if (typeof window === "undefined") return;
   const msg = err instanceof Error ? err.message : String(err);
-  const win = typeof window !== "undefined" ? (window as unknown as WindowWithMixOverlay) : undefined;
-  if (win && typeof win.__mix_show_error === "function") {
+  const win = window as unknown as WindowWithMixOverlay;
+  if (typeof win.__mix_show_error === "function") {
     win.__mix_show_error({ message: msg, frame: msg });
-    return;
   }
-  let overlay = document.querySelector("mix-error-overlay");
-  if (!overlay) {
-    overlay = document.createElement("mix-error-overlay");
-    overlay.setAttribute("id", "mix-error-overlay");
-    const shadow = overlay.attachShadow({ mode: "open" });
-    const pre = document.createElement("pre");
-    pre.className = "error-message";
-    shadow.appendChild(pre);
-    document.body?.appendChild(overlay);
-  }
-  overlay.textContent = `[Mix Runtime Error] ${msg}`;
-  const pre = overlay.shadowRoot?.querySelector("pre");
-  if (pre) pre.textContent = msg;
 }
 
 function clearErrorOverlay(): void {
-  if (typeof document === "undefined") return;
-  const win = typeof window !== "undefined" ? (window as unknown as WindowWithMixOverlay) : undefined;
-  if (win && typeof win.__mix_clear_error === "function") {
+  if (typeof window === "undefined") return;
+  const win = window as unknown as WindowWithMixOverlay;
+  if (typeof win.__mix_clear_error === "function") {
     win.__mix_clear_error();
-    return;
-  }
-  const overlay = document.querySelector("mix-error-overlay");
-  if (overlay) {
-    overlay.remove();
   }
 }

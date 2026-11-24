@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/language-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Language Server Protocol implementation for Mix/Tix",
   "files": [
     "dist"
@@ -21,9 +21,9 @@
     "mix-lsp": "bin/dotmix-lsp.js"
   },
   "dependencies": {
-    "@dotmix/compiler-frontend": "0.3.0",
-    "@dotmix/compiler-semantic": "0.3.0",
-    "@dotmix/diagnostics": "0.3.0",
+    "@dotmix/compiler-frontend": "0.4.0",
+    "@dotmix/compiler-semantic": "0.4.0",
+    "@dotmix/diagnostics": "0.4.0",
     "typescript": "6.0.3"
   },
   "license": "MIT"

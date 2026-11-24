@@ -297,6 +297,11 @@ export interface HydrateProps {
   children: Children;
 }
 
+export interface ErrorBoundaryProps {
+  fallback: ((error: unknown, reset: () => void) => Children) | Children;
+  children: Children;
+}
+
 // F13: Server rendering
 export interface SessionProps<T = unknown> {
   key: string;

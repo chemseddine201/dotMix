@@ -2,7 +2,8 @@
  * @dotmix/runtime/dom/hydration — SSR/SSG Hydration walker, claim primitives, and subtree mismatch recovery.
  */
 
-import { createRoot } from "../core/index.js";
+import { createRoot, getCurrentOwner, type Owner, type RuntimeErrorInfo } from "../core/index.js";
+import { handleRootFailure, type RootErrorFallback } from "./error-boundary.js";
 
 export interface HydrationMismatch {
   readonly expected: string;
@@ -14,6 +15,8 @@ export interface HydrationMismatch {
 export interface HydrateOptions {
   readonly onMismatch?: ((mismatch: HydrationMismatch) => void) | undefined;
   readonly dev?: boolean | undefined;
+  readonly onError?: ((error: unknown, info: RuntimeErrorInfo) => void) | undefined;
+  readonly fallback?: RootErrorFallback | undefined;
 }
 
 export interface MountOptions extends HydrateOptions {
@@ -292,11 +295,25 @@ export function hydrate(
   activeHydrationContext = walker;
 
   let rootDisposer: (() => void) | null = null;
+  let rootOwner: Owner | null = null;
+  let didHydrate = false;
+
   try {
     createRoot((dispose) => {
       rootDisposer = dispose;
+      rootOwner = getCurrentOwner();
+      if (rootOwner) {
+        rootOwner.errorHandler = (err) => handleRootFailure(err, "hydrate", container, rootOwner, options, !didHydrate);
+      }
       component();
+      didHydrate = true;
     });
+  } catch (err) {
+    if (rootDisposer) {
+      try { (rootDisposer as () => void)(); } catch { /* ignore */ }
+      rootDisposer = null;
+    }
+    handleRootFailure(err, "hydrate", container, rootOwner, options, true);
   } finally {
     activeHydrationContext = prevContext;
   }

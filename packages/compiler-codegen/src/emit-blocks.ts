@@ -152,21 +152,43 @@ export function emitEachBlock(
   const itemIdent = node.itemIdentifier;
   const indexIdent = node.indexIdentifier ?? ctx.nextId("unusedIdx");
 
+  const isExplicit = node.explicitKey === true;
+  const isDev = ctx.mode === "development";
+
   // Inside keyFn `(item, idx) => keyExpr`, item and idx are plain parameters
   // while outer loopGetters (if nested inside another #each) remain active
-  const keyLoopGetters = new Map(loopGetters);
-  keyLoopGetters.delete(itemIdent);
-  if (node.indexIdentifier) {
-    keyLoopGetters.delete(node.indexIdentifier);
+  let keyFnCode: string;
+  if (isExplicit) {
+    const keyLoopGetters = new Map(loopGetters);
+    keyLoopGetters.delete(itemIdent);
+    if (node.indexIdentifier) {
+      keyLoopGetters.delete(node.indexIdentifier);
+    }
+    const keyJs = ctx.emitExpr(
+      node.rawKeyExpression,
+      node.keyExpression,
+      keyLoopGetters
+    );
+    keyFnCode = `(${itemIdent}, ${indexIdent}) => (${keyJs})`;
+  } else {
+    keyFnCode = "null";
   }
-  const keyJs =
-    node.rawKeyExpression.trim() === itemIdent
-      ? `(${itemIdent}?.id ?? ${itemIdent}?.key ?? ${itemIdent})`
-      : ctx.emitExpr(
-          node.rawKeyExpression,
-          node.keyExpression,
-          keyLoopGetters
-        );
+
+  let optionsArg: string | null = null;
+  if (isDev) {
+    const locObj = {
+      file: ctx.formatDevFile(),
+      line: node.span.start.line,
+      column: node.span.start.column,
+      collection: node.rawCollection,
+      ...(isExplicit ? { keyExpr: node.rawKeyExpression } : {}),
+      itemIdent,
+      ...(node.indexIdentifier ? { indexIdent: node.indexIdentifier } : {})
+    };
+    optionsArg = `{ mode: ${JSON.stringify(isExplicit ? "explicit" : "implicit")}, loc: ${JSON.stringify(locObj)} }`;
+  } else if (!isExplicit) {
+    optionsArg = `{ mode: "implicit" }`;
+  }
 
   const itemGetterVar = ctx.nextId(`get_${itemIdent}`);
   const indexGetterVar = ctx.nextId(`get_${indexIdent}`);
@@ -187,11 +209,12 @@ export function emitEachBlock(
     `__createKeyedEach(`,
     `  ${parentVar},`,
     `  () => (${collectionJs}),`,
-    `  (${itemIdent}, ${indexIdent}) => (${keyJs}),`,
+    `  ${keyFnCode},`,
     `  (${itemGetterVar}, ${indexGetterVar}) => {`,
     `    void ${itemGetterVar}; void ${indexGetterVar};`,
     indentLines(rowLines.join("\n"), 4),
-    `  }`,
+    optionsArg ? `  },` : `  }`,
+    ...(optionsArg ? [`  null,`, `  ${optionsArg}`] : []),
     `);`
   ];
 }

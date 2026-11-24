@@ -4,8 +4,11 @@
 
 import {
   createEffect,
+  findErrorHandler,
   getCurrentOwner,
-  onCleanup
+  onCleanup,
+  reportError,
+  type Owner
 } from "../../core/index.js";
 import type { EventModifiers } from "./contract-types.js";
 
@@ -94,11 +97,26 @@ interface WrappedEventListener {
 function wrapEventListener(
   el: EventTarget,
   handler: EventListener,
-  modifiers?: EventModifiers
+  modifiers?: EventModifiers,
+  owner?: Owner | null
 ): WrappedEventListener {
   const expectedKeys = modifiers ? collectExpectedKeys(modifiers) : null;
   let debounceTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
   let lastThrottleTime = -Infinity;
+
+  const invokeHandler = (ev: Event): void => {
+    try {
+      handler(ev);
+    } catch (err) {
+      const eh = findErrorHandler(owner ?? null);
+      if (eh) {
+        eh(err);
+        return;
+      }
+      reportError(err, { source: "event" }, owner);
+      throw err;
+    }
+  };
 
   const cancelTimers = (): void => {
     if (debounceTimer !== null) {
@@ -134,7 +152,7 @@ function wrapEventListener(
         cancelTimers();
         debounceTimer = globalThis.setTimeout(() => {
           debounceTimer = null;
-          handler(event);
+          invokeHandler(event);
         }, modifiers.debounce);
         return;
       }
@@ -146,7 +164,7 @@ function wrapEventListener(
         lastThrottleTime = now;
       }
     }
-    handler(event);
+    invokeHandler(event);
   };
 
   return { listener, cancelTimers };
@@ -158,9 +176,10 @@ export function __mixOnEvent(
   handler: EventListener,
   modifiers?: EventModifiers
 ): () => void {
+  const owner = getCurrentOwner();
   const target = resolveEventTarget(el, modifiers);
   const options = buildListenerOptions(modifiers);
-  const wrapped = wrapEventListener(el, handler, modifiers);
+  const wrapped = wrapEventListener(el, handler, modifiers, owner);
   let attached = true;
 
   target.addEventListener(eventName, wrapped.listener, options);
@@ -174,7 +193,7 @@ export function __mixOnEvent(
     target.removeEventListener(eventName, wrapped.listener, options);
   };
 
-  if (getCurrentOwner()) {
+  if (owner) {
     onCleanup(cleanup);
   }
 
@@ -190,6 +209,7 @@ export function __mixOnConditionalEvent(
   modifiers?: EventModifiers,
   invert?: boolean
 ): () => void {
+  const owner = getCurrentOwner();
   const target = resolveEventTarget(el, modifiers);
   const options = buildListenerOptions(modifiers);
 
@@ -222,7 +242,7 @@ export function __mixOnConditionalEvent(
     detach();
 
     if (nextRaw !== null) {
-      const nextWrapped = wrapEventListener(el, nextRaw, modifiers);
+      const nextWrapped = wrapEventListener(el, nextRaw, modifiers, owner);
       target.addEventListener(eventName, nextWrapped.listener, options);
       attachedRaw = nextRaw;
       attachedWrapped = nextWrapped;
@@ -237,7 +257,7 @@ export function __mixOnConditionalEvent(
     detach();
   };
 
-  if (getCurrentOwner()) {
+  if (owner) {
     onCleanup(cleanup);
   }
 

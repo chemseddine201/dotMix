@@ -30,7 +30,8 @@ It ships with a fine-grained reactive runtime, a permissions engine (RBAC/ABAC),
 | **Timezones without tzdata** | IANA timezone conversion in `@dotmix/helpers/datetime` uses the platform `Intl` API, so no timezone database is bundled. |
 | **HTTP client** | `@dotmix/helpers/http`: interceptors, retries with backoff, request deduplication, caching, and a reactive `useHttp` hook. |
 | **Offline-first CRDT state** | `@dotmix/sync`: local-first collections with Lamport clocks, fractional indexing, signed operations and durable IndexedDB storage. |
-| **Safe keyed lists** | Duplicate keys in a keyed list are rejected up front with a deterministic error, before any DOM change. |
+| **Safe two-mode list keys** | Implicit `{each}` works on plain objects without `id` (object identity + occurrence disambiguation); explicit keys (`{each (x, i, key) in list}` / `<Each key={...}>`) enforce primitive uniqueness atomically and are checked at compile time in `.tix`. |
+| **Dev overlay & error boundaries** | Browser error overlay in `mix dev` with source-mapped `.tix`/`.mix` code frames, component stack, and open-in-editor; dual-mode `{try}`/`<ErrorBoundary>` and production root safety net with zero dev overhead in `dist/`. |
 | **Multi-Preprocessor Scoped CSS** | Build-time compilation for `.scss`, `.sass`, `.less`, `.pcss`, and `.css` with strict AST-level scoping and security checks. |
 | **TypeScript checking** | `.tix` components are type-checked (props, generics, imports) with the TypeScript compiler against real `.d.ts` files. |
 | **Static Site Generation & SEO** | Browserless `mix build --static` with zero-JS static pages, automatic `idle` islands, dual-mode `{hydrate}` / `<Hydrate>`, `i18n` `hreflang`, universal `useHead`, `sitemap.xml`, and hash-based CSP (`_headers`). |
@@ -41,16 +42,16 @@ See [FEATURES.md](FEATURES.md) for details.
 
 ## Quick Start
 
-> **Status: release 0.3.0.** APIs may still evolve before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
+> **Status: release 0.4.0.** APIs may still evolve before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
 
 ### 1. Scaffold a New Project
 
 ```bash
 # TypeScript with SCSS
-npx -p @dotmix/cli@0.3.0 mix create my-app --ts --scss
+npx -p @dotmix/cli@0.4.0 mix create my-app --ts --scss
 
 # Or plain JavaScript with CSS
-npx -p @dotmix/cli@0.3.0 mix create my-app --js --css
+npx -p @dotmix/cli@0.4.0 mix create my-app --js --css
 ```
 
 ### 2. Project Directory Structure
@@ -120,7 +121,7 @@ cd editors/vscode-mix
 npm run package
 
 # Install it, replacing any older version
-code --install-extension vscode-mix-0.3.0.vsix --force
+code --install-extension vscode-mix-0.4.0.vsix --force
 ```
 
 Then run **Developer: Reload Window** (Ctrl+Shift+P, or Cmd+Shift+P on macOS).

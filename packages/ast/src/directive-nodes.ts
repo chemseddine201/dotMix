@@ -47,6 +47,7 @@ export interface EachExtNode extends FormBase {
   readonly indexIdentifier: string | null;
   readonly keyExpression: ESTreeNode | null;
   readonly rawKeyExpression: string | null;
+  readonly explicitKey?: boolean | undefined;
   readonly controls: readonly LoopControlDirective[];
   readonly skipExpression: ESTreeNode | null;
   readonly rawSkipExpression: string | null;
@@ -115,6 +116,13 @@ export interface MemoNode extends FormBase { readonly type: "Memo"; readonly dep
 export interface LazyNode extends FormBase { readonly type: "Lazy"; readonly trigger: "visible" | "idle"; readonly triggerExpr: ESTreeNode | null; readonly rawTriggerExpr: string | null; readonly fallback: readonly TemplateNode[]; readonly children: readonly TemplateNode[]; }
 export type HydrateWhen = "load" | "idle" | "visible" | "media" | "never";
 export interface HydrateNode extends FormBase { readonly type: "Hydrate"; readonly when: HydrateWhen; readonly media: string | null; readonly children: readonly TemplateNode[]; }
+export interface TryBlockNode extends FormBase {
+  readonly type: "TryBlock";
+  readonly children: readonly TemplateNode[];
+  readonly catchIdentifier: string | null;
+  readonly resetIdentifier: string | null;
+  readonly fallback: readonly TemplateNode[];
+}
 export interface KeepAliveBlockNode extends FormBase { readonly type: "KeepAliveBlock"; readonly activeKey: ESTreeNode; readonly rawActiveKey: string; readonly max: ESTreeNode | null; readonly rawMax: string | null; readonly asIdentifier: string | null; readonly children: readonly TemplateNode[]; }
 export interface SessionBlockNode extends BranchPairBase { readonly type: "SessionBlock"; readonly key: ESTreeNode; readonly rawKey: string; readonly asIdentifier: string | null; }
 export interface JsonNode extends FormBase { readonly type: "Json"; readonly id: ESTreeNode; readonly rawId: string; readonly data: ESTreeNode; readonly rawData: string; }
@@ -170,7 +178,7 @@ export type DirectiveTemplateNode =
   | CsrfNode | MethodNode | SectionNode | YieldNode
   | HasSectionNode | SectionMissingNode | StackPushNode | StackNode
   | HeadGroupNode | IncludeNode | IncludeFirstNode | OnceNode
-  | MemoNode | LazyNode | HydrateNode | KeepAliveBlockNode | SessionBlockNode
+  | MemoNode | LazyNode | HydrateNode | TryBlockNode | KeepAliveBlockNode | SessionBlockNode
   | PartialNode | JsonNode | DumpNode | VerbatimNode
   | TemplateRenderFunctionNode;
 
@@ -261,6 +269,7 @@ export const DIRECTIVE_GRAMMAR = deepFreeze({
     dg("memo", "memo", "endmemo", "Memo"),
     dg("lazy", "lazy", "endlazy", "Lazy", { branchMarkers: ["else"], branchComponents: [br("Else", "lazy", "else")], supportsElse: true }),
     dg("hydrate", "hydrate", "endhydrate", "Hydrate"),
+    dg("try", "try", "endtry", "ErrorBoundary", { branchMarkers: ["catch"], importSources: ["@dotmix/runtime", DIRECTIVES_IMPORT_PATH] }),
     dg("keepalive", "keepalive", "endkeepalive", "KeepAlive"),
     dg("session", "session", "endsession", "Session", { branchMarkers: ["else"], branchComponents: [br("Else", "session", "else")], supportsElse: true }),
     dg("partial", "partial", "endpartial", "Partial"),
@@ -347,6 +356,10 @@ export function walkDirectiveNode(
       break;
     case "Hydrate":
       visitAll(node.children);
+      break;
+    case "TryBlock":
+      visitAll(node.children);
+      visitAll(node.fallback);
       break;
     case "TemplateRenderFunction":
       visitAll(node.body);

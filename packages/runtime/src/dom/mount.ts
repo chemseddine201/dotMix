@@ -20,6 +20,7 @@ import {
   type MountOptions
 } from "./hydration.js";
 import { removeNode, normalizeToNodeArray } from "./nodes.js";
+import { handleRootFailure } from "./error-boundary.js";
 import {
   registerHmrInstance,
   unregisterHmrInstance,
@@ -30,7 +31,10 @@ import {
   type HmrComponentFn
 } from "./hot/index.js";
 
-type HmrComponentMeta = { __mix_hmr_id?: string };
+type HmrComponentMeta = {
+  __mix_hmr_id?: string;
+  __mix_dev?: { readonly name: string; readonly file?: string };
+};
 
 export interface MountedComponent {
   readonly nodes: readonly Node[];
@@ -39,6 +43,8 @@ export interface MountedComponent {
 }
 
 export type MountHandle = MountedComponent;
+
+let lastFailedMountOwner: Owner | null = null;
 
 export function mountComponent<P extends Record<string, unknown>>(
   ComponentFn: (props: P) => Node | readonly Node[],
@@ -51,18 +57,36 @@ export function mountComponent<P extends Record<string, unknown>>(
   let compOwner: Owner | null = null;
   let nodes: Node[] = [];
 
-  const hmrId = (ComponentFn as unknown as HmrComponentMeta).__mix_hmr_id;
+  const meta = ComponentFn as unknown as HmrComponentMeta;
+  const hmrId = meta.__mix_hmr_id;
+  const devMeta = meta.__mix_dev;
+  const tagOwner = (o: Owner | null): void => {
+    if (!o) return;
+    if (devMeta) {
+      o.componentName = devMeta.name;
+      if (devMeta.file) o.componentFile = devMeta.file;
+    } else if (ComponentFn.name) {
+      o.componentName = ComponentFn.name;
+    }
+  };
   let startMarker: Comment | null = null;
   let endMarker: Comment | null = null;
   let hmrRecord: HmrInstanceRecord | null = null;
+
+  const invoke = (): Node[] => {
+    try {
+      return normalizeToNodeArray(withComponentProps(props, () => ComponentFn(props)));
+    } catch (err) {
+      if (!lastFailedMountOwner) lastFailedMountOwner = compOwner;
+      throw err;
+    }
+  };
 
   if (hmrId && typeof document !== "undefined") {
     const instanceKey = generateInstanceKey(hmrId, props);
     startMarker = document.createComment(`mix:hmr-start:${instanceKey}`);
     endMarker = document.createComment(`mix:hmr-end:${instanceKey}`);
-    if (parent) {
-      parent.insertBefore(startMarker, anchor ?? null);
-    }
+    if (parent) parent.insertBefore(startMarker, anchor ?? null);
 
     const prevKey = getActiveInstanceKey();
     setActiveInstanceKey(instanceKey);
@@ -71,13 +95,10 @@ export function mountComponent<P extends Record<string, unknown>>(
       createRoot((dispose) => {
         disposeFn = dispose;
         compOwner = getCurrentOwner();
-        nodes = normalizeToNodeArray(
-          withComponentProps(props, () => ComponentFn(props))
-        );
+        tagOwner(compOwner);
+        nodes = invoke();
         if (parent) {
-          for (const node of nodes) {
-            parent.insertBefore(node, anchor ?? null);
-          }
+          for (const node of nodes) parent.insertBefore(node, anchor ?? null);
           parent.insertBefore(endMarker!, anchor ?? null);
         }
       }, parentOwner);
@@ -86,15 +107,8 @@ export function mountComponent<P extends Record<string, unknown>>(
     }
 
     hmrRecord = registerHmrInstance(
-      hmrId,
-      ComponentFn as unknown as HmrComponentFn,
-      props,
-      startMarker,
-      endMarker,
-      compOwner,
-      disposeFn,
-      instanceKey,
-      nodes
+      hmrId, ComponentFn as unknown as HmrComponentFn, props,
+      startMarker, endMarker, compOwner, disposeFn, instanceKey, nodes
     );
   } else {
     const walker = getHydrationContext();
@@ -104,24 +118,21 @@ export function mountComponent<P extends Record<string, unknown>>(
     createRoot((dispose) => {
       disposeFn = dispose;
       compOwner = getCurrentOwner();
+      tagOwner(compOwner);
       if (walker && compOpen && compClose) {
         nodes = runWithHydrationSubtree(
-          walker,
-          compOpen,
-          compClose,
+          walker, compOpen, compClose,
           () => {
             walker.pushScope();
-            const res = normalizeToNodeArray(withComponentProps(props, () => ComponentFn(props)));
+            const res = invoke();
             const scoped = walker.popScope();
             return res.length > 0 ? res : scoped;
           },
           () => {
-            const res = normalizeToNodeArray(withComponentProps(props, () => ComponentFn(props)));
+            const res = invoke();
             const targetParent = compClose.parentNode ?? parent;
             if (targetParent) {
-              for (const node of res) {
-                targetParent.insertBefore(node, compClose);
-              }
+              for (const node of res) targetParent.insertBefore(node, compClose);
             }
             return res;
           }
@@ -131,7 +142,7 @@ export function mountComponent<P extends Record<string, unknown>>(
         }
       } else if (walker) {
         walker.pushScope();
-        const res = normalizeToNodeArray(withComponentProps(props, () => ComponentFn(props)));
+        const res = invoke();
         const scoped = walker.popScope();
         nodes = res.length > 0 ? res : scoped;
         if (walker.hasMismatch() && parent) {
@@ -139,48 +150,76 @@ export function mountComponent<P extends Record<string, unknown>>(
           if (parent.nodeType !== 11 && "replaceChildren" in parent) {
             (parent as Element).replaceChildren();
           }
-          nodes = runWithoutHydration(() =>
-            normalizeToNodeArray(withComponentProps(props, () => ComponentFn(props)))
-          );
-          for (const node of nodes) {
-            parent.insertBefore(node, anchor ?? null);
-          }
+          nodes = runWithoutHydration(() => invoke());
+          for (const node of nodes) parent.insertBefore(node, anchor ?? null);
         } else if (parent && parent.nodeType === 11) {
           for (const n of nodes) walker.recordScopeNode(n);
         }
       } else {
-        nodes = normalizeToNodeArray(
-          withComponentProps(props, () => ComponentFn(props))
-        );
+        nodes = invoke();
         if (parent) {
-          for (const node of nodes) {
-            parent.insertBefore(node, anchor ?? null);
-          }
+          for (const node of nodes) parent.insertBefore(node, anchor ?? null);
         }
       }
     }, parentOwner);
   }
 
   const cleanup = (): void => {
-    if (hmrRecord) {
-      unregisterHmrInstance(hmrRecord);
-    }
+    if (hmrRecord) unregisterHmrInstance(hmrRecord);
     disposeFn();
-    for (const node of nodes) {
-      removeNode(node);
-    }
+    for (const node of nodes) removeNode(node);
     if (startMarker) removeNode(startMarker);
     if (endMarker) removeNode(endMarker);
   };
 
-  if (parentOwner && compOwner) {
-    onCleanup(cleanup);
-  }
+  if (parentOwner && compOwner) onCleanup(cleanup);
 
+  return { nodes, owner: compOwner, unmount: cleanup };
+}
+
+function runWithRootSafetyNet(
+  source: "mount" | "hydrate",
+  target: Element,
+  options: HydrateOptions | undefined,
+  run: () => MountedComponent
+): MountedComponent {
+  let activeHandle: MountedComponent | null = null;
+  let rootOwner: Owner | null = null;
+  let didMount = false;
+  let outerDispose: () => void = () => {};
+
+  lastFailedMountOwner = null;
+  try {
+    createRoot((dispose) => {
+      outerDispose = dispose;
+      rootOwner = getCurrentOwner();
+      if (rootOwner) {
+        rootOwner.errorHandler = (err) => {
+          const handled = handleRootFailure(err, source, target, lastFailedMountOwner ?? activeHandle?.owner ?? rootOwner, options, !didMount);
+          if (!handled && !didMount) throw err;
+        };
+      }
+      activeHandle = run();
+      didMount = true;
+    }, null);
+  } catch (err) {
+    const failedOwner = lastFailedMountOwner ?? (activeHandle as MountedComponent | null)?.owner ?? rootOwner;
+    lastFailedMountOwner = null;
+    const handled = handleRootFailure(err, source, target, failedOwner, options, true);
+    try { outerDispose(); } catch { /* ignore */ }
+    if (!handled) throw err;
+    return { nodes: [], owner: rootOwner, unmount: outerDispose };
+  }
+  lastFailedMountOwner = null;
+
+  const handle = activeHandle!;
   return {
-    nodes,
-    owner: compOwner,
-    unmount: cleanup
+    nodes: handle.nodes,
+    owner: handle.owner,
+    unmount: () => {
+      handle.unmount();
+      outerDispose();
+    }
   };
 }
 
@@ -190,18 +229,18 @@ export function hydrateRoot(
   props: Record<string, unknown> = {},
   options?: HydrateOptions
 ): MountedComponent {
-  const walker = new HydrationWalker(target, options);
-  const prevContext = setHydrationContext(walker);
-  let mounted!: MountedComponent;
-  try {
-    mounted = untrack(() => mountComponent(ComponentFn, props, target, null));
-  } finally {
-    setHydrationContext(prevContext);
-  }
-  if (target.hasAttribute("data-mix-ssr")) {
-    target.removeAttribute("data-mix-ssr");
-  }
-  return mounted;
+  return runWithRootSafetyNet("hydrate", target, options, () => {
+    const walker = new HydrationWalker(target, options);
+    const prevContext = setHydrationContext(walker);
+    let mounted!: MountedComponent;
+    try {
+      mounted = untrack(() => mountComponent(ComponentFn, props, target, null));
+    } finally {
+      setHydrationContext(prevContext);
+    }
+    if (target.hasAttribute("data-mix-ssr")) target.removeAttribute("data-mix-ssr");
+    return mounted;
+  });
 }
 
 export function mount(
@@ -214,14 +253,13 @@ export function mount(
     options?.hydrate === true ||
     (options?.hydrate !== false && target.hasAttribute("data-mix-ssr"));
 
-  if (shouldHydrate) {
-    return hydrateRoot(ComponentFn, target, props, options);
-  }
+  if (shouldHydrate) return hydrateRoot(ComponentFn, target, props, options);
 
-  if (target.hasAttribute("data-mix-prerendered")) {
-    target.removeAttribute("data-mix-prerendered");
-    target.replaceChildren();
-  }
-  return mountComponent(ComponentFn, props, target, null);
+  return runWithRootSafetyNet("mount", target, options, () => {
+    if (target.hasAttribute("data-mix-prerendered")) {
+      target.removeAttribute("data-mix-prerendered");
+      target.replaceChildren();
+    }
+    return mountComponent(ComponentFn, props, target, null);
+  });
 }
-

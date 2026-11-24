@@ -12,6 +12,7 @@ import {
 } from "./types.js";
 import { coreState } from "./state.js";
 import { createCancellationSource } from "./cancellation.js";
+import { reportError } from "./errors-reporter.js";
 import { batch } from "./scheduler.js";
 import { signal } from "./primitives.js";
 
@@ -91,6 +92,7 @@ export function createResource<T>(
       ) {
         return undefined;
       }
+      reportError(err, { source: "resource", handled: true }, owner);
       batch(() => {
         error.set(err);
         loading.set(false);

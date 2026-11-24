@@ -4,8 +4,8 @@
 
 import * as ts from "typescript";
 import { STYLE_EXTENSION_REGEX } from "./constants.js";
-import type { SeparatedScriptResult, SourceMapV3 } from "./types.js";
-import { applyTextEdits, shiftMapThroughEdits, type TextEdit } from "./build-transforms/source-map-chain.js";
+import type { ScriptLineMapping, SeparatedScriptResult, SourceMapV3 } from "./types.js";
+import { applyTextEdits, decodeMappings, shiftMapThroughEdits, type TextEdit } from "./build-transforms/source-map-chain.js";
 
 /**
  * Rewrites `.tix` / `.mix` import specifiers to `.tix.js` / `.mix.js` in emitted JavaScript (R-RS-03, R-RS-04).
@@ -35,10 +35,71 @@ export function rewriteModuleImportExtensions(scriptCode: string): string {
   return out;
 }
 
+function blankSpanPreservingNewlines(chars: string[], start: number, end: number): void {
+  for (let i = start; i < end && i < chars.length; i++) {
+    const c = chars[i];
+    if (c !== "\n" && c !== "\r") chars[i] = " ";
+  }
+}
+
+function scanJsLineMappings(lineText: string, srcLine: number, colOffset: number): ScriptLineMapping[] {
+  const segs: ScriptLineMapping[] = [];
+  if (lineText.trim().length === 0) return segs;
+  const scanner = ts.createScanner(ts.ScriptTarget.ES2023, true, ts.LanguageVariant.Standard, lineText);
+  let tok = scanner.scan();
+  while (tok !== ts.SyntaxKind.EndOfFileToken) {
+    const pos = scanner.getTokenPos();
+    segs.push({ genCol: pos, srcLine, srcCol: pos + colOffset });
+    tok = scanner.scan();
+  }
+  if (segs.length === 0) {
+    const firstNonWs = lineText.search(/\S/);
+    if (firstNonWs >= 0) segs.push({ genCol: firstNonWs, srcLine, srcCol: firstNonWs + colOffset });
+  }
+  return segs;
+}
+
+function trimBodyAndMappings(
+  rawLines: readonly string[],
+  rawMappings: readonly (readonly ScriptLineMapping[])[]
+): { bodyCode: string; bodyMappings: ScriptLineMapping[][] } {
+  let first = 0;
+  while (first < rawLines.length && rawLines[first]!.trim().length === 0) first++;
+  let last = rawLines.length - 1;
+  while (last >= first && rawLines[last]!.trim().length === 0) last--;
+  if (first > last) return { bodyCode: "", bodyMappings: [] };
+
+  const outLines: string[] = [];
+  const outMaps: ScriptLineMapping[][] = [];
+  for (let i = first; i <= last; i++) {
+    let line = rawLines[i]!;
+    let segs = [...(rawMappings[i] ?? [])];
+    if (i === first) {
+      const leadMatch = /^[\t ]+/.exec(line);
+      if (leadMatch) {
+        const trimLen = leadMatch[0].length;
+        line = line.slice(trimLen);
+        segs = segs.map((s) => ({
+          genCol: Math.max(0, s.genCol - trimLen),
+          srcLine: s.srcLine,
+          srcCol: s.srcCol
+        }));
+      }
+    }
+    if (i === last) {
+      line = line.trimEnd();
+    }
+    outLines.push(line);
+    outMaps.push(segs);
+  }
+  return { bodyCode: outLines.join("\n"), bodyMappings: outMaps };
+}
+
 /**
  * Uses the TypeScript 6.0.3 Compiler API to separate top-level `import` declarations
  * from component body statements, rewrite `.tix`/`.mix` module specifiers to `.js`,
- * and transpile TypeScript syntax (interfaces, type aliases, type annotations) to clean ES2023 JS.
+ * and transpile TypeScript syntax (interfaces, type aliases, type annotations) to clean ES2023 JS
+ * while preserving exact line/column source mappings for every body statement (F1).
  */
 export function extractAndTranspileScript(
   scriptContent: string,
@@ -53,39 +114,44 @@ export function extractAndTranspileScript(
     isTypeScript ? ts.ScriptKind.TS : ts.ScriptKind.JS
   );
 
+  // Build masked body with exact same line & column layout as `scriptContent`
+  const origSf = ts.createSourceFile(
+    isTypeScript ? "orig.ts" : "orig.js",
+    scriptContent,
+    ts.ScriptTarget.ES2023,
+    true,
+    isTypeScript ? ts.ScriptKind.TS : ts.ScriptKind.JS
+  );
+  const maskedChars = scriptContent.split("");
   const importSlices: string[] = [];
-  const bodySlices: string[] = [];
 
-  for (const stmt of sf.statements) {
+  for (let idx = 0; idx < sf.statements.length; idx++) {
+    const stmt = sf.statements[idx]!;
+    const origStmt = origSf.statements[idx];
     const text = rewritten.slice(stmt.getFullStart(), stmt.getEnd());
     if (ts.isImportDeclaration(stmt)) {
-      // Skip type-only imports (`import type ...`)
-      if (stmt.importClause?.isTypeOnly) {
-        continue;
-      }
-      // Skip pure stylesheet imports (`import "./foo.css"`, `.scss`, `.less`, etc.) because styles are compiled into __injectStylesheet
+      if (origStmt) blankSpanPreservingNewlines(maskedChars, origStmt.getFullStart(), origStmt.getEnd());
+      if (stmt.importClause?.isTypeOnly) continue;
       if (ts.isStringLiteral(stmt.moduleSpecifier) && STYLE_EXTENSION_REGEX.test(stmt.moduleSpecifier.text)) {
         continue;
       }
       importSlices.push(text.trim());
-    } else if (
-      ts.isInterfaceDeclaration(stmt) ||
-      ts.isTypeAliasDeclaration(stmt)
-    ) {
-      // Erase pure TypeScript type declarations
-      continue;
-    } else {
-      bodySlices.push(text);
+    } else if (ts.isInterfaceDeclaration(stmt) || ts.isTypeAliasDeclaration(stmt)) {
+      if (origStmt) blankSpanPreservingNewlines(maskedChars, origStmt.getFullStart(), origStmt.getEnd());
     }
   }
 
   const rawImports = importSlices.join("\n");
-  const rawBody = bodySlices.join("\n");
+  const maskedBody = maskedChars.join("");
 
   if (!isTypeScript) {
+    const rawLines = maskedBody.split(/\r?\n/);
+    const rawMaps = rawLines.map((ln, lineIdx) => scanJsLineMappings(ln, lineIdx, 0));
+    const trimmed = trimBodyAndMappings(rawLines, rawMaps);
     return {
       importsCode: rawImports,
-      bodyCode: rawBody.trim()
+      bodyCode: trimmed.bodyCode,
+      bodyMappings: trimmed.bodyMappings
     };
   }
 
@@ -97,16 +163,35 @@ export function extractAndTranspileScript(
     }
   }).outputText.trim();
 
-  const transpiledBody = ts.transpileModule(rawBody, {
+  const transpiled = ts.transpileModule(maskedBody, {
     compilerOptions: {
       target: ts.ScriptTarget.ES2023,
-      module: ts.ModuleKind.ESNext
+      module: ts.ModuleKind.ESNext,
+      sourceMap: true
     }
-  }).outputText.trim();
+  });
 
+  const cleanOutput = transpiled.outputText.replace(/\r?\n\/\/# sourceMappingURL=[^\r\n]*\s*$/, "");
+  const outLines = cleanOutput.split(/\r?\n/);
+  const decoded = transpiled.sourceMapText
+    ? decodeMappings((JSON.parse(transpiled.sourceMapText) as SourceMapV3).mappings)
+    : [];
+  const rawMaps: ScriptLineMapping[][] = outLines.map((_, idx) => {
+    const segs = decoded[idx] ?? [];
+    const mapped: ScriptLineMapping[] = [];
+    for (const seg of segs) {
+      if (seg.srcLine !== undefined && seg.srcCol !== undefined) {
+        mapped.push({ genCol: seg.genCol, srcLine: seg.srcLine, srcCol: seg.srcCol });
+      }
+    }
+    return mapped;
+  });
+
+  const trimmed = trimBodyAndMappings(outLines, rawMaps);
   return {
     importsCode: transpiledImports,
-    bodyCode: transpiledBody
+    bodyCode: trimmed.bodyCode,
+    bodyMappings: trimmed.bodyMappings
   };
 }
 

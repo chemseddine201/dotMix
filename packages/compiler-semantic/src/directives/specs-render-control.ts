@@ -61,6 +61,18 @@ export const RENDER_CONTROL_DIRECTIVE_SPECS: readonly DirectiveSpec[] = [
     summary: "Controls island hydration strategy (load | idle | visible | media \"<query>\" | never)."
   }),
   defineDirectiveSpec({
+    id: "try",
+    family: "render-control",
+    props: [
+      prop("fallback", "Children | ((error: unknown, reset: () => void) => Children)", true, "children"),
+      CHILDREN_REQ
+    ],
+    diagnostics: [DiagnosticCodes.MIX_ERR_PARSE_SYNTAX],
+    irKind: "TryBlock",
+    isRuntimeComponent: true,
+    summary: "Catches render, effect, and event handler errors in its subtree and renders a recoverable fallback."
+  }),
+  defineDirectiveSpec({
     id: "keepalive",
     family: "render-control",
     props: [

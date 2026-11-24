@@ -47,3 +47,10 @@ export function SvgElementOf<K extends keyof SVGElementTagNameMap>(
 export function AnyElement(): Element {
   return undefined as unknown as Element;
 }
+
+/**
+ * Verifies that an explicit `{each}` / `<Each>` key expression evaluates to `string | number | symbol` (D-188 K7).
+ */
+export function VerifyKey(_key: string | number | symbol): void {
+  // Compile-time type verification helper only
+}

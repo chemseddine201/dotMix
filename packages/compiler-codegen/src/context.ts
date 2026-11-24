@@ -21,24 +21,58 @@ import {
   emitAwaitBlock
 } from "./emit-blocks.js";
 
+export interface EmittedExprAnchor {
+  readonly raw: string;
+  readonly emitted: string;
+  readonly srcOffset: number;
+}
+
+export const EXPR_MARK_START = "\uE000";
+export const EXPR_MARK_MID = "\uE001";
+export const EXPR_MARK_END = "\uE002";
+
 export class CodegenContext {
   private counter = 0;
   readonly scopeAttr: string | undefined;
   readonly hmrEnabled: boolean;
   readonly hmrFunctions: ReadonlySet<string>;
   readonly mode: string;
+  readonly filename: string;
+  readonly trackSourceMaps: boolean;
+  readonly exprAnchors: EmittedExprAnchor[] = [];
   readonly usedDirectiveHelpers = new Set<string>();
 
   constructor(
     scopeAttr: string | undefined,
     hmrEnabled: boolean,
     hmrFunctions: ReadonlySet<string>,
-    mode: string = "development"
+    mode: string = "development",
+    filename: string = "Component.mix",
+    trackSourceMaps: boolean = false
   ) {
     this.scopeAttr = scopeAttr;
     this.hmrEnabled = hmrEnabled;
     this.hmrFunctions = hmrFunctions;
     this.mode = mode;
+    this.filename = filename;
+    this.trackSourceMaps = trackSourceMaps;
+  }
+
+  markExprSpan(emittedJs: string, raw: string, srcOffset: number): string {
+    if (!this.trackSourceMaps || srcOffset < 0 || emittedJs.length === 0) {
+      return emittedJs;
+    }
+    const id = this.exprAnchors.length;
+    this.exprAnchors.push({ raw, emitted: emittedJs, srcOffset });
+    return `${EXPR_MARK_START}${id}${EXPR_MARK_MID}${emittedJs}${EXPR_MARK_END}`;
+  }
+
+  formatDevFile(): string {
+    const norm = this.filename.replace(/\\/g, "/");
+    if (norm.includes("/src/")) {
+      return "src/" + norm.split("/src/")[1];
+    }
+    return norm.split("/").pop() ?? this.filename;
   }
 
   useHelper(importSpec: string): string {
@@ -57,10 +91,11 @@ export class CodegenContext {
     expressionAst: ESTreeNode,
     loopGetters: ReadonlyMap<string, string>
   ): string {
-    if (hasBareGetterRef(expressionAst)) {
-      return transformWithBareGetters(rawExpression, expressionAst, loopGetters);
-    }
-    return transformExpressionAstToJs(rawExpression, expressionAst, loopGetters);
+    const jsExpr = hasBareGetterRef(expressionAst)
+      ? transformWithBareGetters(rawExpression, expressionAst, loopGetters)
+      : transformExpressionAstToJs(rawExpression, expressionAst, loopGetters);
+    const srcOffset = expressionAst.loc?.start.offset ?? expressionAst.start ?? -1;
+    return this.markExprSpan(jsExpr, rawExpression, srcOffset);
   }
 
   emitEventHandler(

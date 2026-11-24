@@ -85,7 +85,7 @@ export function getBareGetterIdents(astNode: ESTreeNode): ReadonlySet<string> | 
   return BARE_GETTER_AST_MAP.get(astNode);
 }
 
-const DIRECTIVE_RUNTIME_EXPORTS = new Set(["createAuth", "AuthProvider", "useAuth", "createKeepAlive"]);
+const DIRECTIVE_RUNTIME_EXPORTS = new Set(["createAuth", "AuthProvider", "useAuth", "createKeepAlive", "createErrorBoundary"]);
 
 export function stripDirectiveImportsFromJs(jsCode: string, stripCanPermission: boolean, emptyFallback = ""): string {
   if (!jsCode.trim()) return jsCode;

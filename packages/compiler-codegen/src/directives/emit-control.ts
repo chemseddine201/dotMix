@@ -174,22 +174,45 @@ export function emitEachExtBlock(
     const pipelineHelper = ctx.useHelper("__mixEachPipeline");
     const optFields: string[] = [];
     if (node.rawSkipExpression) {
-      optFields.push(`skip: (${node.rawSkipExpression})`);
+      const skipOff = node.skipExpression?.loc?.start.offset ?? node.skipExpression?.start ?? node.span.start.offset;
+      optFields.push(`skip: (${ctx.markExprSpan(node.rawSkipExpression, node.rawSkipExpression, skipOff)})`);
     }
     if (node.rawStopExpression) {
-      optFields.push(`stop: (${node.rawStopExpression})`);
+      const stopOff = node.stopExpression?.loc?.start.offset ?? node.stopExpression?.start ?? node.span.start.offset;
+      optFields.push(`stop: (${ctx.markExprSpan(node.rawStopExpression, node.rawStopExpression, stopOff)})`);
     }
     itemsFnExpr = `() => ${pipelineHelper}((${collJs}) ?? [], { ${optFields.join(", ")} })`;
   }
 
-  const keyLoopGetters = new Map(loopGetters);
-  keyLoopGetters.delete(itemIdent);
-  if (node.indexIdentifier) keyLoopGetters.delete(node.indexIdentifier);
+  const isExplicit = node.explicitKey === true && Boolean(node.keyExpression);
+  const isDev = ctx.mode === "development";
 
-  const keyJs =
-    !node.keyExpression || (node.rawKeyExpression && node.rawKeyExpression.trim() === itemIdent)
-      ? `(${itemIdent}?.id ?? ${itemIdent}?.key ?? ${itemIdent})`
-      : ctx.emitExpr(node.rawKeyExpression ?? "", node.keyExpression, keyLoopGetters);
+  let keyFnCode: string;
+  if (isExplicit && node.keyExpression) {
+    const keyLoopGetters = new Map(loopGetters);
+    keyLoopGetters.delete(itemIdent);
+    if (node.indexIdentifier) keyLoopGetters.delete(node.indexIdentifier);
+    const keyJs = ctx.emitExpr(node.rawKeyExpression ?? "", node.keyExpression, keyLoopGetters);
+    keyFnCode = `(${itemIdent}, ${idxParam}) => (${keyJs})`;
+  } else {
+    keyFnCode = "null";
+  }
+
+  let optionsArg: string | null = null;
+  if (isDev) {
+    const locObj = {
+      file: ctx.formatDevFile(),
+      line: node.span.start.line,
+      column: node.span.start.column,
+      collection: node.rawCollection,
+      ...(isExplicit && node.rawKeyExpression ? { keyExpr: node.rawKeyExpression } : {}),
+      itemIdent,
+      ...(node.indexIdentifier ? { indexIdent: node.indexIdentifier } : {})
+    };
+    optionsArg = `{ mode: ${JSON.stringify(isExplicit ? "explicit" : "implicit")}, loc: ${JSON.stringify(locObj)} }`;
+  } else if (!isExplicit) {
+    optionsArg = `{ mode: "implicit" }`;
+  }
 
   const itemGetterVar = ctx.nextId(`get_${itemIdent}`);
   const indexGetterVar = ctx.nextId("get_eachIdx");
@@ -219,12 +242,13 @@ export function emitEachExtBlock(
       `${emptyHelper}(`,
       `  ${parentVar},`,
       `  ${itemsFnExpr},`,
-      `  (${itemIdent}, ${idxParam}) => (${keyJs}),`,
+      `  ${keyFnCode},`,
       `  (${itemGetterVar}, ${indexGetterVar}) => {`,
       `    void ${itemGetterVar}; void ${indexGetterVar};`,
       indentLines(rowLines.join("\n"), 4),
       `  },`,
-      `  ${emptyFn}`,
+      optionsArg ? `  ${emptyFn},` : `  ${emptyFn}`,
+      ...(optionsArg ? [`  null,`, `  ${optionsArg}`] : []),
       `);`
     ];
   }
@@ -233,11 +257,12 @@ export function emitEachExtBlock(
     `__createKeyedEach(`,
     `  ${parentVar},`,
     `  ${itemsFnExpr},`,
-    `  (${itemIdent}, ${idxParam}) => (${keyJs}),`,
+    `  ${keyFnCode},`,
     `  (${itemGetterVar}, ${indexGetterVar}) => {`,
     `    void ${itemGetterVar}; void ${indexGetterVar};`,
     indentLines(rowLines.join("\n"), 4),
-    `  }`,
+    optionsArg ? `  },` : `  }`,
+    ...(optionsArg ? [`  null,`, `  ${optionsArg}`] : []),
     `);`
   ];
 }

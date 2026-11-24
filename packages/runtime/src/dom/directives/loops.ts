@@ -5,7 +5,7 @@
 import { createMemo } from "../../core/index.js";
 import { DiagnosticCodes, MixError } from "../../errors.js";
 import { createConditional } from "../control-flow.js";
-import { createKeyedEach } from "../reconciler.js";
+import { createKeyedEach, type KeyedEachOptions } from "../reconciler.js";
 import type { EachPipelineOptions, ForRangeSpec } from "./contract-types.js";
 
 export const MIX_FOR_MAX_RANGE = 100_000 as const;
@@ -222,17 +222,18 @@ export function __mixEmpty(
 export function __mixEachWithEmpty<T>(
   parent: Node,
   itemsFn: () => readonly T[],
-  keyFn: (item: T, index: number) => PropertyKey,
+  keyFn: ((item: T, index: number) => unknown) | null | undefined,
   renderRow: (itemGetter: () => T, indexGetter: () => number) => Node | readonly Node[],
   emptyRender?: (() => Node | readonly Node[]) | null,
-  anchor?: Node | null
+  anchor?: Node | null,
+  options?: KeyedEachOptions
 ): Comment {
   if (!emptyRender) {
-    return createKeyedEach(parent, itemsFn, keyFn, renderRow, anchor);
+    return createKeyedEach(parent, itemsFn, keyFn, renderRow, anchor, options);
   }
 
   const itemsMemo = createMemo(() => itemsFn() ?? []);
-  const eachMarker = createKeyedEach(parent, itemsMemo, keyFn, renderRow, anchor);
+  const eachMarker = createKeyedEach(parent, itemsMemo, keyFn, renderRow, anchor, options);
   __mixEmpty(parent, () => itemsMemo().length === 0, emptyRender, eachMarker);
   return eachMarker;
 }

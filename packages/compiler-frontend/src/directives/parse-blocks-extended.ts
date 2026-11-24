@@ -20,15 +20,18 @@ import {
   type OnceNode,
   type SessionBlockNode,
   type TemplateNode,
+  type TryBlockNode,
   type VerbatimNode
 } from "@dotmix/ast";
 import { DiagnosticCodes } from "@dotmix/diagnostics";
 import { skipJsWhitespaceAndComments } from "../expression.js";
 import { failSyntax, type ParserContext } from "../types.js";
 import { parseFormOrLayoutBlock } from "./parse-forms-layouts.js";
-import { isValidIdentifierName, matchDirectiveCloseAt } from "./scanner.js";
+import { isValidIdentifierName, matchDirectiveBranchAt, matchDirectiveCloseAt } from "./scanner.js";
 import {
+  consumeExpectedClose,
   findHeaderCloseOffset,
+  isClosingTagFor,
   parseOptionalElseBlockBodies,
   parseSingleBody,
   parseSliceRequired,
@@ -274,6 +277,64 @@ export function parseExtendedDirectiveBlock(
         when: spec.when,
         media: spec.media,
         children: deepFreeze(children),
+        span: ctx.lineMap.span(startOffset, ctx.pos)
+      });
+    }
+
+    case "try": {
+      if (ctx.source.slice(afterKeywordOffset, headerClose).trim().length > 0) {
+        failSyntax(DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, "'{try}' does not accept header arguments.", ctx.lineMap, startOffset, headerClose + 1);
+      }
+      ctx.pos = headerClose + 1;
+      const isCatchOrEndTry = (): boolean => {
+        if (isClosingTagFor(ctx.source, ctx.pos, entry)) return true;
+        const br = matchDirectiveBranchAt(ctx.source, ctx.pos);
+        return br !== null && br.marker === "catch";
+      };
+      const children = ctx.parseChildren(isCatchOrEndTry);
+      let catchIdentifier: string | null = null;
+      let resetIdentifier: string | null = null;
+      let fallback: TemplateNode[] = [];
+      const catchBranch = matchDirectiveBranchAt(ctx.source, ctx.pos);
+      if (catchBranch && catchBranch.marker === "catch") {
+        if (catchBranch.noArgCloseEnd !== null) {
+          ctx.pos = catchBranch.noArgCloseEnd;
+        } else {
+          const catchClose = findHeaderCloseOffset(ctx.source, catchBranch.afterKeywordOffset, ctx.lineMap, catchBranch.startOffset, "catch");
+          const rawHeader = ctx.source.slice(catchBranch.afterKeywordOffset, catchClose).trim();
+          const unwrapped = rawHeader.startsWith("(") && rawHeader.endsWith(")")
+            ? rawHeader.slice(1, -1).trim()
+            : rawHeader;
+          const parts = unwrapped.split(",").map((p) => p.trim()).filter(Boolean);
+          if (parts.length > 2) {
+            failSyntax(DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, "'{catch}' accepts at most two identifiers: '{catch err}' or '{catch err, reset}'.", ctx.lineMap, catchBranch.startOffset, catchClose + 1);
+          }
+          if (parts[0]) {
+            if (!isValidIdentifierName(parts[0])) {
+              failSyntax(DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, `Invalid catch identifier '${parts[0]}' in '{try}'.`, ctx.lineMap, catchBranch.startOffset, catchClose + 1);
+            }
+            catchIdentifier = parts[0];
+          }
+          if (parts[1]) {
+            if (!isValidIdentifierName(parts[1])) {
+              failSyntax(DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, `Invalid reset identifier '${parts[1]}' in '{try}'.`, ctx.lineMap, catchBranch.startOffset, catchClose + 1);
+            }
+            resetIdentifier = parts[1];
+          }
+          ctx.pos = catchClose + 1;
+        }
+        fallback = ctx.parseChildren(() => isClosingTagFor(ctx.source, ctx.pos, entry));
+      } else {
+        failSyntax(DiagnosticCodes.MIX_ERR_PARSE_SYNTAX, "'{try}' block requires a '{catch}' branch before '{endtry}'.", ctx.lineMap, startOffset, ctx.pos);
+      }
+      consumeExpectedClose(ctx, entry, startOffset);
+      return createDirectiveNode<TryBlockNode>({
+        type: "TryBlock",
+        form: "block",
+        children: deepFreeze(children),
+        catchIdentifier,
+        resetIdentifier,
+        fallback: deepFreeze(fallback),
         span: ctx.lineMap.span(startOffset, ctx.pos)
       });
     }

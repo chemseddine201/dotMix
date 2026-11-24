@@ -72,7 +72,7 @@ export function projectTypeScript(
   }
 
   appendInternal(
-    `import { VerifyProps, VerifyRef, ElementOf, SvgElementOf, AnyElement } from "@dotmix/runtime/typecheck";\n`
+    `import { VerifyProps, VerifyRef, VerifyKey, ElementOf, SvgElementOf, AnyElement } from "@dotmix/runtime/typecheck";\n`
   );
 
   if (ast.script) {
@@ -248,9 +248,13 @@ export function projectTypeScript(
           appendOrigin(node.itemIdentifier, node.span);
           appendInternal(" of (");
           appendVerbatim(node.rawCollection, colStart);
-          appendInternal(")) {\n      void (");
-          appendVerbatim(node.rawKeyExpression, keyStart);
-          appendInternal(");\n");
+          if (node.explicitKey) {
+            appendInternal(")) {\n      VerifyKey(");
+            appendVerbatim(node.rawKeyExpression, keyStart);
+            appendInternal(");\n");
+          } else {
+            appendInternal(`)) {\n      void ${node.itemIdentifier};\n`);
+          }
           emitTemplateChecks(node.children, inSvg);
           appendInternal("    }\n  }\n");
           break;

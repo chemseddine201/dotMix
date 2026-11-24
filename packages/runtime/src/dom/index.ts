@@ -12,6 +12,7 @@ export * from "./nodes.js";
 export * from "./attributes.js";
 export * from "./styles.js";
 export * from "./control-flow.js";
+export * from "./error-boundary.js";
 export * from "./reconciler.js";
 export * from "./hmr.js";
 export * from "./hot/index.js";

@@ -12,12 +12,20 @@ export interface ASTNodeBase {
   readonly span: SourceSpan;
 }
 
+export interface ScriptSourceSegment {
+  readonly contentStart: number;
+  readonly contentEnd: number;
+  readonly sourceOffset: number;
+}
+
 export interface ScriptBlockNode extends ASTNodeBase {
   readonly type: "ScriptBlock";
   readonly lang: "js" | "ts";
   readonly content: string;
   readonly contentSpan: SourceSpan;
   readonly postamble?: string | undefined;
+  readonly sourceSegments?: readonly ScriptSourceSegment[] | undefined;
+  readonly postambleStartOffset?: number | undefined;
 }
 
 export interface StyleBlockNode extends ASTNodeBase {
@@ -128,6 +136,7 @@ export interface EachBlockNode extends ASTNodeBase {
   readonly indexIdentifier: string | null;
   readonly keyExpression: ESTreeNode;
   readonly rawKeyExpression: string;
+  readonly explicitKey?: boolean | undefined;
   readonly children: readonly TemplateNode[];
   readonly empty?: readonly TemplateNode[] | undefined;
   readonly form?: "block" | "component" | undefined;

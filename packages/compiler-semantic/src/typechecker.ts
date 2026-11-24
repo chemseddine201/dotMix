@@ -303,9 +303,16 @@ export function typecheckTix(
         span: mapped.span
       });
     } else {
+      const isInvalidKeyError =
+        msg.includes("is not assignable to parameter of type 'string | number | symbol'") ||
+        msg.includes("is not assignable to parameter of type 'PropertyKey'");
       diagnostics.push({
-        code: DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE,
-        message: withAuthTypingHint(msg, projection.registeredAuthBindings ?? []),
+        code: isInvalidKeyError
+          ? DiagnosticCodes.MIX_ERR_INVALID_KEY
+          : DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE,
+        message: isInvalidKeyError
+          ? `Invalid explicit list key type: ${msg}. Keys must be assignable to 'string | number | symbol'.`
+          : withAuthTypingHint(msg, projection.registeredAuthBindings ?? []),
         severity: "error",
         span: mapped.span
       });

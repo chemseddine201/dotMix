@@ -44,6 +44,7 @@ import {
   emitSessionBlock,
   emitStack,
   emitStackPush,
+  emitTryBlock,
   emitVerbatim,
   emitYield
 } from "./emit-layouts-runtime.js";
@@ -120,6 +121,8 @@ export function emitDirectiveTemplateNode(
       return emitLazy(ctx, node, parentVar, loopGetters, inSvg);
     case "Hydrate":
       return emitHydrate(ctx, node, parentVar, loopGetters, inSvg);
+    case "TryBlock":
+      return emitTryBlock(ctx, node, parentVar, loopGetters, inSvg);
     case "KeepAliveBlock":
       return emitKeepAliveBlock(ctx, node, parentVar, loopGetters, inSvg);
     case "SessionBlock":

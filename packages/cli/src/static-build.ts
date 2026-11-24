@@ -68,7 +68,7 @@ function renderMatchedRouterTree(
   const matched = router.currentRoute().matched;
   const matchedModuleKeys: string[] = [];
   const suppressedSpecifiers: Array<readonly [string, string]> = [];
-  const ssrRenderCtx: Record<string, unknown> = { __suppressedSpecifiers: suppressedSpecifiers };
+  const ssrRenderCtx: Record<string, unknown> = { __suppressedSpecifiers: suppressedSpecifiers, __componentStack: [] as string[] };
 
   const renderAtDepth = (depth: number): string => {
     const m = matched[depth];
@@ -159,7 +159,8 @@ export async function runStaticSiteBuild(options: {
     sourcemap: options.sourcemap,
     analyze: options.analyze,
     mode: options.mode,
-    base: options.base
+    base: options.base,
+    errors: options.config.errors
   });
 
   const shellMeta = extractShellMetadata(outDir, basePath);

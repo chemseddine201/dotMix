@@ -22,6 +22,7 @@ import {
   unlinkComputation
 } from "./state.js";
 import { disposeOwner } from "./owner.js";
+import { reportError } from "./errors-reporter.js";
 
 export function configureScheduler(options: SchedulerOptions): void {
   if (options.maxEffectIterations !== undefined) {
@@ -298,6 +299,7 @@ export function runEffect(effect: EffectNode, deferredErrors: unknown[]): void {
       if (handler) {
         handler(thrownError.value);
       } else {
+        reportError(thrownError.value, { source: "effect" }, effect);
         deferredErrors.push(thrownError.value);
       }
     } else if (
@@ -368,6 +370,7 @@ export function flushSync(): void {
           if (handler) {
             handler(cycleErr);
           } else {
+            reportError(cycleErr, { source: "effect" }, effect);
             deferredErrors.push(cycleErr);
           }
           continue;

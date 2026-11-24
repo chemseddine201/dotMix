@@ -176,7 +176,11 @@ Tests cases in source order using `Object.is` (`is`) or truthiness (`condition`)
 
 ### 3.1 `each` + `empty` (`<Each>`, `<Empty>`)
 
-Keyed reactive iteration. In `<Each>`, the child function's `item` parameter binds to the item value and `index` binds to the index getter, so `i()` compiles identically to block-mode `i`.
+Keyed reactive iteration with a two-mode key policy (`D-188`):
+- **Implicit mode** (no key written): uses `item.id`, then `item.key` when a valid primitive (`string | finite number | symbol`), else object/function reference identity, else primitive value. Never throws on keys; duplicates are disambiguated by occurrence with stable DOM reuse and a single dev warning (`MIX_WARN_IMPLICIT_DUPLICATE_KEY`).
+- **Explicit mode** (`{each (item, i, keyExpr) in list}` or `<Each key={(item) => ...}>`): strictly requires `string | finite number | symbol` (`MIX_ERR_INVALID_KEY`) and unique keys (`MIX_ERR_DUPLICATE_KEY`, atomic rejection). Checked at compile time in `.tix`.
+
+In `<Each>`, the child function's `item` parameter binds to the item value and `index` binds to the index getter, so `i()` compiles identically to block-mode `i`.
 
 **Block mode:**
 ```mix
@@ -584,18 +588,20 @@ Supports synchronous component references and dynamic lazy loaders `() => import
 
 ---
 
-## 11. Render Control (`{once}`, `{memo}`, `{lazy}`, `{keepalive}`)
+## 11. Render Control (`{once}`, `{memo}`, `{lazy}`, `{keepalive}`, `{hydrate}`, `{try}`)
 
 - `{once}` / `<Once>`: untracked single render; never updates (`MIX_ERR_ONCE_WRITE` on signal writes inside).
 - `{memo on [deps] (by fn)?}` / `<Memo on equals?>`: updates only when dependencies change (`MIX_WARN_MEMO_EMPTY_DEPS` on empty `[]`).
 - `{lazy visible|idle}` / `<Lazy trigger? fallback?>`: defers client mount until viewport intersection (`visible`) or browser idle (`idle`); SSR renders immediately.
 - `{keepalive Expr (max Expr)? (as Ident)?}…{endkeepalive}` / `<KeepAlive activeKey max?>{(key) => …}</KeepAlive>`: lowers to the existing runtime LRU `KeepAlive` (`activeKey`, `max`, `children`). SSR renders only the active key's subtree.
+- `{try}…{catch err, reset}…{endtry}` / `<ErrorBoundary fallback={(err, reset) => …}>…</ErrorBoundary>`: catches synchronous render, reactive effect, and event handler errors in its subtree, renders the fallback, and supports `reset()` recovery (plus SSR fallback rendering).
 
 **Block mode:**
 ```mix
 {memo on [chartData()]}<HeavyChart data={chartData()} theme={theme()} />{endmemo}
 {lazy visible}<CommentsSection postId={id()} />{else}<CommentsSkeleton />{endlazy}
 {keepalive activeTab() max 5 as key}<TabPanel id={key} />{endkeepalive}
+{try}<RiskyWidget />{catch err, reset}<button onClick={reset}>Retry ({String(err)})</button>{endtry}
 ```
 
 **Component mode:**
@@ -603,6 +609,7 @@ Supports synchronous component references and dynamic lazy loaders `() => import
 <Memo on={[chartData]}><HeavyChart data={chartData()} theme={theme()} /></Memo>
 <Lazy trigger="visible" fallback={<CommentsSkeleton />}><CommentsSection postId={id()} /></Lazy>
 <KeepAlive activeKey={activeTab()} max={5}>{(key) => <TabPanel id={key} />}</KeepAlive>
+<ErrorBoundary fallback={(err, reset) => <button onClick={reset}>Retry ({String(err)})</button>}><RiskyWidget /></ErrorBoundary>
 ```
 
 ---

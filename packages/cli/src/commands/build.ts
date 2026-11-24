@@ -76,7 +76,7 @@ export async function buildCommand(parsed: ParsedCliArgs): Promise<number> {
     return 0;
   }
 
-  const res = runBuild({ inDir, outDir, target, clean, sourcemap, analyze, mode, base });
+  const res = runBuild({ inDir, outDir, target, clean, sourcemap, analyze, mode, base, errors: options.config.errors });
   const prerenderedFiles = prerenderPaths.length > 0
     ? await prerenderRoutes({
         projectDirectory: path.dirname(path.resolve(inDir)),

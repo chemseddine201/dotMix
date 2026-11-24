@@ -16,7 +16,8 @@
 | **RBAC/ABAC permissions** | `@dotmix/runtime/permissions` and the `<Can>` component |
 | **Reactive permission subjects** | Re-evaluated automatically when the signals they read change |
 | **Route permission guards** | Checked before route loaders run (`@dotmix/router`) |
-| **Duplicate keys** | Rejected before any DOM change, with a deterministic error |
+| **Two-mode list keys** | Implicit `{each}` works on plain objects without `id`; explicit keys enforce primitive uniqueness atomically + `.tix` compile-time checks |
+| **Error overlay & containment** | Dev browser overlay with source-mapped code frames & component stack; `{try}`/`<ErrorBoundary>` + production root safety net (0 dev overhead in `dist/`) |
 | **Type checking** | TypeScript compiler API for `.tix` components |
 | **Offline-first CRDT state** | `@dotmix/sync` |
 | **Typed forms with async cancellation** | `@dotmix/runtime/forms` |
@@ -56,14 +57,13 @@ In traditional frameworks, developers must install third-party libraries (e.g. C
 
 ---
 
-### 2.2 Atomic Keyed Collection Rejection
+### 2.2 Two-Mode Safe List Keys & Error Containment
 
-Duplicate keys in a keyed list are a common source of rendering bugs, such as inputs that keep the wrong value or DOM nodes reused for the wrong item.
+Lists without `id` fields should work out of the box, while explicit keys should catch bugs immediately before mutating the DOM — and runtime failures should never collapse silently into a white page.
 
 **How dotMix solves this:**
-- dotMix validates the entire incoming collection of keys upfront in $O(N)$ time before any reconciliation begins.
-- If a duplicate key is detected, dotMix **atomically rejects the update**, leaves the existing rendered DOM and child reactivity scopes completely untouched, allocates zero new DOM nodes, and throws a deterministic `MIX_ERR_DUPLICATE_KEY` synchronously in **both DEV and PROD**.
-- This guarantees the UI state is never left partially applied or visually corrupted.
+- **Implicit vs. Explicit Keys (`D-188`):** When no key expression is written (`{each item in list}`), dotMix resolves `item.id`, then `item.key` (when a valid primitive), else object/function reference identity, else the primitive value; duplicate implicit keys are disambiguated by occurrence with stable DOM reuse and a single dev warning (`MIX_WARN_IMPLICIT_DUPLICATE_KEY`). When a key expression is written (`{each (item, i, item.id) in list}` or `<Each key={...}>`), dotMix enforces valid primitive keys (`MIX_ERR_INVALID_KEY`, also checked at compile time in `.tix`) and atomic duplicate-key rejection (`MIX_ERR_DUPLICATE_KEY`) in $O(N)$ time before touching the DOM.
+- **Dev Error Overlay & Boundaries (`D-189`):** In `mix dev`, uncaught errors from render, effects, handlers, `onMount`, resources, hydration, and unhandled promise rejections render in an accessible `<mix-error-overlay>` with a 7-line source-mapped `.tix`/`.mix` code frame, component stack, docs link, Copy, Open in editor, and Dismiss (auto-clearing on HMR). `{try}…{catch err, reset}…{endtry}` / `<ErrorBoundary>` contain subtree errors in CSR and SSR, and production `mount()`/`hydrate()` provide a configurable root safety net with zero dev overlay code shipped in `dist/`.
 
 ---
 

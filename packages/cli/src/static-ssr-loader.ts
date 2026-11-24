@@ -142,8 +142,9 @@ export function compileSsrWorkspace(
       cssResult = compileCss(pre.code, { filename, scoped: ast.style.scoped });
     }
 
-    const ssr = compileToSsr(desc, cssResult, { mode });
     const moduleKey = toModuleKey(file);
+    const relSourceName = moduleKey.replace(/\.js$/, path.extname(file));
+    const ssr = compileToSsr(desc, cssResult, { mode, filename: relSourceName, source });
     moduleKeys.add(moduleKey);
 
     const stripped = removeSideEffectImports(ssr.code, (s) => STYLE_FILE_REGEX.test(s));

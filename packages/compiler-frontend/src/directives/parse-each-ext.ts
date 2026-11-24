@@ -166,9 +166,12 @@ export function tryParseExtendedEach(ctx: ParserContext): EachBlockNode | EachEx
     "'{each ... render Component}'"
   );
 
-  const keyStart = headerStart + Math.max(0, bindingRaw.indexOf(binding.itemIdentifier));
+  const keyStart = binding.explicitKeyRaw
+    ? headerStart + Math.max(0, bindingRaw.lastIndexOf(binding.explicitKeyRaw))
+    : headerStart + Math.max(0, bindingRaw.indexOf(binding.itemIdentifier));
   const rawKey = binding.explicitKeyRaw ?? binding.itemIdentifier;
   const keyExpr = parseExpressionSlice(rawKey, keyStart, ctx.lineMap);
+  const explicitKey = binding.explicitKeyRaw !== null;
 
   ctx.pos = headerClose + 1;
   const bodyChildren = ctx.parseChildren(
@@ -215,6 +218,7 @@ export function tryParseExtendedEach(ctx: ParserContext): EachBlockNode | EachEx
     indexIdentifier: binding.indexIdentifier,
     keyExpression: keyExpr,
     rawKeyExpression: rawKey,
+    explicitKey,
     controls: deepFreeze([]),
     skipExpression: null,
     rawSkipExpression: null,
@@ -239,7 +243,8 @@ export function finishEachBlockWithDirectives(
   indexIdentifier: string | null,
   keyExpression: ESTreeNode,
   rawKeyExpression: string,
-  isLegacyHashEach: boolean
+  isLegacyHashEach: boolean,
+  explicitKey: boolean = false
 ): EachBlockNode | EachExtNode {
   ctx.pos = headerCloseOffset + 1;
   const controls = collectLeadingLoopControls(ctx);
@@ -277,6 +282,7 @@ export function finishEachBlockWithDirectives(
       indexIdentifier,
       keyExpression,
       rawKeyExpression,
+      explicitKey,
       children,
       span: ctx.lineMap.span(start, ctx.pos),
       ...(isLegacyHashEach ? { legacySyntax: true } : {})
@@ -295,6 +301,7 @@ export function finishEachBlockWithDirectives(
     indexIdentifier,
     keyExpression,
     rawKeyExpression,
+    explicitKey,
     controls: deepFreeze(controls),
     skipExpression: null,
     rawSkipExpression: null,

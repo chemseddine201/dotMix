@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "@dotmix/compiler-frontend";
-import { analyze } from "@dotmix/compiler-semantic";
+import { analyze, shiftMapThroughEdits } from "@dotmix/compiler-semantic";
 import { generate, type CodegenOptions, type CodegenResult } from "@dotmix/compiler-codegen";
 
 export interface MixPluginOptions {
@@ -105,6 +105,7 @@ export function mix(options: MixPluginOptions = {}) {
 
       const codegenOptions: CodegenOptions & { mode?: string } = {
         filename,
+        source: code,
         runtimeImportPath: options.runtimeImportPath ?? "@dotmix/runtime",
         hmr,
         mode: resolvedMode,
@@ -113,16 +114,23 @@ export function mix(options: MixPluginOptions = {}) {
       const result: CodegenResult = generate(descriptor, codegenOptions);
 
       let finalCode = result.code;
+      let finalMap = result.map;
 
-      // Extract Scoped CSS into virtual CSS module
+      // Extract Scoped CSS into virtual CSS module (composing source map line offset)
       if (result.css) {
         cssMap.set(filename, result.css);
-        finalCode = `import ${JSON.stringify(`${filename}?mix-css=1`)};\n` + finalCode;
+        const cssImportPrefix = `import ${JSON.stringify(`${filename}?mix-css=1`)};\n`;
+        if (finalMap) {
+          finalMap = shiftMapThroughEdits(finalMap, finalCode, [
+            { start: 0, end: 0, text: cssImportPrefix }
+          ]);
+        }
+        finalCode = cssImportPrefix + finalCode;
       }
 
       return {
         code: finalCode,
-        map: result.map,
+        map: finalMap,
       };
     },
   };

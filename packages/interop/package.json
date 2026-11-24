@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/interop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Bridges dotMix components and reactive signals into other frameworks",
   "files": [
     "dist"
@@ -26,10 +26,10 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@dotmix/runtime": "0.3.0"
+    "@dotmix/runtime": "0.4.0"
   },
   "devDependencies": {
-    "@dotmix/diagnostics": "0.3.0"
+    "@dotmix/diagnostics": "0.4.0"
   },
   "license": "MIT"
 }

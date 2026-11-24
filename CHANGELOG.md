@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] — 2026-11-24
+
+All `@dotmix/*` packages move to 0.4.0 together.
+
+### Added
+- **Safe Two-Mode List Keys (`D-188`):**
+  - **Implicit mode** (no key written in `{each}` / `<Each>`): uses `item.id`, then `item.key` when a valid primitive (`string | finite number | symbol`), else object/function reference identity, else primitive value (`-0` normalized to `0`). Implicit lists of plain objects without `id` never throw on keys; duplicate implicit keys are disambiguated by occurrence with per-list interned synthetic keys (preserving DOM nodes across updates) and emit a single dev warning per list (`MIX_WARN_IMPLICIT_DUPLICATE_KEY`).
+  - **Explicit mode** (`{each (item, i, keyExpr) in list}`, `{each list as (item, i, keyExpr)}`, `{#each list as item (keyExpr)}`, `<Each key={...}>`): strictly validates primitive keys (`MIX_ERR_INVALID_KEY` for objects, `null`, `undefined`, `NaN`, `±Infinity`, booleans, bigints) and rejects duplicates atomically (`MIX_ERR_DUPLICATE_KEY`) with dev source location (`file:line:col`), safe JSON preview (never `[object Object]`), and a fix hint. Production omits dev source text.
+  - **Compile-time `.tix` key check:** `mix check`, `typecheckTix`, and `@dotmix/language-server` report `MIX_ERR_INVALID_KEY` at the explicit key expression span when its type is not assignable to `string | number | symbol`, while implicit `{each}` over plain object lists passes cleanly.
+  - **Positional SSR hydration:** Implicit-identity lists adopt SSR rows positionally without serializing keys into HTML.
+- **Browser-Visible Dev Error Overlay (`D-189`):**
+  - Added `setErrorReporter(fn)` in `@dotmix/runtime` hooked into render, reactive effects, event handlers, `onMount`, `createResource`, `mount`, `hydrate`, and reconciler errors plus `window` `error` and `unhandledrejection`.
+  - Added `<mix-error-overlay>` (Shadow DOM, `role="alertdialog"`, focus trap, Escape, RTL, light & dark themes, multi-error pager, Copy, Open in editor, Dismiss, auto-clear on HMR) and non-blocking `<mix-warning-badge>` for `MIX_WARN_IMPLICIT_DUPLICATE_KEY` in `mix dev`, backed by `/__mix/frame` (7-line source-mapped `.tix`/`.mix` code frame) and `/__mix/open-in-editor` (`dev.editor` / `MIX_EDITOR`).
+- **Dual-Mode Error Boundaries (`{try}` / `<ErrorBoundary>`):**
+  - Added `{try}…{catch err, reset}…{endtry}` and `<ErrorBoundary fallback={(err, reset) => …}>` catching render, reactive effect, and event handler errors with `reset()` recovery and SSR fallback rendering.
+- **Production Root Safety Net & CLI Code Frames:**
+  - `mount()` and `hydrate()`/`hydrateRoot()` accept `{ onError(err, info), fallback }` (with a minimal accessible localized `ar`/`fr`/`en` fallback + reload button by default), also configurable via `mix.config.ts` `errors: { fallback, report }`.
+  - `mix build`, `mix build --static`, and `mix check` format errors with 7-line code frames and component stacks and exit non-zero.
+  - Zero dev overlay, `/__mix/*` routes, or dev source text are emitted in production `dist/`.
+
+### Changed
+- Removed artificial `id` workarounds from `examples/marketing-site/src/i18n/copy.ts` and added a plain-object `{each}` showcase list to the `mix create` starter templates.
+
+### Changes from 0.3.0
+- `MIX_ERR_INVALID_KEY` is new for non-primitive or non-finite explicit list keys; `MIX_ERR_DUPLICATE_KEY` now fires only for repeated keys.
+- An un-keyed `{each}` over plain objects without `id` now works automatically (implicit object-reference identity + duplicate disambiguation).
+- `createKeyedEach` / `renderKeyedList` now accept an options object (with dev location metadata) and `null` key functions for explicit/implicit dual-mode reconciliation.
+
+### Known issues
+- `mix build --static` does not drop code behind `import.meta.env.DEV`, so a dev-only module imported inside an `if (import.meta.env.DEV)` branch is still emitted into `dist/`. Scheduled for the next gate.
+
+---
+
 ## [0.3.0] — 2026-11-23
 
 All `@dotmix/*` packages move to 0.3.0 together.

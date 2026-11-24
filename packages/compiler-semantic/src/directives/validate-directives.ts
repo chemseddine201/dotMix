@@ -442,6 +442,13 @@ export function validateDirectiveTemplateNode(
     case "Hydrate":
       recurse(node.children, currentScope);
       return true;
+    case "TryBlock": {
+      recurse(node.children, currentScope);
+      let catchScope = withBindingScope(currentScope, node.catchIdentifier, node.span);
+      catchScope = withBindingScope(catchScope, node.resetIdentifier, node.span);
+      recurse(node.fallback, catchScope);
+      return true;
+    }
     case "KeepAliveBlock":
       verifyExpressionIdentifiers(node.activeKey, currentScope, diagnostics, node.span);
       if (node.max) verifyExpressionIdentifiers(node.max, currentScope, diagnostics, node.span);

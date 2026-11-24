@@ -94,7 +94,14 @@ export interface TypecheckResult {
   readonly diagnostics: readonly Diagnostic[];
 }
 
+export interface ScriptLineMapping {
+  readonly genCol: number;
+  readonly srcLine: number;
+  readonly srcCol: number;
+}
+
 export interface SeparatedScriptResult {
   readonly importsCode: string;
   readonly bodyCode: string;
+  readonly bodyMappings?: readonly (readonly ScriptLineMapping[])[];
 }

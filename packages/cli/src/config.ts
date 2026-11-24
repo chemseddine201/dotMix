@@ -13,10 +13,12 @@ import type { ParsedCliArgs } from "./args.js";
 import { parsePrerenderRoutes } from "./prerender.js";
 import {
   validateCspConfig,
+  validateErrorsConfig,
   validateI18nConfig,
   validateSeoConfig,
   validateSiteConfig,
   type CspConfig,
+  type ErrorsConfig,
   type SeoConfig,
   type SiteConfig,
   type StaticBuildConfig
@@ -24,6 +26,7 @@ import {
 
 export type {
   CspConfig,
+  ErrorsConfig,
   RobotsConfig,
   SeoConfig,
   SiteConfig,
@@ -39,11 +42,13 @@ export interface MixConfig {
   i18n?: I18nConfig;
   seo?: SeoConfig;
   csp?: CspConfig;
+  errors?: ErrorsConfig;
   dev?: {
     port?: number;
     host?: string;
     open?: boolean;
     cors?: boolean;
+    editor?: string;
   };
   preview?: {
     port?: number;
@@ -86,6 +91,7 @@ export interface ResolvedCommandOptions {
     readonly open: boolean;
     readonly cors: boolean;
     readonly mode: string;
+    readonly editor: string | undefined;
   };
   readonly preview: {
     readonly dir: string;
@@ -146,7 +152,7 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
   }
 
   const rootRecord = rawInput as Record<string, unknown>;
-  const allowedRootProperties = new Set(["srcDir", "outDir", "base", "site", "i18n", "seo", "csp", "dev", "preview", "build"]);
+  const allowedRootProperties = new Set(["srcDir", "outDir", "base", "site", "i18n", "seo", "csp", "errors", "dev", "preview", "build"]);
 
   for (const propertyKey of Object.keys(rootRecord)) {
     if (!allowedRootProperties.has(propertyKey)) {
@@ -175,13 +181,16 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
   if (rootRecord.csp !== undefined) {
     validateCspConfig(rootRecord.csp, configPath);
   }
+  if (rootRecord.errors !== undefined) {
+    validateErrorsConfig(rootRecord.errors, configPath);
+  }
 
   if (rootRecord.dev !== undefined) {
     if (typeof rootRecord.dev !== "object" || rootRecord.dev === null || Array.isArray(rootRecord.dev)) {
       throw createConfigDiagnostic(configPath, "dev: expected an object");
     }
     const devRecord = rootRecord.dev as Record<string, unknown>;
-    const allowedDevProperties = new Set(["port", "host", "open", "cors"]);
+    const allowedDevProperties = new Set(["port", "host", "open", "cors", "editor"]);
     for (const devKey of Object.keys(devRecord)) {
       if (!allowedDevProperties.has(devKey)) {
         throw createConfigDiagnostic(configPath, `dev.${devKey}: unknown configuration property`);
@@ -198,6 +207,9 @@ export function validateMixConfig(rawInput: unknown, configPath: string): MixCon
     }
     if (devRecord.cors !== undefined && typeof devRecord.cors !== "boolean") {
       throw createConfigDiagnostic(configPath, "dev.cors: expected a boolean");
+    }
+    if (devRecord.editor !== undefined && typeof devRecord.editor !== "string") {
+      throw createConfigDiagnostic(configPath, "dev.editor: expected a string");
     }
   }
 
@@ -377,7 +389,8 @@ export async function resolveCommandOptions(
       host: resolvedDevHost,
       open: resolvedDevOpen,
       cors: resolvedDevCors,
-      mode: resolvedDevMode
+      mode: resolvedDevMode,
+      editor: config.dev?.editor
     },
     preview: {
       dir: resolvedPreviewDir,

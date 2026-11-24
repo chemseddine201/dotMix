@@ -152,9 +152,19 @@ export function tryExtractFunctionalComponent(
   }
 
   // Build synthesized script content from preamble + optional props parameter + function body before `return`
-  const preamble = currentText.slice(0, fnStart).trim();
-  const bodyBeforeReturn = currentText.slice(bodyOpenBraceIdx + 1, returnKeywordIdx).trim();
-  const postamble = currentText.slice(fnCloseBraceIdx + 1).trim();
+  const trimSlice = (rawStart: number, rawEnd: number): { text: string; startOffset: number } => {
+    let s = rawStart;
+    let e = rawEnd;
+    while (s < e && isAsciiWhitespace(currentText.charCodeAt(s))) s++;
+    while (e > s && isAsciiWhitespace(currentText.charCodeAt(e - 1))) e--;
+    return { text: currentText.slice(s, e), startOffset: s };
+  };
+  const preambleSlice = trimSlice(0, fnStart);
+  const bodySlice = trimSlice(bodyOpenBraceIdx + 1, returnKeywordIdx);
+  const postambleSlice = trimSlice(fnCloseBraceIdx + 1, currentText.length);
+  const preamble = preambleSlice.text;
+  const bodyBeforeReturn = bodySlice.text;
+  const postamble = postambleSlice.text;
 
   let propStmt = "";
   if (rawParams.length > 0) {
@@ -217,8 +227,24 @@ export function tryExtractFunctionalComponent(
     }
   }
 
-  const scriptParts = [preamble, propStmt, bodyBeforeReturn].filter((s) => s.length > 0);
-  const scriptContent = scriptParts.join("\n");
+  const scriptPartEntries: Array<{ text: string; sourceOffset: number }> = [];
+  if (preamble.length > 0) scriptPartEntries.push({ text: preamble, sourceOffset: preambleSlice.startOffset });
+  if (propStmt.length > 0) scriptPartEntries.push({ text: propStmt, sourceOffset: fnStart });
+  if (bodyBeforeReturn.length > 0) scriptPartEntries.push({ text: bodyBeforeReturn, sourceOffset: bodySlice.startOffset });
+
+  const sourceSegments: Array<{ contentStart: number; contentEnd: number; sourceOffset: number }> = [];
+  let contentCursor = 0;
+  for (let i = 0; i < scriptPartEntries.length; i++) {
+    const entry = scriptPartEntries[i]!;
+    if (i > 0) contentCursor += 1; // "\n" separator
+    sourceSegments.push({
+      contentStart: contentCursor,
+      contentEnd: contentCursor + entry.text.length,
+      sourceOffset: entry.sourceOffset
+    });
+    contentCursor += entry.text.length;
+  }
+  const scriptContent = scriptPartEntries.map((p) => p.text).join("\n");
   const lang: "js" | "ts" = isDefaultTs ? "ts" : "js";
 
   const fullScriptForCheck = [scriptContent, postamble].filter((s) => s.length > 0).join("\n");
@@ -236,7 +262,8 @@ export function tryExtractFunctionalComponent(
     content: scriptContent,
     contentSpan: lineMap.span(0, returnKeywordIdx),
     span: lineMap.span(0, source.length),
-    ...(postamble.length > 0 ? { postamble } : {})
+    sourceSegments,
+    ...(postamble.length > 0 ? { postamble, postambleStartOffset: postambleSlice.startOffset } : {})
   });
 }
 

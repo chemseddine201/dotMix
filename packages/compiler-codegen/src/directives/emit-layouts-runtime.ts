@@ -22,6 +22,7 @@ import type {
   StackNode,
   StackPushNode,
   TemplateNode,
+  TryBlockNode,
   VerbatimNode,
   YieldNode
 } from "@dotmix/ast";
@@ -250,6 +251,41 @@ export function emitHydrate(
   inSvg: boolean
 ): string[] {
   return ctx.emitTemplateNodes(node.children, parentVar, loopGetters, inSvg);
+}
+
+export function emitTryBlock(
+  ctx: CodegenContext,
+  node: TryBlockNode,
+  parentVar: string,
+  loopGetters: ReadonlyMap<string, string>,
+  inSvg: boolean
+): string[] {
+  const boundaryHelper = ctx.useHelper("createErrorBoundary as __createErrorBoundary");
+  const tryFn = emitFragRenderFn(ctx, node.children, loopGetters, inSvg, "tryFrag");
+  const errGetterVar = ctx.nextId("get_tryErr");
+  const resetParam = node.resetIdentifier ?? ctx.nextId("tryReset");
+  const fallbackGetters = new Map(loopGetters);
+  if (node.catchIdentifier) {
+    fallbackGetters.set(node.catchIdentifier, errGetterVar);
+  }
+  if (node.resetIdentifier) {
+    fallbackGetters.delete(node.resetIdentifier);
+  }
+  const catchFn = emitFragRenderFn(
+    ctx,
+    node.fallback,
+    fallbackGetters,
+    inSvg,
+    "catchFrag",
+    [errGetterVar, resetParam]
+  );
+  return [
+    `${ctx.markExprSpan(boundaryHelper, "{try}", node.span.start.offset)}(`,
+    `  ${parentVar},`,
+    `  ${indentLines(tryFn, 2).trimStart()},`,
+    `  ${indentLines(catchFn, 2).trimStart()}`,
+    `);`
+  ];
 }
 
 export function emitKeepAliveBlock(

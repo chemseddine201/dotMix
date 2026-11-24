@@ -20,6 +20,7 @@ export type {
   AnalyzeOptions,
   TypecheckOptions,
   TypecheckResult,
+  ScriptLineMapping,
   SeparatedScriptResult
 } from "./types.js";
 export {

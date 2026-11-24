@@ -3,7 +3,6 @@
  * with Atomic Duplicate-Update Rejection.
  */
 
-import { MixError, DiagnosticCodes } from "../errors.js";
 import {
   signal,
   createEffect,
@@ -18,6 +17,25 @@ import {
 } from "../core/index.js";
 import { removeNode, normalizeToNodeArray } from "./nodes.js";
 import { getHydrationContext, runWithHydrationSubtree } from "./hydration.js";
+import {
+  normalizeSameValueZeroKey,
+  resolveImplicitKey,
+  resolveIncomingKeys,
+  type DuplicateKeyTracker,
+  type KeyMode,
+  type KeyedEachLocation,
+  type KeyedEachOptions
+} from "./reconciler-keys.js";
+
+export {
+  normalizeSameValueZeroKey,
+  resolveImplicitKey,
+  resolveIncomingKeys,
+  type DuplicateKeyTracker,
+  type KeyMode,
+  type KeyedEachLocation,
+  type KeyedEachOptions
+};
 
 /**
  * Computes the Longest Increasing Subsequence of non-negative values in `seq`
@@ -80,7 +98,7 @@ export function longestIncreasingSubsequence(seq: readonly number[]): number[] {
 export const computeLisIndices = longestIncreasingSubsequence;
 
 export interface KeyedRowEntry<T> {
-  readonly key: string | number | symbol;
+  readonly key: unknown;
   readonly owner: Owner;
   readonly dispose: () => void;
   readonly itemSignal: Signal<T>;
@@ -90,69 +108,36 @@ export interface KeyedRowEntry<T> {
 
 export type KeyedItemRecord<T> = KeyedRowEntry<T>;
 
-interface KeyedListState<T> {
+interface KeyedListState<T> extends DuplicateKeyTracker {
   readonly endAnchor: Comment;
-  entries: Map<string | number | symbol, KeyedRowEntry<T>>;
+  entries: Map<unknown, KeyedRowEntry<T>>;
   order: KeyedRowEntry<T>[];
 }
 
 const containerListStateMap = new WeakMap<Node, KeyedListState<unknown>>();
 
-function normalizeSameValueZeroKey(
-  rawKey: unknown,
-  index: number
-): string | number | symbol {
-  if (
-    rawKey === null ||
-    rawKey === undefined ||
-    (typeof rawKey !== "string" &&
-      typeof rawKey !== "number" &&
-      typeof rawKey !== "symbol") ||
-    (typeof rawKey === "number" && Number.isNaN(rawKey))
-  ) {
-    throw new MixError(
-      DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
-      `Invalid key "${String(rawKey)}" at index ${index}: keys must be non-null strings, finite numbers, or symbols.`
-    );
-  }
-  if (typeof rawKey === "number" && Object.is(rawKey, -0)) {
-    return 0;
-  }
-  return rawKey;
-}
-
 function reconcileKeyedListInternal<T>(
   parent: Node,
   state: KeyedListState<T>,
   items: readonly T[],
-  keyFn: (item: T, index: number) => string | number | symbol,
+  keyFn: ((item: T, index: number) => unknown) | null | undefined,
   createRowNodes: (
     item: T,
     indexSignal: Signal<number>,
     itemSignal: Signal<T>
   ) => Node | readonly Node[],
-  parentOwner: Owner | null
+  parentOwner: Owner | null,
+  options?: KeyedEachOptions
 ): void {
-  // Step 1: Pre-reconciliation Key Validation
-  // Validate the ENTIRE incoming key collection upfront BEFORE any DOM/owner
-  // allocation, movement, or disposal.
-  const seenKeys = new Map<string | number | symbol, number>();
-  const incomingKeys = new Array<string | number | symbol>(items.length);
-
-  for (let i = 0; i < items.length; i++) {
-    const rawKey = keyFn(items[i]!, i);
-    const key = normalizeSameValueZeroKey(rawKey, i);
-    const firstSeenIdx = seenKeys.get(key);
-    if (firstSeenIdx !== undefined) {
-      // Atomic rejection: zero DOM mutations, zero owner allocations/disposals
-      throw new MixError(
-        DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
-        `Duplicate key "${String(key)}" detected at index ${i} (first seen at index ${firstSeenIdx}). Collection update atomically rejected.`
-      );
-    }
-    seenKeys.set(key, i);
-    incomingKeys[i] = key;
-  }
+  const mode: KeyMode = options?.mode ?? "explicit";
+  // Step 1: Pre-reconciliation Key Validation (atomic in explicit mode, safe in implicit mode)
+  const { seenKeys, incomingKeys } = resolveIncomingKeys(
+    items,
+    keyFn,
+    mode,
+    state,
+    options?.loc
+  );
 
   // Step 2: Dispose and remove obsolete rows not present in `seenKeys`
   const survivingOrder: KeyedRowEntry<T>[] = [];
@@ -170,7 +155,7 @@ function reconcileKeyedListInternal<T>(
   }
 
   // Map surviving keys to their relative index in `survivingOrder` (0 .. survivingOrder.length - 1)
-  const survivingIndexMap = new Map<string | number | symbol, number>();
+  const survivingIndexMap = new Map<unknown, number>();
   for (let i = 0; i < survivingOrder.length; i++) {
     survivingIndexMap.set(survivingOrder[i]!.key, i);
   }
@@ -253,12 +238,13 @@ function reconcileKeyedListInternal<T>(
 export function renderKeyedList<T>(
   parent: HTMLElement,
   items: readonly T[],
-  keyFn: (item: T, index: number) => string | number | symbol,
+  keyFn: ((item: T, index: number) => unknown) | null | undefined,
   renderFn: (
     item: T,
     indexGetter: () => number,
     itemGetter: () => T
-  ) => Node | readonly Node[]
+  ) => Node | readonly Node[],
+  options?: KeyedEachOptions
 ): void {
   let state = containerListStateMap.get(parent) as KeyedListState<T> | undefined;
   if (!state) {
@@ -267,7 +253,9 @@ export function renderKeyedList<T>(
     state = {
       endAnchor,
       entries: new Map(),
-      order: []
+      order: [],
+      duplicateTokens: new Map(),
+      warnedDuplicate: false
     };
     containerListStateMap.set(parent, state as KeyedListState<unknown>);
   }
@@ -283,22 +271,24 @@ export function renderKeyedList<T>(
         () => indexSig(),
         () => itemSig()
       ),
-    getCurrentOwner()
+    getCurrentOwner(),
+    options
   );
 }
 
 /**
- * Reactive keyed `{#each}` block primitive used by compiled Mix/Tix templates.
+ * Reactive keyed `{each}` block primitive used by compiled Mix/Tix templates.
  */
 export function createKeyedEach<T>(
   parent: Node,
   itemsFn: () => readonly T[],
-  keyFn: (item: T, index: number) => string | number | symbol,
+  keyFn: ((item: T, index: number) => unknown) | null | undefined,
   renderRowFn: (
     itemGetter: () => T,
     indexGetter: () => number
   ) => Node | readonly Node[],
-  anchor?: Node | null
+  anchor?: Node | null,
+  options?: KeyedEachOptions
 ): Comment {
   const initialWalker = getHydrationContext();
   const openMarker = initialWalker ? initialWalker.claimComment("mix:each:") : null;
@@ -314,10 +304,13 @@ export function createKeyedEach<T>(
   const state: KeyedListState<T> = {
     endAnchor,
     entries: new Map(),
-    order: []
+    order: [],
+    duplicateTokens: new Map(),
+    warnedDuplicate: false
   };
   const parentOwner = getCurrentOwner();
   let isFirstHydrateRun = Boolean(initialWalker && openMarker && closeMarker);
+  const mode: KeyMode = options?.mode ?? "explicit";
 
   if (parentOwner) {
     onCleanup(() => {
@@ -329,13 +322,14 @@ export function createKeyedEach<T>(
         }
       }
       state.entries.clear();
+      state.duplicateTokens.clear();
       state.order = [];
       removeNode(endAnchor);
     });
   }
 
   createEffect(() => {
-    const items = itemsFn();
+    const items = itemsFn() ?? [];
     const targetParent = endAnchor.parentNode ?? parent;
 
     if (isFirstHydrateRun && initialWalker && openMarker && closeMarker) {
@@ -345,19 +339,11 @@ export function createKeyedEach<T>(
         openMarker,
         closeMarker,
         () => {
-          const seenKeys = new Map<string | number | symbol, number>();
+          const { incomingKeys } = resolveIncomingKeys(items, keyFn, mode, state, options?.loc);
           const hydratedOrder: KeyedRowEntry<T>[] = [];
           for (let i = 0; i < items.length; i++) {
             const item = items[i]!;
-            const key = normalizeSameValueZeroKey(keyFn(item, i), i);
-            const firstSeenIdx = seenKeys.get(key);
-            if (firstSeenIdx !== undefined) {
-              throw new MixError(
-                DiagnosticCodes.MIX_ERR_DUPLICATE_KEY,
-                `Duplicate key "${String(key)}" detected at index ${i} (first seen at index ${firstSeenIdx}). Collection update atomically rejected.`
-              );
-            }
-            seenKeys.set(key, i);
+            const key = incomingKeys[i]!;
 
             const itemOpen = initialWalker.claimComment("mix:item:");
             const itemClose = itemOpen ? initialWalker.findClosingComment(itemOpen, "mix:item:") : null;
@@ -428,7 +414,8 @@ export function createKeyedEach<T>(
                   () => indexSig()
                 )
               ),
-            parentOwner
+            parentOwner,
+            options
           );
         }
       );
@@ -447,7 +434,8 @@ export function createKeyedEach<T>(
             () => indexSig()
           )
         ),
-      parentOwner
+      parentOwner,
+      options
     );
   });
 
