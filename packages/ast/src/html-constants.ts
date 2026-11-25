@@ -14,7 +14,6 @@ export const HTML_VOID_ELEMENTS: ReadonlySet<string> = new Set([
   "input",
   "link",
   "meta",
-  "param",
   "source",
   "track",
   "wbr"

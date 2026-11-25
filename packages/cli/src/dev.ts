@@ -157,7 +157,7 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
             const jsCode = compileComponentModule(boundaryAbs, rawSource);
             moduleCache.set(boundaryAbs, jsCode);
 
-            const resolvedCssId = plugin.resolveId(`${boundaryAbs}?mix-css=1`);
+            const resolvedCssId = plugin.resolveId(`${boundaryAbs}?mix-css=1&scoped=1`);
             currentCss = resolvedCssId ? (plugin.load(resolvedCssId) ?? "") : "";
             const prevJs = lastJsHashes.get(boundaryAbs);
             const prevCss = lastCssHashes.get(boundaryAbs);
@@ -329,10 +329,11 @@ export async function createDevServer(options: DevServerOptions = {}): Promise<D
       return;
     }
 
-    // 4. Virtual CSS modules (?mix-css=1) loaded via @dotmix/vite-plugin
+    // 4. Virtual CSS modules (?mix-css=1 or ?mix-css=1&scoped=1) loaded via @dotmix/vite-plugin
     if (urlObj.searchParams.has("mix-css")) {
       const targetAbs = normalizeDriveLetter(path.normalize(path.resolve(rootDir, pathname.replace(/^\/+/, ""))));
-      const resolvedId = plugin.resolveId(`${targetAbs}?mix-css=1`);
+      const wantScoped = urlObj.searchParams.get("scoped") === "1";
+      const resolvedId = plugin.resolveId(`${targetAbs}?mix-css=1${wantScoped ? "&scoped=1" : ""}`);
       let css = resolvedId ? plugin.load(resolvedId) : null;
       if (!css && fs.existsSync(targetAbs)) {
         try {

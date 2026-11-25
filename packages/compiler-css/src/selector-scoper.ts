@@ -2,7 +2,6 @@
  * @dotmix/compiler-css/selector-scoper — AST-based CSS selector scoper (`[data-mix-<hash>]`), `:global(...)` and `:deep(...)` transformer, and `compileCss`.
  */
 
-import * as csstree from "css-tree";
 import type { CssPlainNode, CssLocation } from "css-tree";
 import { MixDiagnosticError, DiagnosticCodes } from "@dotmix/diagnostics";
 import {
@@ -16,6 +15,12 @@ import {
   validateAtruleSecurity,
   validateCssUrlNode
 } from "./security-validator.js";
+import {
+  parseCssWithSupports,
+  toPlainCssAst,
+  fromPlainCssAst,
+  generateCssAst
+} from "./supports-parser.js";
 
 function createScopeAttributeNode(scopeAttr: string): CssPlainNode {
   return {
@@ -60,8 +65,8 @@ function parseInnerSelectorNodes(rawSelectorText: string, options?: CssCompileOp
       span: toMixSpan(loc, options)
     });
   }
-  const parsed = csstree.toPlainObject(
-    csstree.parse(trimmed, { context: "selector", positions: true })
+  const parsed = toPlainCssAst(
+    parseCssWithSupports(trimmed, { context: "selector", positions: true })
   );
   return parsed.children ?? [];
 }
@@ -211,6 +216,17 @@ export function walkAndTransformCssAst(
     return;
   }
 
+  if (node.type === "GeneralEnclosed") {
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        if (child.type !== "Raw") {
+          walkAndTransformCssAst(child, scopeAttr, scoped, inKeyframes, options);
+        }
+      }
+    }
+    return;
+  }
+
   if (node.type === "Function" && (node.name === "var" || node.name === "env")) {
     if (Array.isArray(node.children)) {
       for (const child of node.children) {
@@ -248,7 +264,7 @@ export function compileCss(cssSource: string, options?: CssCompileOptions): CssC
 
   // Check for unbalanced braces before or during parsing
   let parseErr: (Error & { line?: number; column?: number; offset?: number }) | null = null;
-  const rawAst = csstree.parse(cssSource, {
+  const rawAst = parseCssWithSupports(cssSource, {
     positions: true,
     filename: options?.filename ?? "style.css",
     onParseError(err) {
@@ -285,11 +301,11 @@ export function compileCss(cssSource: string, options?: CssCompileOptions): CssC
   const scopeAttribute = `data-mix-${hash}`;
   const scoped = options?.scoped ?? true;
 
-  const plainAst = csstree.toPlainObject(rawAst);
+  const plainAst = toPlainCssAst(rawAst);
   walkAndTransformCssAst(plainAst, scopeAttribute, scoped, false, options);
 
-  const rebuiltAst = csstree.fromPlainObject(plainAst);
-  const code = csstree.generate(rebuiltAst);
+  const rebuiltAst = fromPlainCssAst(plainAst);
+  const code = generateCssAst(rebuiltAst);
 
   return Object.freeze({
     code,

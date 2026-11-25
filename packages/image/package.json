@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/image",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Optional responsive image component (<Picture>) and build-time AVIF/WebP optimizer for dotMix",
   "files": [
     "dist"
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@dotmix/runtime": "0.4.0"
+    "@dotmix/runtime": "0.4.1"
   },
   "peerDependencies": {
     "sharp": "^0.33.0"

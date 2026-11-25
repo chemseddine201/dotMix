@@ -9,6 +9,7 @@ import { parse } from "@dotmix/compiler-frontend";
 import {
   analyze,
   listStaticImportSpecifiers,
+  pruneDeadBranches,
   replaceImportMetaEnv,
   rewriteJsModuleSpecifiers,
   transpileSourceModule
@@ -149,7 +150,8 @@ export function compileSsrWorkspace(
 
     const stripped = removeSideEffectImports(ssr.code, (s) => STYLE_FILE_REGEX.test(s));
     const withEnv = replaceImportMetaEnv(stripped, envValues);
-    const rewritten = rewriteSpecifiers(withEnv);
+    const pruned = envValues.dev ? withEnv : pruneDeadBranches(withEnv);
+    const rewritten = rewriteSpecifiers(pruned);
     const wrapped = [
       rewritten,
       `renderToString.__mixModuleKey = ${JSON.stringify(moduleKey)};`,
@@ -176,7 +178,8 @@ export function compileSsrWorkspace(
     const transpiled = transpileSourceModule(source, scriptFile.endsWith(".ts"));
     const stripped = removeSideEffectImports(transpiled, (s) => STYLE_FILE_REGEX.test(s));
     const withEnv = replaceImportMetaEnv(stripped, envValues);
-    const rewritten = rewriteSpecifiers(withEnv);
+    const pruned = envValues.dev ? withEnv : pruneDeadBranches(withEnv);
+    const rewritten = rewriteSpecifiers(pruned);
 
     const relDeps = listStaticImportSpecifiers(stripped)
       .filter((s) => s.startsWith("./") || s.startsWith("../"))

@@ -35,6 +35,26 @@ declare module "css-tree" {
     onParseError?: (error: Error & { line?: number; column?: number; offset?: number }) => void;
   }
 
+  export interface CssTokenTypes {
+    readonly Ident: number;
+    readonly Function: number;
+    readonly Colon: number;
+    readonly LeftParenthesis: number;
+    readonly RightParenthesis: number;
+    readonly WhiteSpace: number;
+    readonly Comment: number;
+    readonly EOF: number;
+  }
+
+  export interface CssSyntaxInstance {
+    parse(source: string, options?: ParseOptions): unknown;
+    toPlainObject(ast: unknown): CssPlainNode;
+    fromPlainObject(plain: CssPlainNode): unknown;
+    generate(ast: unknown): string;
+  }
+
+  export const tokenTypes: CssTokenTypes;
+  export function fork(extension: (config: Record<string, unknown>) => Record<string, unknown>): CssSyntaxInstance;
   export function parse(source: string, options?: ParseOptions): unknown;
   export function toPlainObject(ast: unknown): CssPlainNode;
   export function fromPlainObject(plain: CssPlainNode): unknown;

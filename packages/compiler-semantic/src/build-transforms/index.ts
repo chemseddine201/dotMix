@@ -8,7 +8,10 @@ export {
   computeRemoveSideEffectImportsEdits,
   computeRemoveCommentsEdits,
   listStaticImportSpecifiers,
-  listDynamicImportSpecifiers
+  listDynamicImportSpecifiers,
+  listOrderedImportSpecifiers,
+  computePruneDeadBranchesEdits,
+  pruneDeadBranches
 } from "./module-transforms.js";
 export {
   typecheckScriptModules,

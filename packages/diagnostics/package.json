@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/diagnostics",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Shared diagnostic classes, codes and source spans for the dotMix toolchain",
   "files": [
     "dist"

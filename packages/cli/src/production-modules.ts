@@ -80,18 +80,71 @@ function collectStaticGraph(
   return ordered;
 }
 
+function collectReachableModules(
+  entryRoots: readonly string[],
+  staticImports: ReadonlyMap<string, readonly string[]>,
+  dynamicImports: ReadonlyMap<string, readonly string[]>
+): Set<string> {
+  const reachable = new Set<string>();
+  const queue = [...entryRoots];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (reachable.has(current)) continue;
+    reachable.add(current);
+    for (const dep of staticImports.get(current) ?? []) {
+      if (!reachable.has(dep)) queue.push(dep);
+    }
+    for (const dep of dynamicImports.get(current) ?? []) {
+      if (!reachable.has(dep)) queue.push(dep);
+    }
+  }
+  return reachable;
+}
+
 export function emitProductionModules(options: EmitModulesOptions): EmittedModules {
   const assetsDirectory = path.join(options.outputDirectory, ASSETS_DIRECTORY_NAME);
   const importMapEntries: Record<string, string> = {};
   const hashedPaths = new Map<string, string>();
   const staticImports = new Map<string, string[]>();
+  const dynamicImports = new Map<string, string[]>();
   const dynamicTargets = new Set<string>();
+  const preparedCode = new Map<string, string>();
   const writtenFiles: string[] = [];
   const emittedCode = new Map<string, string>();
 
   for (const [modulePath, compiledCode] of options.modules) {
     const withoutStylesheets = removeSideEffectImports(compiledCode, isStylesheetSpecifier);
     const finalCode = options.removeComments ? removeJavaScriptComments(withoutStylesheets) : withoutStylesheets;
+    preparedCode.set(modulePath, finalCode);
+
+    staticImports.set(
+      modulePath,
+      listStaticImportSpecifiers(finalCode)
+        .filter(isRelativeSpecifier)
+        .map((specifier) => resolveModulePath(modulePath, specifier))
+        .filter((importedPath) => options.modules.has(importedPath))
+    );
+    dynamicImports.set(
+      modulePath,
+      listDynamicImportSpecifiers(finalCode)
+        .filter(isRelativeSpecifier)
+        .map((specifier) => resolveModulePath(modulePath, specifier))
+        .filter((importedPath) => options.modules.has(importedPath))
+    );
+  }
+
+  const entryRoots: string[] = [];
+  if (options.modules.has("main.js")) entryRoots.push("main.js");
+  if (options.modules.has("routes.js")) entryRoots.push("routes.js");
+  if (entryRoots.length === 0 && options.modules.has("App.js")) entryRoots.push("App.js");
+  const reachableModules =
+    entryRoots.length > 0
+      ? collectReachableModules(entryRoots, staticImports, dynamicImports)
+      : new Set(options.modules.keys());
+
+  for (const [modulePath, compiledCode] of options.modules) {
+    if (!reachableModules.has(modulePath)) continue;
+    const finalCode = preparedCode.get(modulePath)!;
     const hashedPath = `${modulePath.slice(0, -".js".length)}-${shortHash(finalCode)}.js`;
     const absolutePath = path.join(assetsDirectory, ...hashedPath.split("/"));
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
@@ -136,15 +189,8 @@ export function emitProductionModules(options: EmitModulesOptions): EmittedModul
     importMapEntries[`${options.basePath}${ASSETS_DIRECTORY_NAME}/${modulePath}`] =
       `${options.basePath}${ASSETS_DIRECTORY_NAME}/${hashedPath}`;
 
-    staticImports.set(
-      modulePath,
-      listStaticImportSpecifiers(finalCode)
-        .filter(isRelativeSpecifier)
-        .map((specifier) => resolveModulePath(modulePath, specifier))
-        .filter((importedPath) => options.modules.has(importedPath))
-    );
-    for (const specifier of listDynamicImportSpecifiers(finalCode)) {
-      if (isRelativeSpecifier(specifier)) dynamicTargets.add(resolveModulePath(modulePath, specifier));
+    for (const target of dynamicImports.get(modulePath) ?? []) {
+      dynamicTargets.add(target);
     }
   }
 

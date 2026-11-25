@@ -4,15 +4,55 @@
 
 import { deepFreeze } from "@dotmix/ast";
 import type { ScriptBlockNode, StyleBlockNode } from "@dotmix/ast";
-import { DiagnosticCodes } from "@dotmix/diagnostics";
+import { DiagnosticCodes, MixDiagnosticError } from "@dotmix/diagnostics";
 import type { LineMap } from "./location.js";
 import { parseScriptProgram } from "./expression.js";
+import { findFunctionalComponent } from "./functional-finder.js";
+import { stripCommentsPreservingLiterals } from "./script-scanner.js";
 import {
   failSyntax,
   isAsciiWhitespace,
   blankRangePreservingNewlines
 } from "./types.js";
 import type { ParseOptions, ExtractedSections } from "./types.js";
+
+function trimTrailingCommentsAndWs(text: string, start: number, end: number): number {
+  let cursor = end;
+  while (cursor > start) {
+    while (cursor > start && isAsciiWhitespace(text.charCodeAt(cursor - 1))) {
+      cursor--;
+    }
+    if (cursor >= start + 2 && text[cursor - 2] === "*" && text[cursor - 1] === "/") {
+      const openIdx = text.lastIndexOf("/*", cursor - 2);
+      if (openIdx >= start) {
+        cursor = openIdx;
+        continue;
+      }
+    }
+    const lineStart = text.lastIndexOf("\n", cursor - 1) + 1;
+    const lineSlice = text.slice(Math.max(start, lineStart), cursor);
+    const trimmedLine = lineSlice.trimStart();
+    if (trimmedLine.startsWith("//")) {
+      cursor = Math.max(start, lineStart);
+      continue;
+    }
+    break;
+  }
+  return cursor;
+}
+
+function mapSyntheticOffsetToSource(
+  offset: number,
+  segments: readonly { readonly contentStart: number; readonly contentEnd: number; readonly sourceOffset: number }[]
+): number {
+  for (const seg of segments) {
+    if (offset >= seg.contentStart && offset <= seg.contentEnd) {
+      return seg.sourceOffset + (offset - seg.contentStart);
+    }
+  }
+  const last = segments[segments.length - 1];
+  return last ? last.sourceOffset + (last.contentEnd - last.contentStart) : 0;
+}
 
 /**
  * Extracts a React-style functional `.mix` or `.tix` component (`export default function App(props) { ... return ( <...> ); }`)
@@ -25,108 +65,23 @@ export function tryExtractFunctionalComponent(
   isDefaultTs: boolean
 ): ScriptBlockNode | null {
   const currentText = chars.join("");
-  const fnRe = /(?:export\s+default\s+function|export\s+function|function)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
-  const fnMatch = fnRe.exec(currentText);
-  if (!fnMatch) {
+  const found = findFunctionalComponent(currentText);
+  if (!found) {
     return null;
   }
 
-  const fnStart = fnMatch.index;
-  const openParenIdx = fnStart + fnMatch[0].length - 1;
+  const {
+    fnStart,
+    openParenIdx,
+    closeParenIdx,
+    bodyOpenBraceIdx,
+    returnKeywordIdx,
+    fnCloseBraceIdx
+  } = found;
 
-  // Balance parentheses to extract parameter list
-  let parenDepth = 1;
-  let pos = openParenIdx + 1;
-  while (pos < currentText.length && parenDepth > 0) {
-    const ch = currentText[pos]!;
-    if (ch === "(") parenDepth++;
-    else if (ch === ")") parenDepth--;
-    pos++;
-  }
-  if (parenDepth !== 0) {
-    return null;
-  }
-  const closeParenIdx = pos - 1;
-  const rawParams = currentText.slice(openParenIdx + 1, closeParenIdx).trim();
-
-  // Find opening `{` of component function body (skipping optional `: ReturnType`)
-  while (pos < currentText.length && currentText[pos] !== "{") {
-    pos++;
-  }
-  if (pos >= currentText.length) {
-    return null;
-  }
-  const bodyOpenBraceIdx = pos;
-
-  // Scan function body at top braceDepth === 1 to locate the top-level `return` statement
-  // and the closing `}` of the component function
-  let braceDepth = 1;
-  let returnKeywordIdx = -1;
-  let fnCloseBraceIdx = -1;
-  pos = bodyOpenBraceIdx + 1;
-
-  while (pos < currentText.length && braceDepth > 0) {
-    const ch = currentText[pos]!;
-    // Skip strings and comments while scanning before `return`
-    if (returnKeywordIdx === -1) {
-      if (ch === "'" || ch === '"' || ch === "`") {
-        const quote = ch;
-        pos++;
-        while (pos < currentText.length) {
-          if (currentText[pos] === "\\") {
-            pos += 2;
-            continue;
-          }
-          if (currentText[pos] === quote) {
-            pos++;
-            break;
-          }
-          pos++;
-        }
-        continue;
-      }
-      if (currentText.startsWith("//", pos)) {
-        const nl = currentText.indexOf("\n", pos + 2);
-        pos = nl === -1 ? currentText.length : nl + 1;
-        continue;
-      }
-      if (currentText.startsWith("/*", pos)) {
-        const closeCmt = currentText.indexOf("*/", pos + 2);
-        pos = closeCmt === -1 ? currentText.length : closeCmt + 2;
-        continue;
-      }
-    }
-
-    if (ch === "{") {
-      braceDepth++;
-      pos++;
-      continue;
-    }
-    if (ch === "}") {
-      braceDepth--;
-      if (braceDepth === 0) {
-        fnCloseBraceIdx = pos;
-        break;
-      }
-      pos++;
-      continue;
-    }
-
-    if (
-      braceDepth === 1 &&
-      returnKeywordIdx === -1 &&
-      currentText.startsWith("return", pos) &&
-      (pos === bodyOpenBraceIdx + 1 || !/[A-Za-z0-9_$]/.test(currentText[pos - 1]!)) &&
-      (pos + 6 >= currentText.length || !/[A-Za-z0-9_$]/.test(currentText[pos + 6]!))
-    ) {
-      returnKeywordIdx = pos;
-    }
-    pos++;
-  }
-
-  if (returnKeywordIdx === -1 || fnCloseBraceIdx === -1) {
-    return null;
-  }
+  const rawParams = stripCommentsPreservingLiterals(
+    currentText.slice(openParenIdx + 1, closeParenIdx)
+  );
 
   // Locate the returned markup range `[templateStart, templateEnd)` inside `return (...)` or `return <...>`
   let afterReturn = returnKeywordIdx + 6;
@@ -135,15 +90,9 @@ export function tryExtractFunctionalComponent(
   }
 
   let templateStart = afterReturn;
-  let templateEnd = fnCloseBraceIdx;
-  while (templateEnd > templateStart && isAsciiWhitespace(currentText.charCodeAt(templateEnd - 1))) {
-    templateEnd--;
-  }
+  let templateEnd = trimTrailingCommentsAndWs(currentText, templateStart, fnCloseBraceIdx);
   if (templateEnd > templateStart && currentText[templateEnd - 1] === ";") {
-    templateEnd--;
-    while (templateEnd > templateStart && isAsciiWhitespace(currentText.charCodeAt(templateEnd - 1))) {
-      templateEnd--;
-    }
+    templateEnd = trimTrailingCommentsAndWs(currentText, templateStart, templateEnd - 1);
   }
 
   if (currentText[templateStart] === "(" && currentText[templateEnd - 1] === ")") {
@@ -247,9 +196,30 @@ export function tryExtractFunctionalComponent(
   const scriptContent = scriptPartEntries.map((p) => p.text).join("\n");
   const lang: "js" | "ts" = isDefaultTs ? "ts" : "js";
 
+  const fullScriptSegments = [...sourceSegments];
+  if (postamble.length > 0) {
+    const postStart = scriptContent.length > 0 ? scriptContent.length + 1 : 0;
+    fullScriptSegments.push({
+      contentStart: postStart,
+      contentEnd: postStart + postamble.length,
+      sourceOffset: postambleSlice.startOffset
+    });
+  }
   const fullScriptForCheck = [scriptContent, postamble].filter((s) => s.length > 0).join("\n");
   if (fullScriptForCheck.trim().length > 0) {
-    parseScriptProgram(fullScriptForCheck, 0, lineMap);
+    try {
+      parseScriptProgram(fullScriptForCheck, 0, lineMap);
+    } catch (err: unknown) {
+      if (err instanceof MixDiagnosticError) {
+        const mappedStart = mapSyntheticOffsetToSource(err.diagnostic.span.start.offset, fullScriptSegments);
+        const mappedEnd = Math.min(source.length, mappedStart + 1);
+        throw new MixDiagnosticError({
+          ...err.diagnostic,
+          span: lineMap.span(mappedStart, mappedEnd)
+        });
+      }
+      throw err;
+    }
   }
 
   // Blank everything outside `[templateStart, templateEnd)` in `chars` so template offsets match original source

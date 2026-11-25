@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/compiler-ssr",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Ahead-of-Time Server-Side Rendering Compiler for Mix/Tix",
   "files": [
     "dist"
@@ -17,10 +17,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@dotmix/ast": "0.4.0",
-    "@dotmix/compiler-semantic": "0.4.0",
-    "@dotmix/compiler-css": "0.4.0",
-    "@dotmix/diagnostics": "0.4.0"
+    "@dotmix/ast": "0.4.1",
+    "@dotmix/compiler-semantic": "0.4.1",
+    "@dotmix/compiler-css": "0.4.1",
+    "@dotmix/diagnostics": "0.4.1"
   },
   "license": "MIT"
 }

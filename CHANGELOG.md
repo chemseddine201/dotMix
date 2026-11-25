@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.1] — 2026-11-25
+
+All `@dotmix/*` packages move to 0.4.1 together.
+
+### Fixed
+- **Global CSS import order:** global CSS follows import order in `mix build`, `mix build --static`, and `mix dev` (depth-first from the entry; duplicate imports keep their first position).
+- **Full `@supports` grammar:** `@dotmix/compiler-css` accepts the full CSS `<supports-condition>` grammar (nested and outer parentheses, `not`/`and`/`or`, `selector()`, `font-tech()`, `font-format()`, and unknown `<general-enclosed>` conditions passed through unchanged).
+- **Exact `.tix` script scanner & extractor:** `.tix` script extraction uses an exact TypeScript lexical scanner (distinguishing regex literals from division by previous significant token, template `${...}`, and comments with quotes or brackets), prefers `export default function`, and maps script syntax errors to the original source.
+- **Production `import.meta.env.DEV` pruning:** production builds replace `import.meta.env.DEV` with `false` (`PROD` with `true`), drop statically unreachable branches, and emit only reachable modules into `dist/assets/` and the import map.
+- **HTML void elements & `<canvas>`:** only the 13 HTML Living Standard void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track`, `wbr`) are void; SSR closes non-void elements such as `<canvas>` explicitly.
+- **Docs:** removed obsolete `param` from the HTML void-element list in `spec/LANGUAGE.md` §3.
+
+### Changes from 0.4.0
+- Stylesheet order in the merged bundle can change for projects that relied on file-name order.
+- Unreachable `src/` modules are no longer copied to `dist/assets/`, and are no longer listed in the import map.
+
+### Known issues
+- When a `.tix` component body uses `import.meta` or a dynamic `import(...)` and the masked body has no top-level export, `ts.transpileModule` appends `export {};` inside the emitted component function, so SSR and the browser fail with `SyntaxError: Unexpected token 'export'`. Scheduled for the next gate.
+
+---
+
 ## [0.4.0] — 2026-11-24
 
 All `@dotmix/*` packages move to 0.4.0 together.

@@ -2,24 +2,26 @@
  * @dotmix/compiler-ssr/compiler — Ahead-of-Time Server-Side Rendering Compiler (`compileToSsr`).
  */
 
-import type {
-  ComponentNode,
-  TemplateNode,
-  ElementNode,
-  TextNode,
-  InterpolationNode,
-  IfBlockNode,
-  EachBlockNode,
-  SlotOutletNode,
-  ComponentCallNode,
-  DynamicElementNode,
-  AwaitBlockNode,
-  AttributeNode,
-  DynamicAttributeNode,
-  BindBindingNode,
-  ESTreeNode,
-  HydrateNode,
-  HydrateWhen,
+import {
+  HTML_VOID_ELEMENTS,
+  SVG_ELEMENTS,
+  type ComponentNode,
+  type TemplateNode,
+  type ElementNode,
+  type TextNode,
+  type InterpolationNode,
+  type IfBlockNode,
+  type EachBlockNode,
+  type SlotOutletNode,
+  type ComponentCallNode,
+  type DynamicElementNode,
+  type AwaitBlockNode,
+  type AttributeNode,
+  type DynamicAttributeNode,
+  type BindBindingNode,
+  type ESTreeNode,
+  type HydrateNode,
+  type HydrateWhen,
 } from "@dotmix/ast";
 import type { ComponentDescriptor, ScriptLineMapping, SourceMapV3 } from "@dotmix/compiler-semantic";
 import { extractAndTranspileScript, analyze, stripDirectiveImportsFromJs } from "@dotmix/compiler-semantic";
@@ -383,7 +385,12 @@ export function compileToSsr(
       parts.push(`__html += " ${scopeHash}";\n`);
     }
     generateAttributes(attributes, shadowed);
-    if (selfClosing && children.length === 0) {
+    const lowerTag = tagName.toLowerCase();
+    if (
+      selfClosing &&
+      children.length === 0 &&
+      (HTML_VOID_ELEMENTS.has(lowerTag) || SVG_ELEMENTS.has(tagName))
+    ) {
       parts.push(`__html += " />";\n`);
       return;
     }

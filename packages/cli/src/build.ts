@@ -12,16 +12,20 @@ import {
   analyze,
   projectTypeScript,
   replaceImportMetaEnv,
+  pruneDeadBranches,
   rewriteJsModuleSpecifiers,
   transpileSourceModule,
+  listOrderedImportSpecifiers,
   computeImportMetaEnvEdits,
+  computePruneDeadBranchesEdits,
   computeJsModuleSpecifierEdits,
   shiftMapThroughEdits,
   applyTextEdits,
   type SourceMapV3
 } from "@dotmix/compiler-semantic";
-import { generate, type CodegenOptions } from "@dotmix/compiler-codegen";
+import { generate, isComponentStylesheet, type CodegenOptions } from "@dotmix/compiler-codegen";
 import { compileCss, minifyStylesheet, preprocessCss } from "@dotmix/compiler-css";
+import { computeGlobalStyleImportOrder, type ModuleImportRecord } from "./css-order.js";
 import {
   STYLE_FILE_REGEX,
   scanInputDirectory,
@@ -99,6 +103,8 @@ export function build(options: BuildOptions = {}): BuildResult {
   const projectedDeclarations = new Map<string, string>();
   const allCompiledCssChunks: string[] = [];
   const globalCssChunks: string[] = [];
+  const moduleImportRecords = new Map<string, ModuleImportRecord>();
+  const componentOwnStylePaths = new Set<string>();
   const toModuleKey = (absolutePath: string, extension: string): string =>
     `${toPosixPath(path.relative(inDir, absolutePath)).slice(0, -path.extname(absolutePath).length)}${extension}`;
 
@@ -134,6 +140,19 @@ export function build(options: BuildOptions = {}): BuildResult {
     }
 
     const moduleKey = toModuleKey(file, ".js");
+    const orderedSpecifiers = ast.script
+      ? listOrderedImportSpecifiers(ast.script.content, ast.script.lang === "ts" || filename.endsWith(".tix"))
+      : [];
+    moduleImportRecords.set(moduleKey, {
+      absFile: normalizeDriveLetter(path.resolve(file)),
+      isComponent: true,
+      orderedSpecifiers
+    });
+    for (const cssSpec of desc.cssImports ?? []) {
+      if (isComponentStylesheet(cssSpec)) {
+        componentOwnStylePaths.add(normalizeDriveLetter(path.resolve(path.dirname(file), cssSpec)));
+      }
+    }
     let currentJs = codegen.js;
     let currentMap = codegen.map;
 
@@ -142,6 +161,14 @@ export function build(options: BuildOptions = {}): BuildResult {
       currentMap = shiftMapThroughEdits(currentMap, currentJs, envEdits);
       currentJs = applyTextEdits(currentJs, envEdits);
 
+      if (!envValues.dev) {
+        const pruneEdits = computePruneDeadBranchesEdits(currentJs);
+        if (pruneEdits.length > 0) {
+          currentMap = shiftMapThroughEdits(currentMap, currentJs, pruneEdits);
+          currentJs = applyTextEdits(currentJs, pruneEdits);
+        }
+      }
+
       const specifierEdits = computeJsModuleSpecifierEdits(currentJs, toEmittedModuleSpecifier);
       currentMap = shiftMapThroughEdits(currentMap, currentJs, specifierEdits);
       currentJs = applyTextEdits(currentJs, specifierEdits);
@@ -149,7 +176,8 @@ export function build(options: BuildOptions = {}): BuildResult {
       compiledSourceMaps.set(moduleKey, currentMap);
     } else {
       const compiledWithEnv = replaceImportMetaEnv(currentJs, envValues);
-      currentJs = rewriteJsModuleSpecifiers(compiledWithEnv, toEmittedModuleSpecifier);
+      const prunedJs = envValues.dev ? compiledWithEnv : pruneDeadBranches(compiledWithEnv);
+      currentJs = rewriteJsModuleSpecifiers(prunedJs, toEmittedModuleSpecifier);
     }
     compiledModules.set(moduleKey, currentJs);
     // Global stylesheets a component imports (`./styles/global.scss`) are project files too; the
@@ -184,23 +212,50 @@ export function build(options: BuildOptions = {}): BuildResult {
         currentMap = shiftMapThroughEdits(currentMap, currentJs, envEdits);
         currentJs = applyTextEdits(currentJs, envEdits);
 
+        if (!envValues.dev) {
+          const pruneEdits = computePruneDeadBranchesEdits(currentJs);
+          if (pruneEdits.length > 0) {
+            currentMap = shiftMapThroughEdits(currentMap, currentJs, pruneEdits);
+            currentJs = applyTextEdits(currentJs, pruneEdits);
+          }
+        }
+
         const specifierEdits = computeJsModuleSpecifierEdits(currentJs, toEmittedModuleSpecifier);
         currentMap = shiftMapThroughEdits(currentMap, currentJs, specifierEdits);
         currentJs = applyTextEdits(currentJs, specifierEdits);
 
         compiledSourceMaps.set(moduleKey, currentMap);
       }
+      moduleImportRecords.set(moduleKey, {
+        absFile: normalizeDriveLetter(path.resolve(scriptFile)),
+        isComponent: false,
+        orderedSpecifiers: listOrderedImportSpecifiers(currentJs, false)
+      });
       compiledModules.set(moduleKey, currentJs);
     } else {
       const transpiledCode = replaceImportMetaEnv(
         transpileSourceModule(source, scriptFile.endsWith(".ts")),
         envValues
       );
-      compiledModules.set(moduleKey, rewriteJsModuleSpecifiers(transpiledCode, toEmittedModuleSpecifier));
+      const prunedCode = envValues.dev ? transpiledCode : pruneDeadBranches(transpiledCode);
+      const finalScriptCode = rewriteJsModuleSpecifiers(prunedCode, toEmittedModuleSpecifier);
+      moduleImportRecords.set(moduleKey, {
+        absFile: normalizeDriveLetter(path.resolve(scriptFile)),
+        isComponent: false,
+        orderedSpecifiers: listOrderedImportSpecifiers(finalScriptCode, false)
+      });
+      compiledModules.set(moduleKey, finalScriptCode);
     }
   }
 
-  for (const styleFile of styleFiles) {
+  const orderedStyleFiles = computeGlobalStyleImportOrder({
+    inDir,
+    moduleImports: moduleImportRecords,
+    allStyleFiles: styleFiles,
+    componentOwnStylePaths
+  });
+
+  for (const styleFile of orderedStyleFiles) {
     watchedFilesSet.add(styleFile);
     const stylesheetKey = `${toPosixPath(path.relative(inDir, styleFile)).replace(STYLE_FILE_REGEX, "")}.css`;
     if (compiledStylesheets.has(stylesheetKey)) {

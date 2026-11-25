@@ -61,7 +61,7 @@ Duplicate `<script>` or `<style>` blocks in a single component file are rejected
 
 1. **Standard HTML/SVG Elements (`ElementNode`):**
    - Begin with a lowercase ASCII letter (`^[a-z]`), e.g. `<div>`, `<button>`, `<input />`, `<svg>`.
-   - HTML void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `param`, `source`, `track`, `wbr`) may be written without a closing tag or self-closed with `/>`.
+   - HTML void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track`, `wbr`) may be written without a closing tag or self-closed with `/>`.
 2. **Component Invocations (`ComponentCallNode`):**
    - Begin with an uppercase ASCII letter (`^[A-Z]`, PascalCase), e.g. `<Header title={title()} />` or `<Card><p>Slot</p></Card>`.
    - Compiled to component factory invocations rather than `document.createElement`.
