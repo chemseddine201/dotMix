@@ -283,6 +283,12 @@ export function typecheckTix(
     program.getSourceFile(projection.virtualFilename);
   const tsDiagnostics = projectedSf ? program.getSemanticDiagnostics(projectedSf) : [];
 
+  const seenDiagnostics = new Set<string>(
+    diagnostics.map((d) =>
+      JSON.stringify([d.code, d.span.start.offset, d.span.end.offset, d.message])
+    )
+  );
+
   for (const tsDiag of tsDiagnostics) {
     const msg = ts.flattenDiagnosticMessageText(tsDiag.messageText, "\n");
     const genStart = tsDiag.start ?? 0;
@@ -295,28 +301,39 @@ export function typecheckTix(
       filename
     );
 
+    let code: string;
+    let message: string;
     if (mapped.isInternal) {
-      diagnostics.push({
-        code: DiagnosticCodes.MIX_INTERNAL_TYPECHECK,
-        message: `Internal TypeScript projection diagnostic: ${msg}`,
-        severity: "error",
-        span: mapped.span
-      });
+      code = DiagnosticCodes.MIX_INTERNAL_TYPECHECK;
+      message = `Internal TypeScript projection diagnostic: ${msg}`;
     } else {
       const isInvalidKeyError =
         msg.includes("is not assignable to parameter of type 'string | number | symbol'") ||
         msg.includes("is not assignable to parameter of type 'PropertyKey'");
-      diagnostics.push({
-        code: isInvalidKeyError
-          ? DiagnosticCodes.MIX_ERR_INVALID_KEY
-          : DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE,
-        message: isInvalidKeyError
-          ? `Invalid explicit list key type: ${msg}. Keys must be assignable to 'string | number | symbol'.`
-          : withAuthTypingHint(msg, projection.registeredAuthBindings ?? []),
-        severity: "error",
-        span: mapped.span
-      });
+      code = isInvalidKeyError
+        ? DiagnosticCodes.MIX_ERR_INVALID_KEY
+        : DiagnosticCodes.MIX_ERR_INVALID_PROP_TYPE;
+      message = isInvalidKeyError
+        ? `Invalid explicit list key type: ${msg}. Keys must be assignable to 'string | number | symbol'.`
+        : withAuthTypingHint(msg, projection.registeredAuthBindings ?? []);
     }
+
+    const dedupeKey = JSON.stringify([
+      code,
+      mapped.span.start.offset,
+      mapped.span.end.offset,
+      message
+    ]);
+    if (seenDiagnostics.has(dedupeKey)) {
+      continue;
+    }
+    seenDiagnostics.add(dedupeKey);
+    diagnostics.push({
+      code,
+      message,
+      severity: "error",
+      span: mapped.span
+    });
   }
 
   if ((options?.throwOnError ?? false) && diagnostics.length > 0) {

@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/helpers",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Zero-dependency native standard library for dotMix (data, datetime, http, async, web)",
   "files": [
     "dist"
@@ -44,7 +44,7 @@
     }
   },
   "dependencies": {
-    "@dotmix/runtime": "0.4.1"
+    "@dotmix/runtime": "0.4.2"
   },
   "license": "MIT"
 }

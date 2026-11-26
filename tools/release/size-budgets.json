@@ -1,7 +1,7 @@
 {
   "@dotmix/ast": {
     "directoryName": "ast",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 88102,
     "measuredGzipBytes": 18925,
     "measuredJavaScriptGzipBytes": 5432,
@@ -10,7 +10,7 @@
   },
   "@dotmix/cli": {
     "directoryName": "cli",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 734635,
     "measuredGzipBytes": 203443,
     "measuredJavaScriptGzipBytes": 99904,
@@ -19,7 +19,7 @@
   },
   "@dotmix/compiler-codegen": {
     "directoryName": "compiler-codegen",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 237538,
     "measuredGzipBytes": 53769,
     "measuredJavaScriptGzipBytes": 24436,
@@ -28,7 +28,7 @@
   },
   "@dotmix/compiler-css": {
     "directoryName": "compiler-css",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 102522,
     "measuredGzipBytes": 31464,
     "measuredJavaScriptGzipBytes": 13953,
@@ -37,7 +37,7 @@
   },
   "@dotmix/compiler-frontend": {
     "directoryName": "compiler-frontend",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 442503,
     "measuredGzipBytes": 97498,
     "measuredJavaScriptGzipBytes": 45172,
@@ -46,16 +46,16 @@
   },
   "@dotmix/compiler-semantic": {
     "directoryName": "compiler-semantic",
-    "version": "0.4.1",
-    "measuredRawBytes": 611784,
-    "measuredGzipBytes": 144219,
-    "measuredJavaScriptGzipBytes": 65423,
-    "budgetGzipBytes": 144219,
-    "budgetJavaScriptGzipBytes": 65423
+    "version": "0.4.2",
+    "measuredRawBytes": 615648,
+    "measuredGzipBytes": 145001,
+    "measuredJavaScriptGzipBytes": 65837,
+    "budgetGzipBytes": 145001,
+    "budgetJavaScriptGzipBytes": 65837
   },
   "@dotmix/compiler-ssr": {
     "directoryName": "compiler-ssr",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 204283,
     "measuredGzipBytes": 45314,
     "measuredJavaScriptGzipBytes": 21622,
@@ -64,7 +64,7 @@
   },
   "@dotmix/diagnostics": {
     "directoryName": "diagnostics",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 29328,
     "measuredGzipBytes": 7467,
     "measuredJavaScriptGzipBytes": 3937,
@@ -73,7 +73,7 @@
   },
   "@dotmix/helpers": {
     "directoryName": "helpers",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 228412,
     "measuredGzipBytes": 59149,
     "measuredJavaScriptGzipBytes": 22364,
@@ -82,7 +82,7 @@
   },
   "@dotmix/image": {
     "directoryName": "image",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 24464,
     "measuredGzipBytes": 7117,
     "measuredJavaScriptGzipBytes": 3111,
@@ -91,7 +91,7 @@
   },
   "@dotmix/interop": {
     "directoryName": "interop",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 36376,
     "measuredGzipBytes": 13673,
     "measuredJavaScriptGzipBytes": 4863,
@@ -100,7 +100,7 @@
   },
   "@dotmix/language-server": {
     "directoryName": "language-server",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 89807,
     "measuredGzipBytes": 24542,
     "measuredJavaScriptGzipBytes": 10801,
@@ -109,7 +109,7 @@
   },
   "@dotmix/router": {
     "directoryName": "router",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 183157,
     "measuredGzipBytes": 46050,
     "measuredJavaScriptGzipBytes": 17985,
@@ -118,7 +118,7 @@
   },
   "@dotmix/runtime": {
     "directoryName": "runtime",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 723500,
     "measuredGzipBytes": 199390,
     "measuredJavaScriptGzipBytes": 76850,
@@ -127,7 +127,7 @@
   },
   "@dotmix/sanitizer-dompurify": {
     "directoryName": "sanitizer-dompurify",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 24305,
     "measuredGzipBytes": 8128,
     "measuredJavaScriptGzipBytes": 3805,
@@ -136,7 +136,7 @@
   },
   "@dotmix/server-node": {
     "directoryName": "server-node",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 63605,
     "measuredGzipBytes": 18482,
     "measuredJavaScriptGzipBytes": 7500,
@@ -145,7 +145,7 @@
   },
   "@dotmix/stream": {
     "directoryName": "stream",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 29369,
     "measuredGzipBytes": 11057,
     "measuredJavaScriptGzipBytes": 4325,
@@ -154,7 +154,7 @@
   },
   "@dotmix/sync": {
     "directoryName": "sync",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 1080963,
     "measuredGzipBytes": 275334,
     "measuredJavaScriptGzipBytes": 112350,
@@ -163,7 +163,7 @@
   },
   "@dotmix/vite-plugin": {
     "directoryName": "vite-plugin",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "measuredRawBytes": 20731,
     "measuredGzipBytes": 5554,
     "measuredJavaScriptGzipBytes": 2715,

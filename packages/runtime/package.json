@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/runtime",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Zero-dependency reactive runtime for compiled dotMix components",
   "files": [
     "dist",
@@ -60,7 +60,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@dotmix/diagnostics": "0.4.1"
+    "@dotmix/diagnostics": "0.4.2"
   },
   "license": "MIT"
 }

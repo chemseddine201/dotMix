@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Command-line interface for Mix/Tix framework",
   "files": [
     "dist",
@@ -22,15 +22,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@dotmix/compiler-frontend": "0.4.1",
-    "@dotmix/compiler-semantic": "0.4.1",
-    "@dotmix/compiler-codegen": "0.4.1",
-    "@dotmix/compiler-css": "0.4.1",
-    "@dotmix/compiler-ssr": "0.4.1",
-    "@dotmix/diagnostics": "0.4.1",
-    "@dotmix/router": "0.4.1",
-    "@dotmix/runtime": "0.4.1",
-    "@dotmix/vite-plugin": "0.4.1"
+    "@dotmix/compiler-frontend": "0.4.2",
+    "@dotmix/compiler-semantic": "0.4.2",
+    "@dotmix/compiler-codegen": "0.4.2",
+    "@dotmix/compiler-css": "0.4.2",
+    "@dotmix/compiler-ssr": "0.4.2",
+    "@dotmix/diagnostics": "0.4.2",
+    "@dotmix/router": "0.4.2",
+    "@dotmix/runtime": "0.4.2",
+    "@dotmix/vite-plugin": "0.4.2"
   },
   "license": "MIT"
 }

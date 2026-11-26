@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/compiler-css",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Scoped CSS compiler for dotMix components (:global, :deep, preprocessors)",
   "files": [
     "dist"
@@ -23,8 +23,8 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.4.1",
-    "@dotmix/ast": "0.4.1",
+    "@dotmix/diagnostics": "0.4.2",
+    "@dotmix/ast": "0.4.2",
     "css-tree": "3.1.0"
   },
   "peerDependencies": {

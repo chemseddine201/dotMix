@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/sync",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Local-First Offline-First Reactive CRDT State Sync Engine for Mix/Tix",
   "files": [
     "dist"
@@ -17,10 +17,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@dotmix/runtime": "0.4.1"
+    "@dotmix/runtime": "0.4.2"
   },
   "devDependencies": {
-    "@dotmix/diagnostics": "0.4.1"
+    "@dotmix/diagnostics": "0.4.2"
   },
   "license": "MIT"
 }

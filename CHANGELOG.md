@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.2] — 2026-11-26
+
+All `@dotmix/*` packages move to 0.4.2 together.
+
+### Fixed
+- Type narrowing now works the same in every branching form. `{elseif}`, `{else}`, `{case}` and `{default}` narrow like a TypeScript `if / else if / else` chain, in block mode and in component mode (`<If>/<ElseIf>/<Else>`, `<Switch>/<Case>/<Default>`), so the forms are interchangeable.
+- An identical diagnostic (same code, position and message) is reported once.
+
+### Changes from 0.4.1
+- A `{case}` value whose type has no overlap with the switch subject now reports `MIX_ERR_INVALID_PROP_TYPE` at the case value. This is the same check `{if s === v}` already does.
+
+### Known issues
+- When a `.tix` component body uses `import.meta` or a dynamic `import(...)` and the masked body has no top-level export, `ts.transpileModule` appends `export {};` inside the emitted component function, so SSR and the browser fail with `SyntaxError: Unexpected token 'export'`. Scheduled for the next gate.
+
+---
+
 ## [0.4.1] — 2026-11-25
 
 All `@dotmix/*` packages move to 0.4.1 together.

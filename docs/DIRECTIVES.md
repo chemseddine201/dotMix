@@ -65,7 +65,7 @@ Both modes lower to the **exact same Intermediate Representation (IR)** and emit
 
 ### 1.1 `if` / `elseif` / `else` (`<If>`, `<ElseIf>`, `<Else>`)
 
-Renders the first truthy branch; only the active branch is mounted in the DOM.
+Renders the first truthy branch; only the active branch is mounted in the DOM. Inside every `{elseif}`, `{else}`, `{case}` and `{default}` branch, types narrow exactly like a TypeScript `if / else if / else` chain, so the forms are interchangeable.
 
 **Block mode:**
 ```mix
@@ -145,7 +145,7 @@ Renders when `value` is `null`, `undefined`, `""`, an array of length `0`, a `Ma
 
 ## 2. Switch (`{switch}` / `<Switch>`, `<Case>`, `<Default>`)
 
-Tests cases in source order using `Object.is` (`is`) or truthiness (`condition`) with no fall-through. Without `on`, only condition cases are allowed.
+Tests cases in source order using `Object.is` (`is`) or truthiness (`condition`) with no fall-through. Without `on`, only condition cases are allowed. Inside every `{elseif}`, `{else}`, `{case}` and `{default}` branch, types narrow exactly like a TypeScript `if / else if / else` chain, so the forms are interchangeable. The type check compares with `===`; at runtime values match with `Object.is` (they differ only for `NaN` and `-0`).
 
 **Block mode:**
 ```mix

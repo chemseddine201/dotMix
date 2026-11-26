@@ -10,6 +10,7 @@ import type {
   ElementNode,
   ComponentCallNode,
   DynamicElementNode,
+  IfBlockNode,
   SourceSpan
 } from "@dotmix/ast";
 import { generateSourceMap } from "./sourcemap.js";
@@ -223,19 +224,25 @@ export function projectTypeScript(
           break;
         }
         case "IfBlock": {
-          const condStart = node.condition.start ?? node.span.start.offset;
-          appendInternal("  if (");
-          appendVerbatim(node.rawCondition, condStart);
-          appendInternal(") {\n");
-          emitTemplateChecks(node.consequent, inSvg);
-          appendInternal("  }\n");
-          if (node.alternate) {
-            if (Array.isArray(node.alternate)) {
+          let currentIf: IfBlockNode | null = node;
+          let isFirstBranch = true;
+          while (currentIf !== null) {
+            const condStart = currentIf.condition.start ?? currentIf.span.start.offset;
+            appendInternal(isFirstBranch ? "  if (" : "  else if (");
+            appendVerbatim(currentIf.rawCondition, condStart);
+            appendInternal(") {\n");
+            emitTemplateChecks(currentIf.consequent, inSvg);
+            appendInternal("  }\n");
+            isFirstBranch = false;
+            if (currentIf.alternate === null) {
+              currentIf = null;
+            } else if (Array.isArray(currentIf.alternate)) {
               appendInternal("  else {\n");
-              emitTemplateChecks(node.alternate, inSvg);
+              emitTemplateChecks(currentIf.alternate, inSvg);
               appendInternal("  }\n");
+              currentIf = null;
             } else {
-              emitTemplateChecks([node.alternate as TemplateNode], inSvg);
+              currentIf = currentIf.alternate as IfBlockNode;
             }
           }
           break;

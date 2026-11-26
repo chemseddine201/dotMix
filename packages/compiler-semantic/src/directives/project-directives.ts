@@ -2,7 +2,7 @@
  * @dotmix/compiler-semantic/directives/project-directives — Virtual TypeScript projection utilities for directive AST nodes.
  */
 
-import type { SourceSpan, TemplateNode } from "@dotmix/ast";
+import type { SourceSpan, SwitchBlockNode, TemplateNode } from "@dotmix/ast";
 import { projectAuthUserBinding } from "./project-auth.js";
 
 export interface AuthProviderExpr {
@@ -42,6 +42,52 @@ function emitScopedBody(
     callbacks.appendInternal("  }\n");
   } else {
     callbacks.emitTemplateChecks(nodes, inSvg);
+  }
+}
+
+function projectSwitchBlock(
+  node: SwitchBlockNode,
+  inSvg: boolean,
+  callbacks: ProjectionCallbacks,
+  startOf: (expr: { start?: number } | null | undefined) => number
+): void {
+  const subjectRaw = node.rawSubject;
+  const subjectStart = startOf(node.subject);
+  emitVoidExpr(callbacks, subjectRaw, subjectStart);
+
+  if (node.cases.length === 0) {
+    if (node.defaultBranch) {
+      callbacks.emitTemplateChecks(node.defaultBranch, inSvg);
+    }
+    return;
+  }
+
+  for (let caseIdx = 0; caseIdx < node.cases.length; caseIdx++) {
+    const caseBranch = node.cases[caseIdx]!;
+    callbacks.appendInternal(caseIdx === 0 ? "  if (" : "  else if (");
+    if (caseBranch.kind === "values" && subjectRaw && caseBranch.rawValues.length > 0) {
+      for (let valIdx = 0; valIdx < caseBranch.rawValues.length; valIdx++) {
+        if (valIdx > 0) callbacks.appendInternal(" || ");
+        callbacks.appendInternal("(");
+        callbacks.appendVerbatim(caseBranch.rawValues[valIdx]!, startOf(caseBranch.values[valIdx]));
+        callbacks.appendInternal(") === (");
+        callbacks.appendVerbatim(subjectRaw, subjectStart);
+        callbacks.appendInternal(")");
+      }
+    } else if (caseBranch.rawCondition) {
+      callbacks.appendVerbatim(caseBranch.rawCondition, startOf(caseBranch.condition));
+    } else {
+      callbacks.appendInternal("false");
+    }
+    callbacks.appendInternal(") {\n");
+    callbacks.emitTemplateChecks(caseBranch.body, inSvg);
+    callbacks.appendInternal("  }\n");
+  }
+
+  if (node.defaultBranch) {
+    callbacks.appendInternal("  else {\n");
+    callbacks.emitTemplateChecks(node.defaultBranch, inSvg);
+    callbacks.appendInternal("  }\n");
   }
 }
 
@@ -93,15 +139,7 @@ export function projectDirectiveTemplateNode(
       if (node.alternate) callbacks.emitTemplateChecks(node.alternate, inSvg);
       return true;
     case "SwitchBlock":
-      emitVoidExpr(callbacks, node.rawSubject, startOf(node.subject));
-      for (const caseBranch of node.cases) {
-        emitVoidExpr(callbacks, caseBranch.rawCondition, startOf(caseBranch.condition));
-        for (let idx = 0; idx < caseBranch.rawValues.length; idx++) {
-          emitVoidExpr(callbacks, caseBranch.rawValues[idx], startOf(caseBranch.values[idx]));
-        }
-        callbacks.emitTemplateChecks(caseBranch.body, inSvg);
-      }
-      if (node.defaultBranch) callbacks.emitTemplateChecks(node.defaultBranch, inSvg);
+      projectSwitchBlock(node, inSvg, callbacks, startOf);
       return true;
     case "EachExtBlock": {
       const indexName = node.indexIdentifier ?? "__idx";

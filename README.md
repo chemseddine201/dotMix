@@ -42,16 +42,16 @@ See [FEATURES.md](FEATURES.md) for details.
 
 ## Quick Start
 
-> **Status: release 0.4.1.** APIs may still evolve before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
+> **Status: release 0.4.2.** APIs may still evolve before 1.0. To work on the framework itself, build and test it from this repository (`npm install`, then `npm run build`, then `npm test`).
 
 ### 1. Scaffold a New Project
 
 ```bash
 # TypeScript with SCSS
-npx -p @dotmix/cli@0.4.1 mix create my-app --ts --scss
+npx -p @dotmix/cli@0.4.2 mix create my-app --ts --scss
 
 # Or plain JavaScript with CSS
-npx -p @dotmix/cli@0.4.1 mix create my-app --js --css
+npx -p @dotmix/cli@0.4.2 mix create my-app --js --css
 ```
 
 ### 2. Project Directory Structure
@@ -121,7 +121,7 @@ cd editors/vscode-mix
 npm run package
 
 # Install it, replacing any older version
-code --install-extension vscode-mix-0.4.1.vsix --force
+code --install-extension vscode-mix-0.4.2.vsix --force
 ```
 
 Then run **Developer: Reload Window** (Ctrl+Shift+P, or Cmd+Shift+P on macOS).
