@@ -83,7 +83,7 @@ DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
 ### 4.2 Parsing & Evaluation Semantics
 1. **Single Evaluation Rule (`D-105`):** The dynamic tag expression is evaluated **exactly once** when the dynamic element instance is created.
 2. **Attribute Preservation (`TECH-06`):** All static attributes, dynamic attributes, event listeners (`onClick={...}`, `on:click={...}`, `@click={...}`), refs, and directives on `<$tagName ...>` are preserved on `DynamicElementNode` and applied to the resolved element/component.
-3. **Token-Sequence Closing Tag Verification (`R-SYN-02`):** The closing tag expression in `</$tagName>` is compared against the opening tag expression in `<$tagName>` by **normalized token sequence (token type and value)** using the Acorn-TypeScript tokenizer while ignoring whitespace and comments. If the token sequences differ, the parser emits `MIX_ERR_UNCLOSED_TAG` with both opening and closing source spans.
+3. **Token-Sequence Closing Tag Verification (`R-SYN-02`):** The closing tag expression in `</$tagName>` is compared against the opening tag expression in `<$tagName>` by **normalized token sequence (token type and value)** using the TypeScript scanner-based tokenizer (`createTsTokenizer`) while ignoring whitespace and comments. If the token sequences differ, the parser emits `MIX_ERR_UNCLOSED_TAG` with both opening and closing source spans.
 4. **Closing Tag Non-Evaluation (`R-SYN-03`):** The closing tag expression serves strictly as a lexical delimiter; it is never evaluated at runtime, never emitted in generated code, and never type-checked independently.
 
 ---
@@ -91,23 +91,26 @@ DynamicCloseTag = "</$" , ( TagMemberPath | "{" , TSExpression , "}" ) , ">" ;
 ## 5. Embedded Expression Boundaries (`R-SYN-01`, `R-SYN-01a`, `R-SYN-01b`, `R-SYN-01c`)
 
 1. **Parser-Driven Boundary Detection (`R-SYN-01`):**
-   - The expression parser—not a naive brace-counting lexer—determines the end of every embedded JavaScript/TypeScript expression (`{expr}`, `attr={expr}`, `<$tagName>`, `{if expr}`, `{each (item, idx) in expr}`).
-   - At the start offset `s` of an embedded expression, `@dotmix/compiler-frontend` invokes:
+   - The TypeScript scanner and parser—not a naive brace-counting lexer—determine the end of every embedded JavaScript/TypeScript expression (`{expr}`, `attr={expr}`, `<$tagName>`, `{if expr}`, `{each (item, idx) in expr}`).
+   - At the start offset `s` of an embedded expression, `@dotmix/compiler-frontend` scans the expression boundary with `ts.createScanner(ts.ScriptTarget.Latest, true, ts.LanguageVariant.Standard)` (using `reScanSlashToken()` where an operand is expected and `reScanTemplateToken(false)` on template interpolation `}`) up to the expected delimiter (`}`, `}>`, `)`, or slice end), then parses the extracted slice in expression position:
      ```ts
-     const Parser = acorn.Parser.extend(tsPlugin());
-     const node = Parser.parseExpressionAt(source, s, {
-       ecmaVersion: "latest",
-       sourceType: "module",
-       locations: true,
-       preserveParens: true,
-     });
+     const wrapped = `void (${rawExpression})`;
+     const sf = ts.createSourceFile(
+       "expr.ts",
+       wrapped,
+       ts.ScriptTarget.Latest,
+       true,
+       ts.ScriptKind.TS
+     );
      ```
-   - After `node.end`, the scanner skips ASCII whitespace and JS comments (`//...`, `/*...*/`) and verifies that the immediately following character sequence matches the expected context delimiter (`}`, `}>`, `)`). Otherwise, it emits `MIX_ERR_PARSE_SYNTAX`.
-2. **Parenthesized Expressions (`R-SYN-01a`):** `preserveParens: true` is mandatory so expressions such as `{ ({ k: 1 }) }` include outer closing parentheses in `node.end`.
+   - Parse diagnostics, missing delimiters, or trailing tokens emit `MIX_ERR_PARSE_SYNTAX` at the token-snapped source offset. After `exprEndOffset`, only ASCII whitespace and JS comments (`//...`, `/*...*/`) may precede the expected closing delimiter (`}`, `}>`, `)`).
+2. **Parenthesized Expressions (`R-SYN-01a`):** Outer parentheses are preserved as `ParenthesizedExpression` nodes in the converted ESTree AST so expressions such as `{ ({ k: 1 }) }` include outer closing parentheses in `exprEndOffset`.
 3. **AST Representation (`R-SYN-01b`):** Parsed expressions are stored as structural, deeply frozen `ESTreeNode` trees with 1-based line/column and 0-based offset `SourceSpan` coordinates.
 4. **Markup in Expressions & Attribute Subtrees (`R-SYN-01c`, `D-132`, `D-133`):**
    - Arbitrary template markup tags inside general `{ ... }` expressions are forbidden (`R-SYN-01c`).
-   - JSX-style logical or conditional markup inside expressions (e.g. `{cond && <span>Hi</span>}`) is rejected with `MIX_ERR_JSX_LOGICAL_EXPRESSION` and a hint to use `{if cond}<span>Hi</span>{endif}` (`D-133` Option b).
+   - Token-based probing (`scanMarkupProbe` over TypeScript scanner tokens) inspects only real code tokens: text inside strings, template literals, comments, and regex literals is never treated as markup.
+   - Markup starting immediately after `&&`, `||`, `?`, or `:` (e.g. `{cond && <span>Hi</span>}`) is rejected with `MIX_ERR_JSX_LOGICAL_EXPRESSION` and a hint to use `{if cond}<span>Hi</span>{endif}` (`D-133` Option b).
+   - Anywhere else inside an expression, markup is rejected as a syntax error (`MIX_ERR_PARSE_SYNTAX`).
    - **Attribute Element & Fragment Expressions (`D-132`):** Attribute bindings of the form `attr={<Element ... />}` or `attr={<>...</>}` (e.g., `<Can fallback={<span class="denied">Read Only</span>}>` or `<Button icon={<Icon name="plus" />} />`) are parsed as a nested `TemplateNode[]` subtree (`DynamicAttributeNode.templateValue`) and compiled to a lazily-mounted render function.
 
 ---

@@ -2,7 +2,7 @@
 
 **Package:** `@dotmix/cli`  
 **Binaries:** `mix`, `dotmix`  
-**Architecture:** Built on Node.js 22+ built-in modules (`node:util.parseArgs`, `node:http`, `node:zlib`, `node:test`, `node:readline/promises`). Its only third-party code comes through the compiler packages: `typescript`, `acorn` (with `@sveltejs/acorn-typescript`) and `css-tree`.
+**Architecture:** Built on Node.js 22+ built-in modules (`node:util.parseArgs`, `node:http`, `node:zlib`, `node:test`, `node:readline/promises`). Its only third-party code comes through the compiler packages: `typescript` and `css-tree`.
 
 ---
 

@@ -2,7 +2,7 @@
  * @dotmix/compiler-frontend — Lexer, expression boundary parser, and template AST builder.
  *
  * Implements Phase canonical contracts:
- * - R-SYN-01 / R-SYN-01a: Acorn + `@sveltejs/acorn-typescript` `parseExpressionAt` with `preserveParens: true`
+ * - R-SYN-01 / R-SYN-01a: TypeScript scanner boundary + ts.createSourceFile expression parse (ts-parser/)
  * - R-SYN-02 / R-SYN-03 / TEC: `<{~expr}>...</{~expr}>` and `<{~expr} />` with preserved attributes and token-sequence verification
  * - TEC: PascalCase `<Component />` parsed into `ComponentCallNode`
  * - Control flow: `{#if ...}...{:else if ...}...{:else}...{/if}` and `{#each list as item, idx (key)}...{/each}`

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] — 2026-11-27
+
+All `@dotmix/*` packages move to 0.5.0 together.
+
+### Changed
+- `@dotmix/compiler-frontend` now uses TypeScript as its only parser. It is the same exact `typescript@6.0.3` that `@dotmix/compiler-semantic` already uses:
+  - the TypeScript scanner finds expression boundaries;
+  - the TypeScript parser reads expressions and `<script>` blocks;
+  - the result is converted to the same ESTree shape as before.
+- The public API is unchanged. The compiled output is unchanged (checked on every `.tix`/`.mix` file in the repository and on a real 53-page site).
+
+### Removed
+- Removed the dependencies `acorn` and `@sveltejs/acorn-typescript`.
+
+### Fixed
+- Valid expressions whose strings, template literals, comments or regex literals contain markup-like text (for example `{flag ? "</b>" : ""}`) no longer fail with `R-SYN-01c`. Markup is now detected on real code tokens only.
+
+### Changes from 0.4.2
+- Some syntax-error messages use TypeScript's wording (for example `')' expected.` instead of `Unexpected token`). The dotMix messages are unchanged: closing delimiter, trailing token, unterminated expression, JSX and markup.
+- An unterminated string, template, regular expression or comment is reported at its opening character.
+- A few other error positions move slightly. Diagnostic codes are unchanged.
+
+### Known issues
+- When a `.tix` component body uses `import.meta` or a dynamic `import(...)` and the masked body has no top-level export, `ts.transpileModule` appends `export {};` inside the emitted component function, so SSR and the browser fail with `SyntaxError: Unexpected token 'export'`. Scheduled for the next gate.
+
+---
+
 ## [0.4.2] — 2026-11-26
 
 All `@dotmix/*` packages move to 0.4.2 together.

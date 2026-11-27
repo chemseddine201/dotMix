@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/stream",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Resumable island streaming and progressive hydration for dotMix SSR",
   "files": [
     "dist"
@@ -26,11 +26,11 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@dotmix/runtime": "0.4.2",
-    "@dotmix/compiler-ssr": "0.4.2"
+    "@dotmix/runtime": "0.5.0",
+    "@dotmix/compiler-ssr": "0.5.0"
   },
   "devDependencies": {
-    "@dotmix/diagnostics": "0.4.2"
+    "@dotmix/diagnostics": "0.5.0"
   },
   "license": "MIT"
 }

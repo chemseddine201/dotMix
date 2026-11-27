@@ -42,16 +42,16 @@
 
 ## البدء السريع
 
-> **الحالة: الإصدار 0.4.2.** قد تتطور بعض الواجهات قبل 1.0. للعمل على الإطار نفسه، ابنِه واختبره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
+> **الحالة: الإصدار 0.5.0.** قد تتطور بعض الواجهات قبل 1.0. للعمل على الإطار نفسه، ابنِه واختبره من هذا المستودع (`npm install` ثم `npm run build` ثم `npm test`).
 
 ### 1. إنشاء مشروع جديد
 
 ```bash
 # مشروع بـ TypeScript و SCSS
-npx -p @dotmix/cli@0.4.2 mix create my-app --ts --scss
+npx -p @dotmix/cli@0.5.0 mix create my-app --ts --scss
 
 # أو JavaScript مع CSS عادي
-npx -p @dotmix/cli@0.4.2 mix create my-app --js --css
+npx -p @dotmix/cli@0.5.0 mix create my-app --js --css
 ```
 
 ### 2. الهيكلية المعمارية للمشروع
@@ -121,7 +121,7 @@ cd editors/vscode-mix
 npm run package
 
 # التثبيت مع استبدال أي إصدار أقدم
-code --install-extension vscode-mix-0.4.2.vsix --force
+code --install-extension vscode-mix-0.5.0.vsix --force
 ```
 
 ثم نفّذ **Developer: Reload Window** (Ctrl+Shift+P، أو Cmd+Shift+P على macOS).

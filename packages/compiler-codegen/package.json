@@ -1,6 +1,6 @@
 {
   "name": "@dotmix/compiler-codegen",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Ahead-of-time code generator that compiles dotMix components to direct DOM operations",
   "files": [
     "dist"
@@ -23,10 +23,10 @@
     }
   },
   "dependencies": {
-    "@dotmix/diagnostics": "0.4.2",
-    "@dotmix/ast": "0.4.2",
-    "@dotmix/compiler-semantic": "0.4.2",
-    "@dotmix/compiler-css": "0.4.2"
+    "@dotmix/diagnostics": "0.5.0",
+    "@dotmix/ast": "0.5.0",
+    "@dotmix/compiler-semantic": "0.5.0",
+    "@dotmix/compiler-css": "0.5.0"
   },
   "license": "MIT"
 }

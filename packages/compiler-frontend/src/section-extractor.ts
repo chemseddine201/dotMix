@@ -332,7 +332,7 @@ export function extractTopLevelSections(
       const blockEnd = closeTagStart + 9;
       const content = source.slice(contentStart, closeTagStart);
 
-      // Verify script syntax via Acorn-TypeScript
+      // Verify script syntax with the TypeScript parser
       parseScriptProgram(content, contentStart, lineMap);
 
       script = deepFreeze({

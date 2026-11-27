@@ -1,46 +1,20 @@
 /**
- * @dotmix/compiler-frontend/expression — Acorn + TypeScript expression parser & token comparator.
+ * @dotmix/compiler-frontend/expression — Expression parser & token comparator.
  *
  * Implements R-SYN-01, R-SYN-01a, R-SYN-01b, R-SYN-01c, and R-SYN-02 from spec/LANGUAGE.md.
  */
 
-import { Parser } from "acorn";
-import { tsPlugin } from "@sveltejs/acorn-typescript";
 import { deepFreeze } from "@dotmix/ast";
 import type { ESTreeNode } from "@dotmix/ast";
 import { MixDiagnosticError, DiagnosticCodes } from "@dotmix/diagnostics";
 import type { LineMap } from "./location.js";
-
-const TsParser = Parser.extend(
-  tsPlugin({ jsx: false }) as unknown as Parameters<typeof Parser.extend>[0]
-);
-
-export function createTsTokenizer(input: string): {
-  getToken(): { type: { label: string }; value: unknown; start: number; end: number };
-} {
-  return TsParser.tokenizer(input, {
-    ecmaVersion: "latest",
-    sourceType: "module"
-  }) as unknown as {
-    getToken(): { type: { label: string }; value: unknown; start: number; end: number };
-  };
-}
-
-interface AcornRawNode {
-  type: string;
-  start: number;
-  end: number;
-  [key: string]: unknown;
-}
-
-interface AcornToken {
-  type: {
-    label: string;
-  };
-  value: unknown;
-  start: number;
-  end: number;
-}
+import {
+  tsCreateTsTokenizer,
+  tsParseEmbeddedExpression,
+  tsParseExpressionSlice,
+  tsCompareExpressionTokens,
+  tsParseScriptProgram
+} from "./ts-parser/index.js";
 
 export interface ParsedExpressionResult {
   readonly expression: ESTreeNode;
@@ -48,6 +22,12 @@ export interface ParsedExpressionResult {
   readonly exprStartOffset: number;
   readonly exprEndOffset: number;
   readonly afterDelimiterOffset: number;
+}
+
+export function createTsTokenizer(input: string): {
+  getToken(): { type: { label: string }; value: unknown; start: number; end: number };
+} {
+  return tsCreateTsTokenizer(input);
 }
 
 function throwSyntaxDiagnostic(
@@ -113,7 +93,7 @@ export function skipJsWhitespaceAndComments(
 }
 
 /**
- * Converts an Acorn AST node into a deeply frozen structural ESTreeNode with exact SourceSpan coordinates.
+ * Converts an Acorn-shaped AST node into a deeply frozen structural ESTreeNode with exact SourceSpan coordinates.
  */
 export function convertAcornNodeToESTree(
   raw: unknown,
@@ -166,8 +146,8 @@ export function convertAcornNodeToESTree(
 }
 
 /**
- * R-SYN-01 & R-SYN-01a: Parses an embedded TS/JS expression starting at `startOffset` using
- * `Parser.parseExpressionAt` with `preserveParens: true`, then verifies the expected closing delimiter.
+ * R-SYN-01 & R-SYN-01a: Parses an embedded TS/JS expression starting at `startOffset`
+ * with `preserveParens` behavior, then verifies the expected closing delimiter.
  */
 export function parseEmbeddedExpression(
   source: string,
@@ -176,109 +156,7 @@ export function parseEmbeddedExpression(
   lineMap: LineMap,
   limitOffset: number = source.length
 ): ParsedExpressionResult {
-  const exprStart = skipJsWhitespaceAndComments(source, startOffset, lineMap, limitOffset);
-
-  if (
-    exprStart >= limitOffset ||
-    (expectedClosingDelimiter.length > 0 &&
-      source.startsWith(expectedClosingDelimiter, exprStart))
-  ) {
-    throwSyntaxDiagnostic(
-      "Embedded expression cannot be empty.",
-      lineMap,
-      startOffset,
-      Math.min(limitOffset, exprStart + expectedClosingDelimiter.length)
-    );
-  }
-
-  // R-SYN-01c: Check for obvious HTML/template closing tag or markup inside expression
-  let rawNode: AcornRawNode;
-  try {
-    rawNode = TsParser.parseExpressionAt(source, exprStart, {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      locations: true,
-      preserveParens: true
-    }) as unknown as AcornRawNode;
-  } catch (err: unknown) {
-    const pos =
-      typeof err === "object" && err !== null && "pos" in err && typeof (err as { pos: unknown }).pos === "number"
-        ? (err as { pos: number }).pos
-        : exprStart;
-    // (Option b): Detect JSX-style logical/conditional markup `{cond && <el/>}` or `{cond ? <a/> : <b/>}`
-    const probeSlice = source.slice(exprStart, Math.min(limitOffset, exprStart + 300));
-    if (/(?:&&|\|\||\?|:)\s*<(?:[A-Za-z$]|\/)/.test(probeSlice)) {
-      throw new MixDiagnosticError({
-        code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
-        message:
-          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
-        severity: "error",
-        span: lineMap.span(exprStart, Math.min(limitOffset, pos + 1))
-      });
-    }
-    const msg = err instanceof Error ? err.message : "Invalid expression syntax";
-    throwSyntaxDiagnostic(`Invalid expression syntax: ${msg}`, lineMap, pos, pos + 1);
-  }
-
-  if (rawNode.end > limitOffset) {
-    throwSyntaxDiagnostic(
-      `Unterminated expression: expected '${expectedClosingDelimiter}'.`,
-      lineMap,
-      exprStart,
-      limitOffset
-    );
-  }
-
-  const afterExpr = skipJsWhitespaceAndComments(source, rawNode.end, lineMap, limitOffset);
-  if (!source.startsWith(expectedClosingDelimiter, afterExpr)) {
-    const probeSlice = source.slice(exprStart, Math.min(limitOffset, afterExpr + 100));
-    if (/(?:&&|\|\||\?|:)\s*<(?:[A-Za-z$]|\/)/.test(probeSlice)) {
-      throw new MixDiagnosticError({
-        code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
-        message:
-          "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
-        severity: "error",
-        span: lineMap.span(exprStart, Math.min(limitOffset, afterExpr + 1))
-      });
-    }
-    throwSyntaxDiagnostic(
-      `Expected closing delimiter '${expectedClosingDelimiter}' after expression, but found '${source.slice(afterExpr, afterExpr + 10)}'.`,
-      lineMap,
-      afterExpr,
-      Math.min(limitOffset, afterExpr + Math.max(1, expectedClosingDelimiter.length))
-    );
-  }
-
-  const rawExpression = source.slice(exprStart, rawNode.end);
-  // (Option b): Reject JSX logical/conditional markup that Acorn parsed as comparison/type-assertion
-  if (/(?:&&|\|\||\?|:)\s*<(?:[A-Za-z$]|\/)/.test(rawExpression)) {
-    throw new MixDiagnosticError({
-      code: DiagnosticCodes.MIX_ERR_JSX_LOGICAL_EXPRESSION,
-      message:
-        "JSX-style inline markup in expressions (e.g. '{cond && <Element />}') is not supported in Mix/Tix templates. Use '{if cond}<Element />{endif}' instead.",
-      severity: "error",
-      span: lineMap.span(exprStart, rawNode.end)
-    });
-  }
-  // R-SYN-01c: Reject closing HTML tags like `</tag>` that might have been misparsed as regex/comparison
-  if (/<\/[A-Za-z]/.test(rawExpression)) {
-    throwSyntaxDiagnostic(
-      "Template markup tags are not allowed inside embedded expressions (R-SYN-01c).",
-      lineMap,
-      exprStart,
-      rawNode.end
-    );
-  }
-
-  const expression = convertAcornNodeToESTree(rawNode, lineMap, 0);
-
-  return {
-    expression,
-    rawExpression,
-    exprStartOffset: exprStart,
-    exprEndOffset: rawNode.end,
-    afterDelimiterOffset: afterExpr + expectedClosingDelimiter.length
-  };
+  return tsParseEmbeddedExpression(source, startOffset, expectedClosingDelimiter, lineMap, limitOffset);
 }
 
 /**
@@ -290,78 +168,15 @@ export function parseExpressionSlice(
   baseOffset: number,
   lineMap: LineMap
 ): ESTreeNode {
-  const result = parseEmbeddedExpression(
-    exprSlice,
-    0,
-    "",
-    lineMap,
-    exprSlice.length
-  );
-  const afterTrim = skipJsWhitespaceAndComments(
-    exprSlice,
-    result.exprEndOffset,
-    lineMap,
-    exprSlice.length
-  );
-  if (afterTrim !== exprSlice.length) {
-    throwSyntaxDiagnostic(
-      `Unexpected trailing token in expression at '${exprSlice.slice(afterTrim)}'.`,
-      lineMap,
-      baseOffset + afterTrim,
-      baseOffset + exprSlice.length
-    );
-  }
-  const rawNode = TsParser.parseExpressionAt(exprSlice, result.exprStartOffset, {
-    ecmaVersion: "latest",
-    sourceType: "module",
-    locations: true,
-    preserveParens: true
-  });
-  return convertAcornNodeToESTree(rawNode, lineMap, baseOffset);
+  return tsParseExpressionSlice(exprSlice, baseOffset, lineMap);
 }
 
 /**
  * R-SYN-02: Compares two expression strings by their normalized token sequence (type + value/slice),
- * ignoring whitespace and comments, using the Acorn-TypeScript tokenizer.
+ * ignoring whitespace and comments.
  */
 export function compareExpressionTokens(exprA: string, exprB: string): boolean {
-  function tokenize(input: string): Array<{ type: string; text: string }> | null {
-    try {
-      const tokenizer = TsParser.tokenizer(input, {
-        ecmaVersion: "latest",
-        sourceType: "module"
-      }) as unknown as { getToken(): AcornToken };
-      const tokens: Array<{ type: string; text: string }> = [];
-      while (true) {
-        const tok = tokenizer.getToken();
-        if (tok.type.label === "eof") {
-          break;
-        }
-        const rawText = input.slice(tok.start, tok.end);
-        tokens.push({
-          type: tok.type.label,
-          text: tok.value !== undefined ? String(tok.value) : rawText
-        });
-      }
-      return tokens;
-    } catch {
-      return null;
-    }
-  }
-
-  const tokensA = tokenize(exprA);
-  const tokensB = tokenize(exprB);
-  if (!tokensA || !tokensB || tokensA.length !== tokensB.length) {
-    return false;
-  }
-  for (let i = 0; i < tokensA.length; i++) {
-    const a = tokensA[i]!;
-    const b = tokensB[i]!;
-    if (a.type !== b.type || a.text !== b.text) {
-      return false;
-    }
-  }
-  return true;
+  return tsCompareExpressionTokens(exprA, exprB);
 }
 
 /**
@@ -372,20 +187,5 @@ export function parseScriptProgram(
   baseOffset: number,
   lineMap: LineMap
 ): ESTreeNode {
-  try {
-    const rawProgram = TsParser.parse(scriptContent, {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      locations: true,
-      preserveParens: true
-    });
-    return convertAcornNodeToESTree(rawProgram, lineMap, baseOffset);
-  } catch (err: unknown) {
-    const pos =
-      typeof err === "object" && err !== null && "pos" in err && typeof (err as { pos: unknown }).pos === "number"
-        ? baseOffset + (err as { pos: number }).pos
-        : baseOffset;
-    const msg = err instanceof Error ? err.message : "Invalid script syntax";
-    throwSyntaxDiagnostic(`Script syntax error: ${msg}`, lineMap, pos, pos + 1);
-  }
+  return tsParseScriptProgram(scriptContent, baseOffset, lineMap);
 }

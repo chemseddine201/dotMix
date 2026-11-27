@@ -6,7 +6,7 @@ import os from "node:os";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { URL, fileURLToPath } from "node:url";
-import * as acorn from "acorn";
+import ts from "typescript";
 import * as csstree from "css-tree";
 import { Window } from "happy-dom";
 import { register } from "node:module";
@@ -85,34 +85,31 @@ function resolveWorkspaceExport(specifier) {
 }
 
 function extractModuleSpecifiers(jsCode, filePath) {
-  let ast;
-  try {
-    ast = acorn.parse(jsCode, { ecmaVersion: "latest", sourceType: "module" });
-  } catch (err) {
-    throw new Error(`Failed to parse emitted JS ${filePath} as valid ES module: ${err.message}`);
+  const sf = ts.createSourceFile(filePath, jsCode, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (sf.parseDiagnostics && sf.parseDiagnostics.length > 0) {
+    const firstMsg = ts.flattenDiagnosticMessageText(sf.parseDiagnostics[0].messageText, " ");
+    throw new Error(`Failed to parse emitted JS ${filePath} as valid ES module: ${firstMsg}`);
   }
   const specifiers = [];
   function walk(node) {
-    if (!node || typeof node !== "object") return;
     if (
-      (node.type === "ImportDeclaration" ||
-        node.type === "ExportNamedDeclaration" ||
-        node.type === "ExportAllDeclaration") &&
-      node.source &&
-      typeof node.source.value === "string"
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      specifiers.push(node.source.value);
+      specifiers.push(node.moduleSpecifier.text);
     }
-    if (node.type === "ImportExpression" && node.source?.type === "Literal" && typeof node.source.value === "string") {
-      specifiers.push(node.source.value);
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length >= 1 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifiers.push(node.arguments[0].text);
     }
-    for (const key of Object.keys(node)) {
-      const val = node[key];
-      if (Array.isArray(val)) val.forEach(walk);
-      else if (val && typeof val === "object") walk(val);
-    }
+    ts.forEachChild(node, walk);
   }
-  walk(ast);
+  walk(sf);
   return specifiers;
 }
 
